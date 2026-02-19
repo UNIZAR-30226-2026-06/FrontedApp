@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
+import '../screens/tienda_screen.dart';
 
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
@@ -27,6 +28,16 @@ class HomeViewModel extends ChangeNotifier {
   void onTapAction(BuildContext context, String destino) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Ir a: $destino (pendiente)')),
+    );
+  }
+
+  /// ✅ Navegación real a Tienda (sin fork, sin nada raro)
+  void openTienda(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TiendaScreen(jugador: jugador),
+      ),
     );
   }
 }

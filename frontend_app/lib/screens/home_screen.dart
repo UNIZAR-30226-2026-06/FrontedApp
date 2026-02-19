@@ -185,13 +185,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             const SizedBox(height: 14),
 
-                            // Menú inferior: siempre visible y con espacio
+                            // ✅ Menú inferior: Tienda navega a TiendaScreen
                             _BottomMenu(
                               currentIndex: vm.bottomIndex,
                               onTap: (i) {
                                 vm.selectBottomTab(i);
                                 if (i == 0) vm.onTapAction(context, 'amigos');
-                                if (i == 1) vm.onTapAction(context, 'tienda');
+                                if (i == 1) vm.openTienda(context); // ✅ AQUÍ
                                 if (i == 2) vm.onTapAction(context, 'perfil');
                               },
                             ),
@@ -295,7 +295,6 @@ class _ModeCard extends StatelessWidget {
   final VoidCallback onPublic;
   final VoidCallback onPrivate;
 
-  // Compacto para móvil
   final bool compact;
 
   const _ModeCard({
