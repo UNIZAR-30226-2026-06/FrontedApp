@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/jugador_model.dart';
+import '../viewmodels/home_viewmodel.dart';
 
 class HomeScreen extends StatefulWidget {
   final String playerName;
@@ -15,175 +17,193 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Para el “menú inferior” (Amigos / Tienda / Perfil)
-  int _bottomIndex = 0;
+  late final HomeViewModel vm;
 
-  // Placeholder: aquí en el futuro harás Navigator.push(...)
-  void _openFutureScreen(String routeName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ir a: $routeName (pendiente)')),
+  @override
+  void initState() {
+    super.initState();
+    vm = HomeViewModel(
+      jugadorInicial: Jugador(nombre: widget.playerName, coins: widget.coins),
     );
   }
 
   @override
+  void dispose() {
+    vm.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Colores aproximados a la imagen
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const card = Color(0xFF2A316B);
 
+    final size = MediaQuery.sizeOf(context);
+
+    // Ajustes responsive (móvil vs tablet)
+    final bool isSmall = size.height < 500 || size.width < 380;
+
+    final titleSize = isSmall ? 26.0 : 30.0;
+    final subtitleSize = isSmall ? 12.0 : 13.0;
+
+    // Altura reservada para la fila de tarjetas (evita que se “aplasten”)
+    final cardsHeight = isSmall ? 165.0 : 190.0;
+
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Column(
-            children: [
-              // TOP BAR: Logo + monedas + jugador
-              Row(
+        child: AnimatedBuilder(
+          animation: vm,
+          builder: (context, _) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
                 children: [
-                  _Logo(),
-                  const Spacer(),
-                  _Pill(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.attach_money, size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.coins.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    background: const Color(0xFFF4C542),
-                    foreground: Colors.black,
-                  ),
-                  const SizedBox(width: 10),
-                  _Pill(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person, size: 18),
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.playerName,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    background: const Color(0xFF7E8AA3),
-                    foreground: Colors.black,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 18),
-
-              // Panel principal
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: panel,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-                  child: Column(
+                  // TOP BAR
+                  Row(
                     children: [
-                      const SizedBox(height: 6),
-                      const Text(
-                        '¡Bienvenido!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Elige un modo de juego para empezar',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // “Carrusel” con flechas laterales + dos tarjetas
-                      Expanded(
+                      const _Logo(),
+                      const Spacer(),
+                      _Pill(
+                        background: const Color(0xFFF4C542),
+                        foreground: Colors.black,
                         child: Row(
                           children: [
-                            _ArrowButton(
-                              onTap: () {
-                                // En el futuro: mover carrusel
-                              },
-                              icon: Icons.chevron_left,
+                            const Icon(Icons.attach_money, size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              vm.jugador.coins.toString(),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            const SizedBox(width: 10),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _Pill(
+                        background: const Color(0xFF7E8AA3),
+                        foreground: Colors.black,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person, size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              vm.jugador.nombre,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
 
-                            Expanded(
+                  const SizedBox(height: 12),
+
+                  // Panel principal con scroll por si no cabe
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: panel,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            // Título más arriba y más pequeño
+                            Text(
+                              '¡Bienvenido!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: titleSize,
+                                fontWeight: FontWeight.w800,
+                                height: 1.05,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Elige un modo de juego para empezar',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: subtitleSize,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Zona tarjetas con altura fija para que NO se aplasten
+                            SizedBox(
+                              height: cardsHeight,
                               child: Row(
                                 children: [
+                                  _ArrowButton(
+                                    icon: Icons.chevron_left,
+                                    onTap: () {},
+                                  ),
+                                  const SizedBox(width: 10),
+
                                   Expanded(
-                                    child: _ModeCard(
-                                      background: card,
-                                      title: 'Modo con roles',
-                                      icon: Icons.theater_comedy,
-                                      description:
-                                          'Cada jugador recibe un rol\nespecial con habilidades únicas',
-                                      onPublic: () => _openFutureScreen(
-                                          'roles_publica'),
-                                      onPrivate: () => _openFutureScreen(
-                                          'roles_privada'),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: _ModeCard(
+                                            compact: true,
+                                            background: card,
+                                            title: 'Modo con roles',
+                                            icon: Icons.theater_comedy,
+                                            description:
+                                            'Cada jugador recibe un rol\nespecial con habilidades únicas',
+                                            onPublic: () => vm.onTapAction(context, 'roles_publica'),
+                                            onPrivate: () => vm.onTapAction(context, 'roles_privada'),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _ModeCard(
+                                            compact: true,
+                                            background: card,
+                                            title: 'Modo cartas',
+                                            icon: Icons.flash_on,
+                                            description:
+                                            'Nuevas cartas que modifican las\nreglas del juego',
+                                            onPublic: () => vm.onTapAction(context, 'cartas_publica'),
+                                            onPrivate: () => vm.onTapAction(context, 'cartas_privada'),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: _ModeCard(
-                                      background: card,
-                                      title: 'Modo cartas',
-                                      icon: Icons.flash_on,
-                                      description:
-                                          'Nuevas cartas que modifican las\nreglas del juego',
-                                      onPublic: () => _openFutureScreen(
-                                          'cartas_publica'),
-                                      onPrivate: () => _openFutureScreen(
-                                          'cartas_privada'),
-                                    ),
+
+                                  const SizedBox(width: 10),
+                                  _ArrowButton(
+                                    icon: Icons.chevron_right,
+                                    onTap: () {},
                                   ),
                                 ],
                               ),
                             ),
 
-                            const SizedBox(width: 10),
-                            _ArrowButton(
-                              onTap: () {
-                                // En el futuro: mover carrusel
+                            const SizedBox(height: 14),
+
+                            // Menú inferior: siempre visible y con espacio
+                            _BottomMenu(
+                              currentIndex: vm.bottomIndex,
+                              onTap: (i) {
+                                vm.selectBottomTab(i);
+                                if (i == 0) vm.onTapAction(context, 'amigos');
+                                if (i == 1) vm.onTapAction(context, 'tienda');
+                                if (i == 2) vm.onTapAction(context, 'perfil');
                               },
-                              icon: Icons.chevron_right,
                             ),
                           ],
                         ),
                       ),
-
-                      const SizedBox(height: 14),
-
-                      // Bottom “botones” Amigos / Tienda / Perfil
-                      _BottomMenu(
-                        currentIndex: _bottomIndex,
-                        onTap: (i) {
-                          setState(() => _bottomIndex = i);
-
-                          if (i == 0) _openFutureScreen('amigos');
-                          if (i == 1) _openFutureScreen('tienda');
-                          if (i == 2) _openFutureScreen('perfil');
-                        },
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -191,24 +211,21 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _Logo extends StatelessWidget {
+  const _Logo();
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: Colors.transparent,
-      ),
+    return SizedBox(
+      width: 44,
+      height: 44,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: Image.asset(
           'assets/images/logo.png',
           fit: BoxFit.cover,
-          // Si aún no tienes logo, no crashea: muestra un icono.
           errorBuilder: (context, error, stack) => Container(
             color: const Color(0xFF1F2454),
-            child: const Icon(Icons.image, color: Colors.white70),
+            child: const Icon(Icons.image, color: Colors.white70, size: 20),
           ),
         ),
       ),
@@ -230,7 +247,7 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(14),
@@ -258,13 +275,13 @@ class _ArrowButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        width: 36,
-        height: 120,
+        width: 34,
+        height: double.infinity,
         decoration: BoxDecoration(
           color: const Color(0xFF263064),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Icon(icon, color: Colors.white70, size: 28),
+        child: Icon(icon, color: Colors.white70, size: 26),
       ),
     );
   }
@@ -278,6 +295,9 @@ class _ModeCard extends StatelessWidget {
   final VoidCallback onPublic;
   final VoidCallback onPrivate;
 
+  // Compacto para móvil
+  final bool compact;
+
   const _ModeCard({
     required this.background,
     required this.title,
@@ -285,12 +305,18 @@ class _ModeCard extends StatelessWidget {
     required this.icon,
     required this.onPublic,
     required this.onPrivate,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final pad = compact ? 12.0 : 14.0;
+    final titleSize = compact ? 14.0 : 16.0;
+    final descSize = compact ? 11.0 : 12.5;
+    final btnH = compact ? 34.0 : 40.0;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      padding: EdgeInsets.fromLTRB(pad, pad, pad, pad),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(18),
@@ -300,27 +326,28 @@ class _ModeCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.white, size: 22),
-              const SizedBox(width: 10),
+              Icon(icon, color: Colors.white, size: compact ? 18 : 22),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: titleSize,
                     fontWeight: FontWeight.w800,
+                    height: 1.1,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             description,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white70,
-              fontSize: 12.5,
-              height: 1.2,
+              fontSize: descSize,
+              height: 1.15,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -329,6 +356,7 @@ class _ModeCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _ActionButton(
+                  height: btnH,
                   label: 'Partida pública',
                   background: const Color(0xFF53D86A),
                   foreground: Colors.black,
@@ -338,6 +366,7 @@ class _ModeCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: _ActionButton(
+                  height: btnH,
                   label: 'Partida privada',
                   background: const Color(0xFF2F6BFF),
                   foreground: Colors.white,
@@ -357,12 +386,14 @@ class _ActionButton extends StatelessWidget {
   final Color background;
   final Color foreground;
   final VoidCallback onTap;
+  final double height;
 
   const _ActionButton({
     required this.label,
     required this.background,
     required this.foreground,
     required this.onTap,
+    required this.height,
   });
 
   @override
@@ -371,7 +402,7 @@ class _ActionButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        height: height,
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(14),
@@ -381,7 +412,7 @@ class _ActionButton extends StatelessWidget {
             label,
             style: TextStyle(
               color: foreground,
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
           ),
