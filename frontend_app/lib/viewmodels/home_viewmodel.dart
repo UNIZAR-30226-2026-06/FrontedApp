@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
 import '../screens/tienda_screen.dart';
+import '../screens/perfil_screen.dart';
 
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
@@ -13,7 +14,6 @@ class HomeViewModel extends ChangeNotifier {
   int _bottomIndex = 0;
   int get bottomIndex => _bottomIndex;
 
-  // En el futuro podrás cargarlo desde backend / storage
   void setJugador(Jugador nuevo) {
     _jugador = nuevo;
     notifyListeners();
@@ -24,14 +24,12 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Placeholder de navegación: lo dejamos “abierto”
   void onTapAction(BuildContext context, String destino) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Ir a: $destino (pendiente)')),
     );
   }
 
-  /// ✅ Navegación real a Tienda (sin fork, sin nada raro)
   void openTienda(BuildContext context) {
     Navigator.push(
       context,
@@ -39,5 +37,19 @@ class HomeViewModel extends ChangeNotifier {
         builder: (_) => TiendaScreen(jugador: jugador),
       ),
     );
+  }
+
+  /// ✅ PERFIL: abre pantalla y si vuelve con Jugador actualizado, lo guarda
+  Future<void> openPerfil(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PerfilScreen(jugador: jugador),
+      ),
+    );
+
+    if (result is Jugador) {
+      setJugador(result);
+    }
   }
 }

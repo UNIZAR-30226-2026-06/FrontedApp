@@ -22,8 +22,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // ✅ Ahora Jugador incluye avatarId y skinId (con defaults)
     vm = HomeViewModel(
-      jugadorInicial: Jugador(nombre: widget.playerName, coins: widget.coins),
+      jugadorInicial: Jugador(
+        nombre: widget.playerName,
+        coins: widget.coins,
+        avatarId: 'a0',
+        skinId: 's1',
+      ),
     );
   }
 
@@ -31,6 +38,21 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     vm.dispose();
     super.dispose();
+  }
+
+  // ✅ Mapa rápido avatarId -> emoji (puedes sustituir por assets)
+  String _avatarEmoji(String avatarId) {
+    switch (avatarId) {
+      case 'a1':
+        return '🤖';
+      case 'a2':
+        return '🤠';
+      case 'a3':
+        return '😈';
+      case 'a0':
+      default:
+        return '👤';
+    }
   }
 
   @override
@@ -41,13 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final size = MediaQuery.sizeOf(context);
 
-    // Ajustes responsive (móvil vs tablet)
     final bool isSmall = size.height < 500 || size.width < 380;
 
     final titleSize = isSmall ? 26.0 : 30.0;
     final subtitleSize = isSmall ? 12.0 : 13.0;
-
-    // Altura reservada para la fila de tarjetas (evita que se “aplasten”)
     final cardsHeight = isSmall ? 165.0 : 190.0;
 
     return Scaffold(
@@ -63,7 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   // TOP BAR
                   Row(
                     children: [
-                      const _Logo(),
+                      // ✅ Avatar actual del jugador (en vez de logo fijo)
+                      _AvatarBubble(emoji: _avatarEmoji(vm.jugador.avatarId)),
                       const Spacer(),
                       _Pill(
                         background: const Color(0xFFF4C542),
@@ -99,7 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Panel principal con scroll por si no cabe
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -110,7 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            // Título más arriba y más pequeño
                             Text(
                               '¡Bienvenido!',
                               style: TextStyle(
@@ -131,7 +149,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 14),
 
-                            // Zona tarjetas con altura fija para que NO se aplasten
                             SizedBox(
                               height: cardsHeight,
                               child: Row(
@@ -185,14 +202,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             const SizedBox(height: 14),
 
-                            // ✅ Menú inferior: Tienda navega a TiendaScreen
                             _BottomMenu(
                               currentIndex: vm.bottomIndex,
                               onTap: (i) {
                                 vm.selectBottomTab(i);
                                 if (i == 0) vm.onTapAction(context, 'amigos');
-                                if (i == 1) vm.openTienda(context); // ✅ AQUÍ
-                                if (i == 2) vm.onTapAction(context, 'perfil');
+                                if (i == 1) vm.openTienda(context);
+                                if (i == 2) vm.openPerfil(context); // ✅ AQUÍ
                               },
                             ),
                           ],
@@ -210,24 +226,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _Logo extends StatelessWidget {
-  const _Logo();
+class _AvatarBubble extends StatelessWidget {
+  final String emoji;
+  const _AvatarBubble({required this.emoji});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: 44,
       height: 44,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(
-          'assets/images/logo.png',
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stack) => Container(
-            color: const Color(0xFF1F2454),
-            child: const Icon(Icons.image, color: Colors.white70, size: 20),
-          ),
-        ),
+      decoration: const BoxDecoration(
+        color: Color(0xFF263064),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(emoji, style: const TextStyle(fontSize: 24)),
       ),
     );
   }
@@ -294,7 +307,6 @@ class _ModeCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPublic;
   final VoidCallback onPrivate;
-
   final bool compact;
 
   const _ModeCard({
