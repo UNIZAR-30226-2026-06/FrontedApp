@@ -1,106 +1,140 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/registro_viewmodel.dart';
 
-class RegistroView extends StatelessWidget {
+class RegistroView extends StatefulWidget {
   const RegistroView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Instanciamos el ViewModel
-    final viewModel = RegisterViewmodel();
+  State<RegistroView> createState() => _RegistroViewState();
+}
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5), // El fondo gris de Figma
-      body: Center(
-        child: Container(
-          width: 900,
-          height: 600,
-          clipBehavior: Clip.antiAlias, 
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1F3D), 
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              )
-            ],
-          ),
-          child: Row(
+class _RegistroViewState extends State<RegistroView> {
+  // 1. Definimos el ViewModel. Usamos 'late' porque se inicializa en el initState.
+  late final RegistroViewModel vm;
+
+  @override
+  void initState() {
+    super.initState();
+    // 2. Aquí nace la conexión. La vista crea su ViewModel al arrancar.
+    vm = RegistroViewModel();
+  }
+
+  @override
+  void dispose() {
+    // 3. Importante: Limpiamos los controladores al cerrar la pantalla para no gastar memoria.
+    vm.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 4. El 'ListenableBuilder' es el "Oidor". Si el VM dice notifyListeners(), esto se redibuja.
+    return ListenableBuilder(
+      listenable: vm,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFF1A1F3D), // Tu azul oscuro
+          body: Row(
             children: [
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/imagenRegistro.jpg'), 
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
+              // COLUMNA IZQUIERDA: EL ZORRO (Widget privado abajo)
+              const Expanded(
+                child: _SeccionLogoZorro(),
               ),
-              // COLUMNA DERECHA: EL FORMULARIO
+
+              // COLUMNA DERECHA: EL FORMULARIO (Widget privado abajo)
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Únete a la arena',
-                        style: TextStyle(
-                          color: Colors.yellow,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Text(
-                        'Crea una cuenta',
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                      const SizedBox(height: 30),
-                      
-                      _buildInput(label: "Nombre usuario", controller: viewModel.nombreController),
-                      _buildInput(label: "Email", controller: viewModel.emailController),
-                      _buildInput(label: "Contraseña", controller: viewModel.passwordController, isSecret: true),
-                      _buildInput(label: "Confirmar contraseña", controller: viewModel.confirmarpasswordController, isSecret: true),
-                      
-                      const SizedBox(height: 20),
-                      
-                      ElevatedButton(
-                        onPressed: () => viewModel.registrarUsuario(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          minimumSize: const Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text('¡A JUGAR!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ),
+                child: _FormularioRegistro(vm: vm),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+
+class _SeccionLogoZorro extends StatelessWidget {
+  const _SeccionLogoZorro();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: NetworkImage('https://via.placeholder.com/500'), // Placeholder temporal
+          fit: BoxFit.contain,
         ),
       ),
     );
   }
+}
 
-  // Método auxiliar para no repetir código de diseño de los inputs
+class _FormularioRegistro extends StatelessWidget {
+  final RegistroViewModel vm;
+  const _FormularioRegistro({required this.vm});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            '¡ÚNETE A LA ARENA!',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 40),
+
+          _buildInput(label: "Nombre de usuario", controller: vm.usuarioController),
+          _buildInput(label: "Email", controller: vm.emailController),
+          _buildInput(label: "Contraseña", controller: vm.passwordController, isSecret: true),
+
+          const SizedBox(height: 30),
+
+          ElevatedButton(
+            onPressed: () {
+              print("Intentando registrar a: ${vm.usuarioController.text}");
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              minimumSize: const Size(200, 60),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              elevation: 5,
+            ),
+            child: const Text(
+              '¡A JUGAR!',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInput({required String label, required TextEditingController controller, bool isSecret = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: TextField(
-        controller: controller,
-        obscureText: isSecret,
-        decoration: InputDecoration(
-          hintText: label,
-          filled: true,
-          fillColor: const Color(0xFFD9D9D9),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
+      padding: const EdgeInsets.only(bottom: 20),
+      child: SizedBox(
+        width: 400,
+        child: TextField(
+          controller: controller,
+          obscureText: isSecret,
+          style: const TextStyle(fontSize: 18, color: Colors.black),
+          decoration: InputDecoration(
+            hintText: label,
+            filled: true,
+            fillColor: const Color(0xFFF0F0F0),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
       ),

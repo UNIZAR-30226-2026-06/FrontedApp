@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../viewmodels/recuperar_password_viewmodel.dart';
+import '../viewmodels/recuperarPassword_viewmodel.dart';
 
 class RecuperarPasswordView extends StatefulWidget {
   const RecuperarPasswordView({super.key});
@@ -17,7 +17,7 @@ class _RecuperarPasswordViewState extends State<RecuperarPasswordView> {
     vm = RecuperarPasswordViewModel();
   }
 
-  @override
+  @overridex
   void dispose() {
     vm.dispose();
     super.dispose();
