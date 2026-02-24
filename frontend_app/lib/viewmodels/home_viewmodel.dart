@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
 import '../screens/tienda_screen.dart';
 import '../screens/perfil_screen.dart';
+import '../screens/amigos_screen.dart'; // ✅ NUEVO
 
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
@@ -45,6 +46,20 @@ class HomeViewModel extends ChangeNotifier {
       context,
       MaterialPageRoute(
         builder: (_) => PerfilScreen(jugador: jugador),
+      ),
+    );
+
+    if (result is Jugador) {
+      setJugador(result);
+    }
+  }
+
+  /// ✅ AMIGOS: abre pantalla y si vuelve con Jugador actualizado (friendIds/requestIds), lo guarda
+  Future<void> openAmigos(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AmigosScreen(jugador: jugador),
       ),
     );
 

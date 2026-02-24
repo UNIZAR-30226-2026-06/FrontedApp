@@ -206,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               currentIndex: vm.bottomIndex,
                               onTap: (i) {
                                 vm.selectBottomTab(i);
-                                if (i == 0) vm.onTapAction(context, 'amigos');
+                                if (i == 0) vm.openAmigos(context);
                                 if (i == 1) vm.openTienda(context);
                                 if (i == 2) vm.openPerfil(context); // ✅ AQUÍ
                               },
