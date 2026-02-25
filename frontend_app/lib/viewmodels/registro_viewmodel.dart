@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 // ChangeNotifier avisa a la interfaz cuando algo cambie en la pantalla 
-class RegisterViewmodel extends ChangeNotifier {
+class RegisterViewModel extends ChangeNotifier {
   final nombreController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmarpasswordController = TextEditingController();
 
-  void registrarUsuario(){
+  Future<bool> registrarUsuario() async {
     final String nombre = nombreController.text; //Extrae las cadenas de texto 
     final String email = emailController.text;
     final String password = passwordController.text;
@@ -32,20 +32,20 @@ class RegisterViewmodel extends ChangeNotifier {
           _showErrorMessage("Faltan todos los campos. Introduce los datos");
           break;
       }
-      return;
+      return false;
     }
 
     if(password != confirmarPassword){
       _showErrorMessage("Contraseñas no coincidentes.");
-      return;
+      return false;
     }
 
-    _enviarAlBackend(nombre, email, password);
-
+    bool exito = await _enviarAlBackend(nombre, email, password);
+    return exito;
   }
 
-  void _enviarAlBackend(String nombre, String email, String password){
-    _showErrorMessage("Contraseñas no coincidentes.");
+  Future<bool> _enviarAlBackend(String nombre, String email, String password) async {
+    return true;
   }
 
 

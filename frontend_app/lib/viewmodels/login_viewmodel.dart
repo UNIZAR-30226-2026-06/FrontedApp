@@ -1,30 +1,33 @@
 import 'package:flutter/material.dart';
 
-class LoginViewModel extends ChangeNotifier{
-  final nombreController= TextEditingController();
+class LoginViewModel extends ChangeNotifier {
+  final nombreController = TextEditingController();
   final passwordController = TextEditingController();
 
   bool _estaCargando = false;
   bool get estaCargando => _estaCargando;
 
-  bool intentarLogin(){
+  Future<bool> intentarLogin() async {
     final nombre = nombreController.text;
-    final password = passwordController.text;;
+    final password = passwordController.text;
 
-    if(nombre.isNotEmpty && password.isNotEmpty){
+    if (nombre.isNotEmpty && password.isNotEmpty) {
       _setLoading(true);
-      print("Validando credenciales para el usuarion $nombre");
-      // * VALIDAR CREDENCIALES
+
+      //PETICION AL SERVIDOR (hacerla cuando esté el back)
+      await Future.delayed(const Duration(seconds: 2));
+
+      debugPrint("Validando credenciales para: $nombre");
+
       _setLoading(false);
-      return true; //Acceso concedido
+      return true; // Acceso concedido
     }
-    //* MOSTRAR ERRORES
-    return false; //Campos vacios, error
+    return false; // Error: campos vacíos
   }
 
-  void _setLoading(bool valor){
-      _estaCargando = valor;
-      notifyListeners();
+  void _setLoading(bool valor) {
+    _estaCargando = valor;
+    notifyListeners();
   }
 
   @override

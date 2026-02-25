@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/registro_viewmodel.dart';
+import 'login_view.dart'; 
 
 class RegistroView extends StatefulWidget {
   const RegistroView({super.key});
@@ -9,42 +10,31 @@ class RegistroView extends StatefulWidget {
 }
 
 class _RegistroViewState extends State<RegistroView> {
-  // 1. Definimos el ViewModel. Usamos 'late' porque se inicializa en el initState.
-  late final RegistroViewModel vm;
+  late final RegisterViewModel vm;
 
   @override
   void initState() {
     super.initState();
-    // 2. Aquí nace la conexión. La vista crea su ViewModel al arrancar.
-    vm = RegistroViewModel();
+    vm = RegisterViewModel();
   }
 
   @override
   void dispose() {
-    // 3. Importante: Limpiamos los controladores al cerrar la pantalla para no gastar memoria.
     vm.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 4. El 'ListenableBuilder' es el "Oidor". Si el VM dice notifyListeners(), esto se redibuja.
     return ListenableBuilder(
       listenable: vm,
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: const Color(0xFF1A1F3D), // Tu azul oscuro
+          backgroundColor: const Color(0xFF1A1F3D),
           body: Row(
             children: [
-              // COLUMNA IZQUIERDA: EL ZORRO (Widget privado abajo)
-              const Expanded(
-                child: _SeccionLogoZorro(),
-              ),
-
-              // COLUMNA DERECHA: EL FORMULARIO (Widget privado abajo)
-              Expanded(
-                child: _FormularioRegistro(vm: vm),
-              ),
+              const Expanded(child: _SeccionLogoZorro()),
+              Expanded(child: _FormularioRegistro(vm: vm)),
             ],
           ),
         );
@@ -52,7 +42,6 @@ class _RegistroViewState extends State<RegistroView> {
     );
   }
 }
-
 
 class _SeccionLogoZorro extends StatelessWidget {
   const _SeccionLogoZorro();
@@ -62,7 +51,7 @@ class _SeccionLogoZorro extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: NetworkImage('https://via.placeholder.com/500'), // Placeholder temporal
+          image: NetworkImage('https://via.placeholder.com/500'),
           fit: BoxFit.contain,
         ),
       ),
@@ -71,7 +60,7 @@ class _SeccionLogoZorro extends StatelessWidget {
 }
 
 class _FormularioRegistro extends StatelessWidget {
-  final RegistroViewModel vm;
+  final RegisterViewModel vm;
   const _FormularioRegistro({required this.vm});
 
   @override
@@ -92,15 +81,27 @@ class _FormularioRegistro extends StatelessWidget {
           ),
           const SizedBox(height: 40),
 
-          _buildInput(label: "Nombre de usuario", controller: vm.usuarioController),
+          _buildInput(label: "Nombre de usuario", controller: vm.nombreController),
           _buildInput(label: "Email", controller: vm.emailController),
           _buildInput(label: "Contraseña", controller: vm.passwordController, isSecret: true),
+          // He añadido este campo porque lo tienes en el ViewModel y es vital para la lógica de "coincidencia"
+          _buildInput(label: "Confirmar Contraseña", controller: vm.confirmarpasswordController, isSecret: true),
 
           const SizedBox(height: 30),
 
           ElevatedButton(
-            onPressed: () {
-              print("Intentando registrar a: ${vm.usuarioController.text}");
+            // USAMOS ASYNC AQUÍ: Para esperar al ViewModel
+            onPressed: () async {
+              // Llamamos a la lógica asíncrona
+              bool exito = await vm.registrarUsuario();
+
+              // Si el registro es correcto, navegamos
+              if (exito && context.mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginView()),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,

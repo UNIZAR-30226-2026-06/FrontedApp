@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
-import '../screens/tienda_screen.dart';
-import '../screens/perfil_screen.dart';
-import '../screens/amigos_screen.dart'; // ✅ NUEVO
+import '../views/tienda_view.dart';
+import '../views/perfil_view.dart';
+import '../views/amigos_view.dart';
 
 class HomeViewModel extends ChangeNotifier {
   HomeViewModel({
