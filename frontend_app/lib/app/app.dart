@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/home_screen.dart';
+import '../views/home_view.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -9,10 +9,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Frontend App',
-      home: const HomeScreen(
-        playerName: 'Jugador1',
-        coins: 500,
-      ),
+      home: const HomeView(),
     );
   }
 }

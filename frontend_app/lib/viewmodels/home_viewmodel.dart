@@ -3,16 +3,18 @@ import '../models/jugador_model.dart';
 import '../views/tienda_view.dart';
 import '../views/perfil_view.dart';
 import '../views/amigos_view.dart';
+import '../views/seleccion_roles_view.dart';
+import '../views/seleccion_cartas_view.dart';
 
 class HomeViewModel extends ChangeNotifier {
-
   HomeViewModel({Jugador? jugadorInicial})
-      : _jugador = jugadorInicial ?? Jugador(
-      nombre: "Jugador",
-      coins: 0,
-      avatarId: 'a0',
-      skinId: 's1'
-  );
+      : _jugador = jugadorInicial ??
+      Jugador(
+        nombre: "Jugador",
+        coins: 0,
+        avatarId: 'a0',
+        skinId: 's1',
+      );
 
   Jugador _jugador;
   Jugador get jugador => _jugador;
@@ -25,22 +27,85 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Simplificamos: La View solo llama a esto, el VM decide qué hacer
+  // La View solo llama a esto, el VM decide qué hacer
   void selectBottomTab(BuildContext context, int index) {
     _bottomIndex = index;
     notifyListeners();
 
-    // Disparamos la navegación según el índice
     switch (index) {
-      case 0: openAmigos(context); break;
-      case 1: openTienda(context); break;
-      case 2: openPerfil(context); break;
+      case 0:
+        openAmigos(context);
+        break;
+      case 1:
+        openTienda(context);
+        break;
+      case 2:
+        openPerfil(context);
+        break;
     }
   }
 
   void onTapAction(BuildContext context, String destino) {
-    // Aquí es donde conectarás con la pantalla de "SeleccionModoView"
     debugPrint("Navegando a modo: $destino");
+
+    // ====== MODO CON ROLES ======
+    if (destino == 'roles_privada') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SeleccionRolesView(
+            modoTitulo: 'Modo con roles',
+            modoSubtitulo: 'Partida Privada',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (destino == 'roles_publica') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SeleccionRolesView(
+            modoTitulo: 'Modo con roles',
+            modoSubtitulo: 'Partida Pública',
+          ),
+        ),
+      );
+      return;
+    }
+
+    // ====== MODO CARTAS ======
+    if (destino == 'cartas_privada') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SeleccionCartasView(
+            modoTitulo: 'Modo cartas',
+            modoSubtitulo: 'Partida Privada',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (destino == 'cartas_publica') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SeleccionCartasView(
+            modoTitulo: 'Modo cartas',
+            modoSubtitulo: 'Partida Pública',
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Placeholder para el resto de acciones
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Ir a: $destino (pendiente)')),
+    );
   }
 
   void openTienda(BuildContext context) {

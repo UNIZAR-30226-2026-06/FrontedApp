@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/home_viewmodel.dart';
-import 'amigos_view.dart';
-import 'tienda_view.dart';
-import 'perfil_view.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -14,24 +11,57 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   late final HomeViewModel vm;
 
+  // ===== Carrusel tipo ruleta =====
+  late final PageController _pageController;
+
+  static const int _kModeCount = 4; // 4 modos
+  static const int _kLoopBase = 10000; // para simular infinito
+  int _currentPage = 0;
+
   @override
   void initState() {
     super.initState();
     vm = HomeViewModel();
+
+    _pageController = PageController(
+      viewportFraction: 0.53, // 2 visibles aprox
+      initialPage: _kLoopBase,
+    );
+
+    _currentPage = _kLoopBase % _kModeCount;
   }
 
   @override
   void dispose() {
+    _pageController.dispose();
     vm.dispose();
     super.dispose();
   }
 
+  void _next() {
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _prev() {
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
+  }
+
   String _avatarEmoji(String avatarId) {
     switch (avatarId) {
-      case 'a1': return '🤖';
-      case 'a2': return '🤠';
-      case 'a3': return '😈';
-      default: return '👤';
+      case 'a1':
+        return '🤖';
+      case 'a2':
+        return '🤠';
+      case 'a3':
+        return '😈';
+      default:
+        return '👤';
     }
   }
 
@@ -40,6 +70,52 @@ class _HomeViewState extends State<HomeView> {
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const card = Color(0xFF2A316B);
+
+    // ===== Los 4 modos =====
+    final modes = <Widget>[
+      _ModeCardDual(
+        background: card,
+        title: 'Modo con roles',
+        icon: Icons.theater_comedy,
+        description: 'Habilidades únicas por cada rol recibido.',
+        leftLabel: 'Pública',
+        leftColor: const Color(0xFF53D86A),
+        rightLabel: 'Privada',
+        rightColor: const Color(0xFF2F6BFF),
+        onLeft: () => vm.onTapAction(context, 'roles_publica'),
+        onRight: () => vm.onTapAction(context, 'roles_privada'),
+      ),
+      _ModeCardDual(
+        background: card,
+        title: 'Modo cartas',
+        icon: Icons.flash_on,
+        description: 'Nuevas cartas que modifican las reglas.',
+        leftLabel: 'Pública',
+        leftColor: const Color(0xFF53D86A),
+        rightLabel: 'Privada',
+        rightColor: const Color(0xFF2F6BFF),
+        onLeft: () => vm.onTapAction(context, 'cartas_publica'),
+        onRight: () => vm.onTapAction(context, 'cartas_privada'),
+      ),
+      _ModeCardSingle(
+        background: card,
+        title: 'Modo personalizado',
+        icon: Icons.construction,
+        description: 'Haz el juego a tu medida, cartas y roles fusionados.',
+        buttonLabel: 'Iniciar partida',
+        buttonColor: const Color(0xFF2F6BFF),
+        onTap: () => vm.onTapAction(context, 'personalizado_iniciar'),
+      ),
+      _ModeCardSingle(
+        background: card,
+        title: 'Partidas pausadas',
+        icon: Icons.save,
+        description: 'Reanuda tus partidas privadas.',
+        buttonLabel: 'Partidas pausadas (0)',
+        buttonColor: const Color(0xFF2F6BFF),
+        onTap: () => vm.onTapAction(context, 'pausadas_abrir'),
+      ),
+    ];
 
     return Scaffold(
       backgroundColor: bg,
@@ -120,25 +196,67 @@ class _HomeViewState extends State<HomeView> {
                             ),
                             const SizedBox(height: 14),
 
-                            // SECCIÓN DE MODOS (Mismo estilo de tarjetas)
-                            _ModeCard(
-                              background: card,
-                              title: 'Modo con roles',
-                              icon: Icons.theater_comedy,
-                              description: 'Habilidades únicas por cada rol recibido.',
-                              onPublic: () => vm.onTapAction(context, 'roles_publica'),
-                              onPrivate: () => vm.onTapAction(context, 'roles_privada'),
-                            ),
+                            // ===== Carrusel (2 visibles + flechas + efecto ruleta) =====
+                            SizedBox(
+                              height: 170,
+                              child: Row(
+                                children: [
+                                  _ArrowButton(
+                                    icon: Icons.chevron_left,
+                                    onTap: _prev,
+                                  ),
+                                  const SizedBox(width: 6),
 
-                            const SizedBox(height: 12),
+                                  Expanded(
+                                    child: PageView.builder(
+                                      controller: _pageController,
+                                      itemCount: null, // infinito
+                                      onPageChanged: (i) =>
+                                          setState(() => _currentPage = i % _kModeCount),
+                                      itemBuilder: (context, i) {
+                                        final index = i % _kModeCount;
 
-                            _ModeCard(
-                              background: card,
-                              title: 'Modo cartas',
-                              icon: Icons.flash_on,
-                              description: 'Nuevas cartas que modifican las reglas.',
-                              onPublic: () => vm.onTapAction(context, 'cartas_publica'),
-                              onPrivate: () => vm.onTapAction(context, 'cartas_privada'),
+                                        final baseChild = Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                                          child: modes[index],
+                                        );
+
+                                        // Efecto “ruleta”: scale/opacity según distancia al centro
+                                        return AnimatedBuilder(
+                                          animation: _pageController,
+                                          builder: (context, _) {
+                                            double t;
+                                            if (_pageController.position.hasContentDimensions) {
+                                              final page = _pageController.page ??
+                                                  _pageController.initialPage.toDouble();
+                                              t = (page - i).abs();
+                                            } else {
+                                              t = (_pageController.initialPage - i).abs().toDouble();
+                                            }
+
+                                            final scale = (1 - (t * 0.12)).clamp(0.88, 1.0);
+                                            final opacity = (1 - (t * 0.35)).clamp(0.55, 1.0);
+
+                                            return Opacity(
+                                              opacity: opacity,
+                                              child: Transform.scale(
+                                                scale: scale,
+                                                child: baseChild,
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 6),
+                                  _ArrowButton(
+                                    icon: Icons.chevron_right,
+                                    onTap: _next,
+                                  ),
+                                ],
+                              ),
                             ),
 
                             const SizedBox(height: 20),
@@ -148,8 +266,7 @@ class _HomeViewState extends State<HomeView> {
                               currentIndex: vm.bottomIndex,
                               onTap: (index) {
                                 vm.selectBottomTab(context, index);
-                                // Navegación centralizada
-                                
+                                // Tu navegación centralizada aquí
                               },
                             ),
                           ],
@@ -167,7 +284,32 @@ class _HomeViewState extends State<HomeView> {
   }
 }
 
-// --- Mantenemos los Widgets Privados para no perder el estilo ---
+// -----------------------------------------
+// Widgets privados (manteniendo tu estilo)
+// -----------------------------------------
+
+class _ArrowButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _ArrowButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 130,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A316B),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
+    );
+  }
+}
 
 class _AvatarBubble extends StatelessWidget {
   final String emoji;
@@ -176,9 +318,15 @@ class _AvatarBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44, height: 44,
-      decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle),
-      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+      width: 44,
+      height: 44,
+      decoration: const BoxDecoration(
+        color: Color(0xFF263064),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(emoji, style: const TextStyle(fontSize: 24)),
+      ),
     );
   }
 }
@@ -187,7 +335,11 @@ class _Pill extends StatelessWidget {
   final Widget child;
   final Color background;
   final Color foreground;
-  const _Pill({required this.child, required this.background, required this.foreground});
+  const _Pill({
+    required this.child,
+    required this.background,
+    required this.foreground,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -202,17 +354,31 @@ class _Pill extends StatelessWidget {
   }
 }
 
-class _ModeCard extends StatelessWidget {
+class _ModeCardDual extends StatelessWidget {
   final Color background;
   final String title;
   final String description;
   final IconData icon;
-  final VoidCallback onPublic;
-  final VoidCallback onPrivate;
 
-  const _ModeCard({
-    required this.background, required this.title, required this.description,
-    required this.icon, required this.onPublic, required this.onPrivate
+  final String leftLabel;
+  final Color leftColor;
+  final VoidCallback onLeft;
+
+  final String rightLabel;
+  final Color rightColor;
+  final VoidCallback onRight;
+
+  const _ModeCardDual({
+    required this.background,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.leftLabel,
+    required this.leftColor,
+    required this.onLeft,
+    required this.rightLabel,
+    required this.rightColor,
+    required this.onRight,
   });
 
   @override
@@ -227,18 +393,114 @@ class _ModeCard extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.white, size: 22),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(description, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          const SizedBox(height: 15),
+          Text(
+            description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          const Spacer(),
           Row(
             children: [
-              Expanded(child: _ActionButton(label: 'Pública', background: const Color(0xFF53D86A), onTap: onPublic)),
+              Expanded(
+                child: _ActionButton(
+                  label: leftLabel,
+                  background: leftColor,
+                  onTap: onLeft,
+                  isDark: true,
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _ActionButton(label: 'Privada', background: const Color(0xFF2F6BFF), onTap: onPrivate, isDark: false)),
+              Expanded(
+                child: _ActionButton(
+                  label: rightLabel,
+                  background: rightColor,
+                  onTap: onRight,
+                  isDark: false,
+                ),
+              ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeCardSingle extends StatelessWidget {
+  final Color background;
+  final String title;
+  final String description;
+  final IconData icon;
+
+  final String buttonLabel;
+  final Color buttonColor;
+  final VoidCallback onTap;
+
+  const _ModeCardSingle({
+    required this.background,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.buttonLabel,
+    required this.buttonColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(18)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          const Spacer(),
+          _ActionButton(
+            label: buttonLabel,
+            background: buttonColor,
+            onTap: onTap,
+            isDark: false,
           ),
         ],
       ),
@@ -252,16 +514,31 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDark;
 
-  const _ActionButton({required this.label, required this.background, required this.onTap, this.isDark = true});
+  const _ActionButton({
+    required this.label,
+    required this.background,
+    required this.onTap,
+    this.isDark = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         height: 36,
         decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
-        child: Center(child: Text(label, style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.black : Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -276,12 +553,30 @@ class _BottomMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: const Color(0xFF2A316B), borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A316B),
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Row(
         children: [
-          _BottomItem(selected: currentIndex == 0, icon: Icons.group, label: 'Amigos', onTap: () => onTap(0)),
-          _BottomItem(selected: currentIndex == 1, icon: Icons.store, label: 'Tienda', onTap: () => onTap(1)),
-          _BottomItem(selected: currentIndex == 2, icon: Icons.person, label: 'Perfil', onTap: () => onTap(2)),
+          _BottomItem(
+            selected: currentIndex == 0,
+            icon: Icons.group,
+            label: 'Amigos',
+            onTap: () => onTap(0),
+          ),
+          _BottomItem(
+            selected: currentIndex == 1,
+            icon: Icons.store,
+            label: 'Tienda',
+            onTap: () => onTap(1),
+          ),
+          _BottomItem(
+            selected: currentIndex == 2,
+            icon: Icons.person,
+            label: 'Perfil',
+            onTap: () => onTap(2),
+          ),
         ],
       ),
     );
@@ -293,13 +588,19 @@ class _BottomItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _BottomItem({required this.selected, required this.icon, required this.label, required this.onTap});
+  const _BottomItem({
+    required this.selected,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
@@ -311,7 +612,14 @@ class _BottomItem extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.white, size: 18),
               const SizedBox(width: 5),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
