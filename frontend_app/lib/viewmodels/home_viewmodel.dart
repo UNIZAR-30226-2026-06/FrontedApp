@@ -5,9 +5,14 @@ import '../views/perfil_view.dart';
 import '../views/amigos_view.dart';
 
 class HomeViewModel extends ChangeNotifier {
-  HomeViewModel({
-    required Jugador jugadorInicial,
-  }) : _jugador = jugadorInicial;
+
+  HomeViewModel({Jugador? jugadorInicial})
+      : _jugador = jugadorInicial ?? Jugador(
+      nombre: "Jugador",
+      coins: 0,
+      avatarId: 'a0',
+      skinId: 's1'
+  );
 
   Jugador _jugador;
   Jugador get jugador => _jugador;
@@ -20,33 +25,35 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectBottomTab(int index) {
+  // Simplificamos: La View solo llama a esto, el VM decide qué hacer
+  void selectBottomTab(BuildContext context, int index) {
     _bottomIndex = index;
     notifyListeners();
+
+    // Disparamos la navegación según el índice
+    switch (index) {
+      case 0: openAmigos(context); break;
+      case 1: openTienda(context); break;
+      case 2: openPerfil(context); break;
+    }
   }
 
   void onTapAction(BuildContext context, String destino) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ir a: $destino (pendiente)')),
-    );
+    // Aquí es donde conectarás con la pantalla de "SeleccionModoView"
+    debugPrint("Navegando a modo: $destino");
   }
 
   void openTienda(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => TiendaScreen(jugador: jugador),
-      ),
+      MaterialPageRoute(builder: (_) => const TiendaView()),
     );
   }
 
-  /// ✅ PERFIL: abre pantalla y si vuelve con Jugador actualizado, lo guarda
   Future<void> openPerfil(BuildContext context) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => PerfilScreen(jugador: jugador),
-      ),
+      MaterialPageRoute(builder: (_) => const PerfilView()),
     );
 
     if (result is Jugador) {
@@ -54,13 +61,10 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// ✅ AMIGOS: abre pantalla y si vuelve con Jugador actualizado (friendIds/requestIds), lo guarda
   Future<void> openAmigos(BuildContext context) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => AmigosScreen(jugador: jugador),
-      ),
+      MaterialPageRoute(builder: (_) => const AmigosView()),
     );
 
     if (result is Jugador) {

@@ -3,22 +3,21 @@ import '../models/jugador_model.dart';
 import '../models/tienda_item_model.dart';
 import '../viewmodels/tienda_viewmodel.dart';
 
-class TiendaScreen extends StatefulWidget {
-  final Jugador jugador;
+class TiendaView extends StatefulWidget {
 
-  const TiendaScreen({super.key, required this.jugador});
+  const TiendaView({super.key});
 
   @override
-  State<TiendaScreen> createState() => _TiendaScreenState();
+  State<TiendaView> createState() => _TiendaViewState();
 }
 
-class _TiendaScreenState extends State<TiendaScreen> {
+class _TiendaViewState extends State<TiendaView> {
   late final TiendaViewModel vm;
 
   @override
   void initState() {
     super.initState();
-    vm = TiendaViewModel(jugador: widget.jugador);
+    vm = TiendaViewModel();
   }
 
   @override

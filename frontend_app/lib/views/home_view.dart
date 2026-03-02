@@ -1,37 +1,23 @@
 import 'package:flutter/material.dart';
-import '../models/jugador_model.dart';
 import '../viewmodels/home_viewmodel.dart';
+import 'amigos_view.dart';
+import 'tienda_view.dart';
+import 'perfil_view.dart';
 
-class HomeScreen extends StatefulWidget {
-  final String playerName;
-  final int coins;
-
-  const HomeScreen({
-    super.key,
-    required this.playerName,
-    required this.coins,
-  });
+class HomeView extends StatefulWidget {
+  const HomeView({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeViewState extends State<HomeView> {
   late final HomeViewModel vm;
 
   @override
   void initState() {
     super.initState();
-
-    // ✅ Ahora Jugador incluye avatarId y skinId (con defaults)
-    vm = HomeViewModel(
-      jugadorInicial: Jugador(
-        nombre: widget.playerName,
-        coins: widget.coins,
-        avatarId: 'a0',
-        skinId: 's1',
-      ),
-    );
+    vm = HomeViewModel();
   }
 
   @override
@@ -40,18 +26,12 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // ✅ Mapa rápido avatarId -> emoji (puedes sustituir por assets)
   String _avatarEmoji(String avatarId) {
     switch (avatarId) {
-      case 'a1':
-        return '🤖';
-      case 'a2':
-        return '🤠';
-      case 'a3':
-        return '😈';
-      case 'a0':
-      default:
-        return '👤';
+      case 'a1': return '🤖';
+      case 'a2': return '🤠';
+      case 'a3': return '😈';
+      default: return '👤';
     }
   }
 
@@ -61,28 +41,19 @@ class _HomeScreenState extends State<HomeScreen> {
     const panel = Color(0xFF3A4288);
     const card = Color(0xFF2A316B);
 
-    final size = MediaQuery.sizeOf(context);
-
-    final bool isSmall = size.height < 500 || size.width < 380;
-
-    final titleSize = isSmall ? 26.0 : 30.0;
-    final subtitleSize = isSmall ? 12.0 : 13.0;
-    final cardsHeight = isSmall ? 165.0 : 190.0;
-
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
-        child: AnimatedBuilder(
-          animation: vm,
+        child: ListenableBuilder(
+          listenable: vm,
           builder: (context, _) {
             return Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
               child: Column(
                 children: [
-                  // TOP BAR
+                  // --- TOP BAR ---
                   Row(
                     children: [
-                      // ✅ Avatar actual del jugador (en vez de logo fijo)
                       _AvatarBubble(emoji: _avatarEmoji(vm.jugador.avatarId)),
                       const Spacer(),
                       _Pill(
@@ -119,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 12),
 
+                  // --- CUERPO PRINCIPAL ---
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -129,86 +101,55 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            Text(
+                            const Text(
                               '¡Bienvenido!',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: titleSize,
+                                fontSize: 30,
                                 fontWeight: FontWeight.w800,
-                                height: 1.05,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
+                            const Text(
                               'Elige un modo de juego para empezar',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: subtitleSize,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 14),
 
-                            SizedBox(
-                              height: cardsHeight,
-                              child: Row(
-                                children: [
-                                  _ArrowButton(
-                                    icon: Icons.chevron_left,
-                                    onTap: () {},
-                                  ),
-                                  const SizedBox(width: 10),
-
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: _ModeCard(
-                                            compact: true,
-                                            background: card,
-                                            title: 'Modo con roles',
-                                            icon: Icons.theater_comedy,
-                                            description:
-                                            'Cada jugador recibe un rol\nespecial con habilidades únicas',
-                                            onPublic: () => vm.onTapAction(context, 'roles_publica'),
-                                            onPrivate: () => vm.onTapAction(context, 'roles_privada'),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: _ModeCard(
-                                            compact: true,
-                                            background: card,
-                                            title: 'Modo cartas',
-                                            icon: Icons.flash_on,
-                                            description:
-                                            'Nuevas cartas que modifican las\nreglas del juego',
-                                            onPublic: () => vm.onTapAction(context, 'cartas_publica'),
-                                            onPrivate: () => vm.onTapAction(context, 'cartas_privada'),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const SizedBox(width: 10),
-                                  _ArrowButton(
-                                    icon: Icons.chevron_right,
-                                    onTap: () {},
-                                  ),
-                                ],
-                              ),
+                            // SECCIÓN DE MODOS (Mismo estilo de tarjetas)
+                            _ModeCard(
+                              background: card,
+                              title: 'Modo con roles',
+                              icon: Icons.theater_comedy,
+                              description: 'Habilidades únicas por cada rol recibido.',
+                              onPublic: () => vm.onTapAction(context, 'roles_publica'),
+                              onPrivate: () => vm.onTapAction(context, 'roles_privada'),
                             ),
 
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
 
+                            _ModeCard(
+                              background: card,
+                              title: 'Modo cartas',
+                              icon: Icons.flash_on,
+                              description: 'Nuevas cartas que modifican las reglas.',
+                              onPublic: () => vm.onTapAction(context, 'cartas_publica'),
+                              onPrivate: () => vm.onTapAction(context, 'cartas_privada'),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // --- MENÚ INFERIOR ---
                             _BottomMenu(
                               currentIndex: vm.bottomIndex,
-                              onTap: (i) {
-                                vm.selectBottomTab(i);
-                                if (i == 0) vm.openAmigos(context);
-                                if (i == 1) vm.openTienda(context);
-                                if (i == 2) vm.openPerfil(context); // ✅ AQUÍ
+                              onTap: (index) {
+                                vm.selectBottomTab(context, index);
+                                // Navegación centralizada
+                                
                               },
                             ),
                           ],
@@ -226,6 +167,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// --- Mantenemos los Widgets Privados para no perder el estilo ---
+
 class _AvatarBubble extends StatelessWidget {
   final String emoji;
   const _AvatarBubble({required this.emoji});
@@ -233,15 +176,9 @@ class _AvatarBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
-      decoration: const BoxDecoration(
-        color: Color(0xFF263064),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(emoji, style: const TextStyle(fontSize: 24)),
-      ),
+      width: 44, height: 44,
+      decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle),
+      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
     );
   }
 }
@@ -250,51 +187,16 @@ class _Pill extends StatelessWidget {
   final Widget child;
   final Color background;
   final Color foreground;
-
-  const _Pill({
-    required this.child,
-    required this.background,
-    required this.foreground,
-  });
+  const _Pill({required this.child, required this.background, required this.foreground});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(14)),
       child: DefaultTextStyle(
         style: TextStyle(color: foreground),
-        child: IconTheme(
-          data: IconThemeData(color: foreground),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _ArrowButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final IconData icon;
-
-  const _ArrowButton({required this.onTap, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: 34,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF263064),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Icon(icon, color: Colors.white70, size: 26),
+        child: IconTheme(data: IconThemeData(color: foreground), child: child),
       ),
     );
   }
@@ -307,83 +209,35 @@ class _ModeCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPublic;
   final VoidCallback onPrivate;
-  final bool compact;
 
   const _ModeCard({
-    required this.background,
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.onPublic,
-    required this.onPrivate,
-    this.compact = false,
+    required this.background, required this.title, required this.description,
+    required this.icon, required this.onPublic, required this.onPrivate
   });
 
   @override
   Widget build(BuildContext context) {
-    final pad = compact ? 12.0 : 14.0;
-    final titleSize = compact ? 14.0 : 16.0;
-    final descSize = compact ? 11.0 : 12.5;
-    final btnH = compact ? 34.0 : 40.0;
-
     return Container(
-      padding: EdgeInsets.fromLTRB(pad, pad, pad, pad),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(18),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(18)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.white, size: compact ? 18 : 22),
+              Icon(icon, color: Colors.white, size: 22),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: titleSize,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                  ),
-                ),
-              ),
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            description,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: descSize,
-              height: 1.15,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
+          Text(description, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          const SizedBox(height: 15),
           Row(
             children: [
-              Expanded(
-                child: _ActionButton(
-                  height: btnH,
-                  label: 'Partida pública',
-                  background: const Color(0xFF53D86A),
-                  foreground: Colors.black,
-                  onTap: onPublic,
-                ),
-              ),
+              Expanded(child: _ActionButton(label: 'Pública', background: const Color(0xFF53D86A), onTap: onPublic)),
               const SizedBox(width: 10),
-              Expanded(
-                child: _ActionButton(
-                  height: btnH,
-                  label: 'Partida privada',
-                  background: const Color(0xFF2F6BFF),
-                  foreground: Colors.white,
-                  onTap: onPrivate,
-                ),
-              ),
+              Expanded(child: _ActionButton(label: 'Privada', background: const Color(0xFF2F6BFF), onTap: onPrivate, isDark: false)),
             ],
           ),
         ],
@@ -395,39 +249,19 @@ class _ModeCard extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final String label;
   final Color background;
-  final Color foreground;
   final VoidCallback onTap;
-  final double height;
+  final bool isDark;
 
-  const _ActionButton({
-    required this.label,
-    required this.background,
-    required this.foreground,
-    required this.onTap,
-    required this.height,
-  });
+  const _ActionButton({required this.label, required this.background, required this.onTap, this.isDark = true});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
       child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: foreground,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
+        height: 36,
+        decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
+        child: Center(child: Text(label, style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
       ),
     );
   }
@@ -436,43 +270,18 @@ class _ActionButton extends StatelessWidget {
 class _BottomMenu extends StatelessWidget {
   final int currentIndex;
   final void Function(int) onTap;
-
   const _BottomMenu({required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A316B),
-        borderRadius: BorderRadius.circular(18),
-      ),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(color: const Color(0xFF2A316B), borderRadius: BorderRadius.circular(18)),
       child: Row(
         children: [
-          Expanded(
-            child: _BottomItem(
-              selected: currentIndex == 0,
-              icon: Icons.group,
-              label: 'Amigos',
-              onTap: () => onTap(0),
-            ),
-          ),
-          Expanded(
-            child: _BottomItem(
-              selected: currentIndex == 1,
-              icon: Icons.store,
-              label: 'Tienda',
-              onTap: () => onTap(1),
-            ),
-          ),
-          Expanded(
-            child: _BottomItem(
-              selected: currentIndex == 2,
-              icon: Icons.person,
-              label: 'Perfil',
-              onTap: () => onTap(2),
-            ),
-          ),
+          _BottomItem(selected: currentIndex == 0, icon: Icons.group, label: 'Amigos', onTap: () => onTap(0)),
+          _BottomItem(selected: currentIndex == 1, icon: Icons.store, label: 'Tienda', onTap: () => onTap(1)),
+          _BottomItem(selected: currentIndex == 2, icon: Icons.person, label: 'Perfil', onTap: () => onTap(2)),
         ],
       ),
     );
@@ -484,42 +293,27 @@ class _BottomItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-
-  const _BottomItem({
-    required this.selected,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  const _BottomItem({required this.selected, required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? const Color(0xFF3A6BFF) : const Color(0xFF263064);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-          ],
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFF3A6BFF) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 5),
+              Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
         ),
       ),
     );

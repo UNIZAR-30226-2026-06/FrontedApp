@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/login_viewmodel.dart';
-import '../viewmodels/home_viewmodel.dart';
+import 'home_view.dart';
 import 'registro_view.dart';
 import 'recuperarPassword_view.dart';
 
@@ -88,7 +88,7 @@ class _LoginViewState extends State<LoginView> {
                       if (exito && context.mounted) {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          MaterialPageRoute(builder: (context) => const HomeView()),
                         );
                       }
                     },

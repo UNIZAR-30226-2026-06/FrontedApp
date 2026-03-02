@@ -3,26 +3,30 @@ import '../models/jugador_model.dart';
 import '../models/perfil_models.dart';
 
 class PerfilViewModel extends ChangeNotifier {
-  PerfilViewModel({
-    required Jugador jugadorInicial,
-  })  : _nombre = jugadorInicial.nombre,
-        _coins = jugadorInicial.coins,
-        _avatarSeleccionadoId = jugadorInicial.avatarId,
-        _skinSeleccionadoId = jugadorInicial.skinId {
-    // “Inventario” inicial (placeholder)
+  PerfilViewModel({Jugador? jugadorInicial})
+      : _nombre = jugadorInicial?.nombre ?? "Jugador",
+        _coins = jugadorInicial?.coins ?? 0,
+        _avatarSeleccionadoId = jugadorInicial?.avatarId ?? 'a0',
+        _skinSeleccionadoId = jugadorInicial?.skinId ?? 's1' {
+
+    _initLists(); // Extraemos la inicialización para limpiar el constructor
+    _validateSelection();
+  }
+
+  void _initLists() {
     _avatars = const [
       AvatarItem(id: 'a0', emoji: '👤', nombre: 'Default'),
       AvatarItem(id: 'a1', emoji: '🤖', nombre: 'Robot'),
       AvatarItem(id: 'a2', emoji: '🤠', nombre: 'Cowboy'),
       AvatarItem(id: 'a3', emoji: '😈', nombre: 'Diablillo'),
     ];
-
     _skins = const [
       CardSkinItem(id: 's1', nombre: 'Classic', emoji: '🃏'),
       CardSkinItem(id: 's2', nombre: 'Neón', emoji: '✨'),
     ];
+  }
 
-    // ✅ Si vienen ids que no existen en las listas, usamos default seguro
+  void _validateSelection() {
     if (!_avatars.any((a) => a.id == _avatarSeleccionadoId)) {
       _avatarSeleccionadoId = _avatars.first.id;
     }

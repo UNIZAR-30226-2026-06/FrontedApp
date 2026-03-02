@@ -5,9 +5,14 @@ import '../models/jugador_model.dart';
 enum AmigosTab { misAmigos, buscar, solicitudes }
 
 class AmigosViewModel extends ChangeNotifier {
-  AmigosViewModel({required Jugador jugadorInicial})
-      : _jugadorBase = jugadorInicial {
-    // Dataset “global” de usuarios (placeholder)
+  AmigosViewModel({Jugador? jugadorInicial})
+      : _jugadorBase = jugadorInicial ?? Jugador(
+      nombre: "Invitado",
+      coins: 0,
+      avatarId: 'a0',
+      skinId: 's1'
+  ) {
+    // Dataset “global” de usuarios
     _allUsers = const [
       UsuarioApp(id: 'j1', nombre: 'Jugador 1', avatarEmoji: '😎', coins: 300),
       UsuarioApp(id: 'j2', nombre: 'Jugador 2', avatarEmoji: '😎', coins: 300),
@@ -17,19 +22,16 @@ class AmigosViewModel extends ChangeNotifier {
       UsuarioApp(id: 'j6', nombre: 'Jugador 6', avatarEmoji: '🤖', coins: 300),
     ];
 
-    // Estado inicial: si el jugador ya trae datos, se usan.
-    // Si vienen vacíos, ponemos el escenario que has pedido:
-    // Mis amigos: j1, j3, j5
-    // Solicitudes: j5 (ejemplo de imagen) -> pero ojo: j5 ya es amigo en tu enunciado.
-    // Para evitar inconsistencias, pongo solicitudes: j2 por defecto.
-    final hasAny = _jugadorBase.friendIds.isNotEmpty || _jugadorBase.requestIds.isNotEmpty;
+    // Lógica de carga de IDs (se mantiene igual)
+    final hasAny = _jugadorBase.friendIds.isNotEmpty ||
+        _jugadorBase.requestIds.isNotEmpty;
 
     _friendIds = List<String>.from(_jugadorBase.friendIds);
     _requestIds = List<String>.from(_jugadorBase.requestIds);
 
     if (!hasAny) {
       _friendIds = ['j1', 'j3', 'j5'];
-      _requestIds = ['j2']; // una solicitud inicial
+      _requestIds = ['j2'];
     }
 
     searchController.addListener(() {

@@ -5,11 +5,19 @@ import '../models/tienda_item_model.dart';
 enum TiendaFiltro { todos, avatares, disenos }
 
 class TiendaViewModel extends ChangeNotifier {
-  final Jugador jugador;
 
-  TiendaViewModel({required this.jugador}) {
-    _items = _seedItems();
+  TiendaViewModel({Jugador? jugador})
+      : _jugador = jugador ?? Jugador(
+      nombre: "Invitado",
+      coins: 0,
+      avatarId: 'a0',
+      skinId: 's1'
+  ) {
+    _items = _seedItems(); // Inicializamos los productos
   }
+
+  final Jugador _jugador;
+  Jugador get jugador => _jugador;
 
   late final List<TiendaItem> _items;
 
@@ -32,7 +40,6 @@ class TiendaViewModel extends ChangeNotifier {
     }
   }
 
-  // Acción abierta: comprar (de momento solo placeholder)
   void comprar(BuildContext context, TiendaItem item) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Comprar: ${item.titulo} (pendiente)')),

@@ -2,22 +2,21 @@ import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
 import '../viewmodels/perfil_viewmodel.dart';
 
-class PerfilScreen extends StatefulWidget {
-  final Jugador jugador;
+class PerfilView extends StatefulWidget {
 
-  const PerfilScreen({super.key, required this.jugador});
+  const PerfilView({super.key});
 
   @override
-  State<PerfilScreen> createState() => _PerfilScreenState();
+  State<PerfilView> createState() => _PerfilViewState();
 }
 
-class _PerfilScreenState extends State<PerfilScreen> {
+class _PerfilViewState extends State<PerfilView> {
   late final PerfilViewModel vm;
 
   @override
   void initState() {
     super.initState();
-    vm = PerfilViewModel(jugadorInicial: widget.jugador);
+    vm = PerfilViewModel();
   }
 
   @override
@@ -76,13 +75,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 ),
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
 
-                // ====================================================
-                // COLUMNA PRINCIPAL
-                // ====================================================
                 child: Column(
                   children: [
-
-                    // ================= HEADER FIJO =================
 
                     Row(
                       children: [

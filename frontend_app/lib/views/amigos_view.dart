@@ -3,22 +3,21 @@ import '../models/jugador_model.dart';
 import '../viewmodels/amigos_viewmodel.dart';
 import '../models/amigo_model.dart';
 
-class AmigosScreen extends StatefulWidget {
-  final Jugador jugador;
+class AmigosView extends StatefulWidget {
 
-  const AmigosScreen({super.key, required this.jugador});
+  const AmigosView({super.key});
 
   @override
-  State<AmigosScreen> createState() => _AmigosScreenState();
+  State<AmigosView> createState() => _AmigosViewState();
 }
 
-class _AmigosScreenState extends State<AmigosScreen> {
+class _AmigosViewState extends State<AmigosView> {
   late final AmigosViewModel vm;
 
   @override
   void initState() {
     super.initState();
-    vm = AmigosViewModel(jugadorInicial: widget.jugador);
+    vm = AmigosViewModel();
   }
 
   @override
