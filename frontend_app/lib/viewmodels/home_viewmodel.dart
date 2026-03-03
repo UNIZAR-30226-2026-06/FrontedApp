@@ -3,6 +3,7 @@ import '../models/jugador_model.dart';
 import '../views/tienda_view.dart';
 import '../views/perfil_view.dart';
 import '../views/amigos_view.dart';
+import '../views/partida_personalizada_view.dart';
 import '../views/seleccion_roles_view.dart';
 import '../views/seleccion_cartas_view.dart';
 
@@ -48,6 +49,16 @@ class HomeViewModel extends ChangeNotifier {
   void onTapAction(BuildContext context, String destino) {
     debugPrint("Navegando a modo: $destino");
 
+
+    // ====== MODO PERSONALIZADO ======
+    if (destino == 'personalizada_privada') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PartidaPersonalizadaView()),
+      );
+      return;
+    }
+
     // ====== MODO CON ROLES ======
     if (destino == 'roles_privada') {
       Navigator.push(
@@ -61,7 +72,7 @@ class HomeViewModel extends ChangeNotifier {
       );
       return;
     }
-
+/*
     if (destino == 'roles_publica') {
       Navigator.push(
         context,
@@ -74,7 +85,7 @@ class HomeViewModel extends ChangeNotifier {
       );
       return;
     }
-
+*/
     // ====== MODO CARTAS ======
     if (destino == 'cartas_privada') {
       Navigator.push(
@@ -88,7 +99,7 @@ class HomeViewModel extends ChangeNotifier {
       );
       return;
     }
-
+/*
     if (destino == 'cartas_publica') {
       Navigator.push(
         context,
@@ -101,7 +112,7 @@ class HomeViewModel extends ChangeNotifier {
       );
       return;
     }
-
+*/
     // Placeholder para el resto de acciones
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Ir a: $destino (pendiente)')),

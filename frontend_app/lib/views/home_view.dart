@@ -104,7 +104,8 @@ class _HomeViewState extends State<HomeView> {
         description: 'Haz el juego a tu medida, cartas y roles fusionados.',
         buttonLabel: 'Iniciar partida',
         buttonColor: const Color(0xFF2F6BFF),
-        onTap: () => vm.onTapAction(context, 'personalizado_iniciar'),
+        // ✅ IMPORTANTE: debe coincidir con el HomeViewModel
+        onTap: () => vm.onTapAction(context, 'personalizada_privada'),
       ),
       _ModeCardSingle(
         background: card,
