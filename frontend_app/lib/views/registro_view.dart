@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/registro_viewmodel.dart';
-import 'login_view.dart'; 
+import 'login_view.dart';
+// IMPORTANTE: Importa aquí tu vista de inicio (Home)
+// import 'home_view.dart';
 
 class RegistroView extends StatefulWidget {
   const RegistroView({super.key});
@@ -84,22 +86,22 @@ class _FormularioRegistro extends StatelessWidget {
           _buildInput(label: "Nombre de usuario", controller: vm.nombreController),
           _buildInput(label: "Email", controller: vm.emailController),
           _buildInput(label: "Contraseña", controller: vm.passwordController, isSecret: true),
-          // He añadido este campo porque lo tienes en el ViewModel y es vital para la lógica de "coincidencia"
           _buildInput(label: "Confirmar Contraseña", controller: vm.confirmarpasswordController, isSecret: true),
 
           const SizedBox(height: 30),
 
+          // BOTÓN PRINCIPAL: Registrar y entrar al juego
           ElevatedButton(
-            // USAMOS ASYNC AQUÍ: Para esperar al ViewModel
             onPressed: () async {
-              // Llamamos a la lógica asíncrona
               bool exito = await vm.registrarUsuario();
 
-              // Si el registro es correcto, navegamos
               if (exito && context.mounted) {
-                Navigator.pushReplacement(
+                // Navegación definitiva: Limpiamos la pila y vamos al Home
+                // Sustituye 'HomeView()' por el nombre exacto de tu clase de inicio
+                Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginView()),
+                  MaterialPageRoute(builder: (context) => const LoginView()), // Cambiar por HomeView() si vas directo
+                      (route) => false,
                 );
               }
             },
@@ -112,6 +114,24 @@ class _FormularioRegistro extends StatelessWidget {
             child: const Text(
               '¡A JUGAR!',
               style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ENLACE PARA VOLVER: Registro -> Login
+          TextButton(
+            onPressed: () {
+              // Si viniste desde el Login, pop te devuelve allí
+              Navigator.pop(context);
+            },
+            child: const Text(
+              '¿Ya tienes cuenta? Inicia sesión',
+              style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  decoration: TextDecoration.underline
+              ),
             ),
           ),
         ],

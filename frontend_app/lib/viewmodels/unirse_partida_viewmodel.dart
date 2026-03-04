@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/jugador_model.dart';
+import '../views/tablero_view.dart';
 
 class UnirsePartidaViewModel extends ChangeNotifier {
   final String modoTitulo;
@@ -17,10 +19,23 @@ class UnirsePartidaViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Objeto de prueba para la Beta
+  final miPerfil = Jugador(
+    nombre: "Jugador Beta",
+    coins: 100,
+    avatarId: "user_avatar",
+    skinId: "default",
+  );
+
   void unirse(BuildContext context) {
-    // Acción abierta por ahora, pero el código queda guardado en _codigo
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Unirse con código: $_codigo (pendiente)')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TableroView(miPerfil: miPerfil),
+      ),
     );
+
+    // Opcional: Feedback visual en consola
+    debugPrint('Uniéndose a partida $modoTitulo con código: $_codigo');
   }
 }
