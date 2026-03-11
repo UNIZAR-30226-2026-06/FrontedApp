@@ -5,7 +5,7 @@ class TiendaItem {
   final String titulo;
   final int precio;
   final TiendaItemTipo tipo;
-  final String? assetPath; // opcional (imagen local)
+  final String? assetPath;
 
   const TiendaItem({
     required this.id,

@@ -35,4 +35,22 @@ class Jugador {
       requestIds: requestIds ?? this.requestIds,
     );
   }
+
+  // Convierte un JSON del servidor a un objeto Dart
+  factory Jugador.fromJson(Map<String, dynamic> json) {
+    return Jugador(
+      nombre: json['nombre'],
+      coins: json['coins'],
+      avatarId: json['avatarId'],
+    );
+  }
+
+  // Convierte el objeto Dart a JSON para mandarlo al Back
+  Map<String, dynamic> toJson() {
+    return {
+      'nombre': nombre,
+      'coins': coins,
+      'avatarId': avatarId,
+    };
+  }
 }

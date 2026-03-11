@@ -584,11 +584,12 @@ class _BottomMenu extends StatelessWidget {
   }
 }
 
-class _BottomItem extends StatelessWidget {
+class _BottomItem extends StatefulWidget {
   final bool selected;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
   const _BottomItem({
     required this.selected,
     required this.icon,
@@ -597,31 +598,53 @@ class _BottomItem extends StatelessWidget {
   });
 
   @override
+  State<_BottomItem> createState() => _BottomItemState();
+}
+
+class _BottomItemState extends State<_BottomItem> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    // Azul oficial de tu diseño
+    const activeBlue = Color(0xFF3A6BFF);
+
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF3A6BFF) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: Colors.white, size: 18),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              // Ahora el hover también activa el color azul
+              color: (widget.selected || _isHovered)
+                  ? activeBlue
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              // Añadimos un pequeño brillo si es hover pero no está seleccionado
+              boxShadow: (_isHovered && !widget.selected)
+                  ? [BoxShadow(color: activeBlue.withOpacity(0.3), blurRadius: 8)]
+                  : [],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.icon, color: Colors.white, size: 18),
+                const SizedBox(width: 5),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
