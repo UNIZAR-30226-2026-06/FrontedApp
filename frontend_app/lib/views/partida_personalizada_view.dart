@@ -42,7 +42,7 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
             ),
             child: Stack(
               children: [
-                // ✅ contenido scrolleable
+
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(

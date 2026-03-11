@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
 import '../viewmodels/amigos_viewmodel.dart';
 import '../models/amigo_model.dart';
+// Asegúrate de que la ruta a tu widget de confirmación sea correcta
+import 'package:frontend_app/views/widgets/confirmacion_dialogo.dart';
 
 class AmigosView extends StatefulWidget {
-
   const AmigosView({super.key});
 
   @override
@@ -17,6 +18,7 @@ class _AmigosViewState extends State<AmigosView> {
   @override
   void initState() {
     super.initState();
+    // Inicialización del ViewModel siguiendo el patrón MVVM
     vm = AmigosViewModel();
   }
 
@@ -26,8 +28,33 @@ class _AmigosViewState extends State<AmigosView> {
     super.dispose();
   }
 
+  /* Función privada para centralizar los diálogos de confirmación
+     utilizando el diseño definido en Figma.
+  */
+  void _confirmarAccion({
+    required BuildContext context,
+    required String userId,
+    required String mensaje,
+    required VoidCallback accion,
+  }) {
+    final nombre = vm.getNombreUsuario(userId);
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return ConfirmationDialog(
+          // Sustituimos el comodín por el nombre real del usuario
+          message: mensaje.replaceAll('{nombre}', nombre),
+          onConfirm: accion,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Paleta cromática del proyecto
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const card = Color(0xFF2A316B);
@@ -48,7 +75,7 @@ class _AmigosViewState extends State<AmigosView> {
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                 child: Column(
                   children: [
-                    // HEADER FIJO
+                    // HEADER: Título y botón volver
                     Row(
                       children: [
                         const _FriendsIcon(),
@@ -93,7 +120,7 @@ class _AmigosViewState extends State<AmigosView> {
 
                     const SizedBox(height: 14),
 
-                    // TABS
+                    // TABS DE NAVEGACIÓN
                     Row(
                       children: [
                         Expanded(
@@ -124,7 +151,7 @@ class _AmigosViewState extends State<AmigosView> {
 
                     const SizedBox(height: 14),
 
-                    // CONTENIDO (SCROLL)
+                    // LISTADO DINÁMICO SEGÚN PESTAÑA SELECCIONADA
                     Expanded(
                       child: SingleChildScrollView(
                         child: Column(
@@ -134,7 +161,7 @@ class _AmigosViewState extends State<AmigosView> {
                               const SizedBox(height: 12),
                             ],
 
-                            // LISTA SEGÚN TAB
+                            // PESTAÑA: MIS AMIGOS
                             if (vm.tab == AmigosTab.misAmigos)
                               ...vm.misAmigos.map((u) => _UserCard(
                                 user: u,
@@ -142,10 +169,16 @@ class _AmigosViewState extends State<AmigosView> {
                                 trailing: _RedButton(
                                   label: 'Eliminar',
                                   icon: Icons.person_remove,
-                                  onTap: () => vm.eliminarAmigo(u.id),
+                                  onTap: () => _confirmarAccion(
+                                    context: context,
+                                    userId: u.id,
+                                    mensaje: '¿Seguro que quieres eliminar a {nombre} de tus amigos?',
+                                    accion: () => vm.eliminarAmigo(u.id),
+                                  ),
                                 ),
                               )),
 
+                            // PESTAÑA: BUSCAR (Con diálogo de confirmación de Figma)
                             if (vm.tab == AmigosTab.buscar)
                               ...vm.buscarUsuarios.map((u) => _UserCard(
                                 user: u,
@@ -153,10 +186,16 @@ class _AmigosViewState extends State<AmigosView> {
                                 trailing: _GreenButton(
                                   label: 'Agregar',
                                   icon: Icons.person_add,
-                                  onTap: () => vm.agregarAmigoDesdeBuscar(u.id),
+                                  onTap: () => _confirmarAccion(
+                                    context: context,
+                                    userId: u.id,
+                                    mensaje: '¿Seguro que desea agregar a {nombre} como amigo?',
+                                    accion: () => vm.agregarAmigoDesdeBuscar(u.id),
+                                  ),
                                 ),
                               )),
 
+                            // PESTAÑA: SOLICITUDES
                             if (vm.tab == AmigosTab.solicitudes)
                               ...vm.solicitudes.map((u) => _UserCard(
                                 user: u,
@@ -165,46 +204,39 @@ class _AmigosViewState extends State<AmigosView> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     _GreenButton(
-                                      label: 'Agregar',
-                                      icon: Icons.person_add,
-                                      onTap: () => vm.aceptarSolicitud(u.id),
+                                      label: 'Aceptar',
+                                      icon: Icons.check,
+                                      onTap: () => _confirmarAccion(
+                                        context: context,
+                                        userId: u.id,
+                                        mensaje: '¿Quieres aceptar la solicitud de {nombre}?',
+                                        accion: () => vm.aceptarSolicitud(u.id),
+                                      ),
                                     ),
                                     const SizedBox(width: 10),
                                     _RedButton(
-                                      label: 'Eliminar',
+                                      label: 'Rechazar',
                                       icon: Icons.close,
-                                      onTap: () => vm.eliminarSolicitud(u.id),
+                                      onTap: () => _confirmarAccion(
+                                        context: context,
+                                        userId: u.id,
+                                        mensaje: '¿Deseas rechazar la solicitud de {nombre}?',
+                                        accion: () => vm.eliminarSolicitud(u.id),
+                                      ),
                                     ),
                                   ],
                                 ),
                               )),
 
+                            // MENSAJES DE LISTA VACÍA
                             if (vm.tab == AmigosTab.misAmigos && vm.misAmigos.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 18),
-                                child: Text(
-                                  'No tienes amigos todavía.',
-                                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
-                                ),
-                              ),
+                              const _EmptyLabel(text: 'No tienes amigos todavía.'),
 
                             if (vm.tab == AmigosTab.buscar && vm.buscarUsuarios.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 18),
-                                child: Text(
-                                  'No hay usuarios que coincidan con tu búsqueda.',
-                                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
-                                ),
-                              ),
+                              const _EmptyLabel(text: 'No hay usuarios que coincidan.'),
 
                             if (vm.tab == AmigosTab.solicitudes && vm.solicitudes.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 18),
-                                child: Text(
-                                  'No tienes solicitudes pendientes.',
-                                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
-                                ),
-                              ),
+                              const _EmptyLabel(text: 'No tienes solicitudes pendientes.'),
                           ],
                         ),
                       ),
@@ -220,7 +252,7 @@ class _AmigosViewState extends State<AmigosView> {
   }
 }
 
-/* ================= UI COMPONENTS ================= */
+/* ================= COMPONENTES DE INTERFAZ (UI) ================= */
 
 class _FriendsIcon extends StatelessWidget {
   const _FriendsIcon();
@@ -414,7 +446,11 @@ class _GreenButton extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.black, fontSize: 12),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                  fontSize: 12
+              ),
             ),
           ],
         ),
@@ -442,19 +478,39 @@ class _RedButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFE53935),
+          color: const Color(0xFFE53935), // Color rojo Figma
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: Colors.black),
+            Icon(icon, size: 16, color: Colors.white),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.black, fontSize: 12),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  fontSize: 12
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyLabel extends StatelessWidget {
+  final String text;
+  const _EmptyLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
       ),
     );
   }

@@ -13,10 +13,9 @@ class PartidaPersonalizadaViewModel extends ChangeNotifier {
   }
 
   // Número de cartas
-  int _numCartas = 7; // como en tu mock
+  int _numCartas = 7;
   int get numCartas => _numCartas;
 
-  // Ajusta límites si quieres (yo dejo algo razonable)
   static const int minCartas = 3;
   static const int maxCartas = 20;
 

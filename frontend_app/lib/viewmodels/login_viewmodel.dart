@@ -32,7 +32,7 @@ class LoginViewModel extends ChangeNotifier {
       return true; // Acceso concedido: La View recibirá este true y hará el Navigator.push
 
     } catch (e) {
-      debugPrint("Error inesperado en el proceso de login: $e");
+       debugPrint("Error inesperado en el proceso de login: $e");
       _setLoading(false);
       return false;
     }

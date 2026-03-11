@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
 import '../models/tienda_item_model.dart';
 import '../viewmodels/tienda_viewmodel.dart';
+// Asegúrate de que la ruta a tu widget de confirmación sea correcta
+import 'package:frontend_app/views/widgets/confirmacion_dialogo.dart';
 
 class TiendaView extends StatefulWidget {
-
   const TiendaView({super.key});
 
   @override
@@ -17,13 +18,45 @@ class _TiendaViewState extends State<TiendaView> {
   @override
   void initState() {
     super.initState();
+    // Inicialización del ViewModel
     vm = TiendaViewModel();
   }
 
   @override
   void dispose() {
-    vm.dispose();
+    // El dispose del ViewModel es gestionado aquí si no usas un Provider
     super.dispose();
+  }
+
+  /* --- LÓGICA DE COMPRA CON CONFIRMACIÓN (REFACTORIZADA) --- */
+
+  void _intentarComprar(BuildContext context, TiendaItem item) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return ConfirmationDialog(
+          // Mensaje dinámico basado en el item de la tienda
+          message: "¿Deseas comprar '${item.titulo}' por ${item.precio} monedas?",
+          confirmText: "Comprar",
+          onConfirm: () {
+            // Ejecutamos la transacción en el ViewModel
+            final exito = vm.ejecutarCompra(item);
+
+            // Feedback visual al usuario tras la acción
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(exito
+                    ? "¡Compra realizada con éxito!"
+                    : "No tienes suficientes monedas para este artículo."),
+                backgroundColor: exito ? Colors.green : Colors.red,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -62,6 +95,7 @@ class _TiendaViewState extends State<TiendaView> {
                           ),
                         ),
                         const Spacer(),
+                        // Visualización reactiva de las monedas del jugador
                         _Pill(
                           background: const Color(0xFFF4C542),
                           foreground: Colors.black,
@@ -100,7 +134,7 @@ class _TiendaViewState extends State<TiendaView> {
 
                     const SizedBox(height: 12),
 
-                    // Filtros
+                    // Filtros de categoría
                     Row(
                       children: [
                         _FilterChip(
@@ -125,7 +159,7 @@ class _TiendaViewState extends State<TiendaView> {
 
                     const SizedBox(height: 12),
 
-                    // Grid de items
+                    // Grid de items de la tienda
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {
@@ -145,7 +179,8 @@ class _TiendaViewState extends State<TiendaView> {
                               return _ShopCard(
                                 background: card,
                                 item: item,
-                                onBuy: () => vm.comprar(context, item),
+                                // Llamada a la función de confirmación en lugar de compra directa
+                                onBuy: () => _intentarComprar(context, item),
                               );
                             },
                           );
@@ -162,6 +197,8 @@ class _TiendaViewState extends State<TiendaView> {
     );
   }
 }
+
+/* ================= COMPONENTES INTERNOS DE UI ================= */
 
 class _ShopCard extends StatelessWidget {
   final Color background;
@@ -184,7 +221,7 @@ class _ShopCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Imagen
+          // Imagen del producto
           Container(
             width: 56,
             height: 56,
@@ -211,7 +248,7 @@ class _ShopCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Texto principal
+          // Información y botón
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +296,7 @@ class _ShopCard extends StatelessWidget {
 
           const SizedBox(width: 10),
 
-          // Tipo a la derecha
+          // Etiqueta de tipo (Avatar/Diseño)
           Align(
             alignment: Alignment.topRight,
             child: Text(

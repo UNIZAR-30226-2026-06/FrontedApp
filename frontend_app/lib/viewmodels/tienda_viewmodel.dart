@@ -5,30 +5,35 @@ import '../models/tienda_item_model.dart';
 enum TiendaFiltro { todos, avatares, disenos }
 
 class TiendaViewModel extends ChangeNotifier {
-
+  // Constructor: Inicializa el jugador (con monedas para pruebas) y el catálogo
   TiendaViewModel({Jugador? jugador})
       : _jugador = jugador ?? Jugador(
       nombre: "Invitado",
-      coins: 0,
+      coins: 1000, // Saldo inicial para testear compras
       avatarId: 'a0',
       skinId: 's1'
   ) {
-    _items = _seedItems(); // Inicializamos los productos
+    _items = _seedItems(); // Carga el dataset de productos
   }
 
-  final Jugador _jugador;
+  // Estado del jugador (Privado para control de cambios mediante notifyListeners)
+  Jugador _jugador;
   Jugador get jugador => _jugador;
 
+  // Lista interna de productos de la tienda
   late final List<TiendaItem> _items;
 
+  // Gestión de filtros de la interfaz
   TiendaFiltro _filtro = TiendaFiltro.todos;
   TiendaFiltro get filtro => _filtro;
 
+  /// Cambia la pestaña activa de la tienda y actualiza la UI
   void setFiltro(TiendaFiltro nuevo) {
     _filtro = nuevo;
     notifyListeners();
   }
 
+  /// Devuelve los artículos filtrados según la pestaña seleccionada
   List<TiendaItem> get itemsFiltrados {
     switch (_filtro) {
       case TiendaFiltro.todos:
@@ -40,13 +45,26 @@ class TiendaViewModel extends ChangeNotifier {
     }
   }
 
-  void comprar(BuildContext context, TiendaItem item) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Comprar: ${item.titulo} (pendiente)')),
-    );
+  /// Lógica de negocio para ejecutar la compra (Invocada tras la confirmación del diálogo)
+  /// Devuelve [true] si el jugador tenía saldo suficiente y la compra se realizó.
+  bool ejecutarCompra(TiendaItem item) {
+    if (_jugador.coins >= item.precio) {
+      // Actualizamos el estado del jugador de forma inmutable
+      _jugador = _jugador.copyWith(
+        coins: _jugador.coins - item.precio,
+      );
+
+      // En la Fase 2, aquí se añadiría la lógica de persistencia con el servidor (API)
+
+      notifyListeners(); // Notifica a la View para actualizar el contador de monedas
+      return true;
+    }
+
+    // Saldo insuficiente
+    return false;
   }
 
-  // 4 avatares + 4 diseños
+  /// Catálogo de productos inicial (Hitos y recursos del proyecto)
   List<TiendaItem> _seedItems() {
     return const [
       TiendaItem(

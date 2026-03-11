@@ -12,7 +12,7 @@ class AmigosViewModel extends ChangeNotifier {
       avatarId: 'a0',
       skinId: 's1'
   ) {
-    // Dataset “global” de usuarios
+    // Dataset “global” de usuarios (luego llamar a la API del back)
     _allUsers = const [
       UsuarioApp(id: 'j1', nombre: 'Jugador 1', avatarEmoji: '😎', coins: 300),
       UsuarioApp(id: 'j2', nombre: 'Jugador 2', avatarEmoji: '😎', coins: 300),
@@ -104,6 +104,14 @@ class AmigosViewModel extends ChangeNotifier {
   void eliminarSolicitud(String userId) {
     _requestIds.remove(userId);
     notifyListeners();
+  }
+
+  String getNombreUsuario(String userId) {
+    try {
+      return _allUsers.firstWhere((u) => u.id == userId).nombre;
+    } catch (e) {
+      return "Usuario desconocido";
+    }
   }
 
   Jugador buildJugadorActualizado() {
