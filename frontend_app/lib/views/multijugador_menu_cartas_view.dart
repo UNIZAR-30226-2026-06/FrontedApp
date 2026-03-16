@@ -69,7 +69,7 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
                               'UNO',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 34,
+                                fontSize: 40,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.2,
                               ),
@@ -92,13 +92,20 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
                               ],
                             ),
 
-                            const SizedBox(height: 6),
-                            Text(vm.modoSubtitulo2,
-                                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            Text(
+                              vm.modoSubtitulo2,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
 
-                            const SizedBox(height: 22),
+                            const SizedBox(height: 24),
 
-                            _GreenButton(
+                            // BOTONES DE ACCIÓN ANIMADOS (VERDE NEÓN)
+                            _AnimatedGreenButton(
                               label: 'Crear partida',
                               onTap: () {
                                 Navigator.push(
@@ -111,8 +118,8 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
                                 );
                               },
                             ),
-                            const SizedBox(height: 12),
-                            _GreenButton(
+                            const SizedBox(height: 16),
+                            _AnimatedGreenButton(
                               label: 'Unirse partida',
                               onTap: () {
                                 Navigator.push(
@@ -135,11 +142,12 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
                   },
                 ),
 
+                // BOTÓN VOLVER ANIMADO (TOP RIGHT)
                 Align(
                   alignment: Alignment.topRight,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 14, right: 14),
-                    child: _BackPill(
+                    child: _AnimatedBackPill(
                       onTap: () {
                         if (Navigator.canPop(context)) Navigator.pop(context);
                       },
@@ -155,60 +163,116 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
   }
 }
 
-class _BackPill extends StatelessWidget {
+// ---------------------------------------------------------
+// COMPONENTES ANIMADOS (ESTILO EXTREME GLOW)
+// ---------------------------------------------------------
+
+class _AnimatedGreenButton extends StatefulWidget {
+  final String label;
   final VoidCallback onTap;
-  const _BackPill({required this.onTap});
+  const _AnimatedGreenButton({required this.label, required this.onTap});
+
+  @override
+  State<_AnimatedGreenButton> createState() => _AnimatedGreenButtonState();
+}
+
+class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A316B),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.arrow_back, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Volver',
-              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+    const greenBase = Color(0xFF53D86A);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          // ESCALA 1.12 para impacto visual equilibrado en botones anchos
+          scale: _isHovered ? 1.12 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 200,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _isHovered ? greenBase.withOpacity(0.9) : greenBase,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered
+                  ? [BoxShadow(
+                  color: greenBase.withOpacity(0.6),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 2)
+              )]
+                  : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
             ),
-          ],
+            child: Center(
+              child: Text(
+                widget.label,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _GreenButton extends StatelessWidget {
-  final String label;
+class _AnimatedBackPill extends StatefulWidget {
   final VoidCallback onTap;
-  const _GreenButton({required this.label, required this.onTap});
+  const _AnimatedBackPill({required this.onTap});
+
+  @override
+  State<_AnimatedBackPill> createState() => _AnimatedBackPillState();
+}
+
+class _AnimatedBackPillState extends State<_AnimatedBackPill> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Container(
-        width: 190,
-        height: 38,
-        decoration: BoxDecoration(
-          color: const Color(0xFF53D86A),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
+    const activeBlue = Color(0xFF3A6BFF);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          // ESCALA 1.05 para el botón de volver
+          scale: _isHovered ? 1.05 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isHovered ? activeBlue : const Color(0xFF2A316B),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered
+                  ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 12)]
+                  : [],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Volver',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

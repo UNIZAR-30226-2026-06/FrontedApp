@@ -28,7 +28,7 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const inner = Color(0xFF2A316B);
-    const card = Color(0xFF3F578C);
+    const cardBg = Color(0xFF3F578C);
 
     return Scaffold(
       backgroundColor: bg,
@@ -42,7 +42,6 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
             ),
             child: Stack(
               children: [
-
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
@@ -55,19 +54,16 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
                             return Column(
                               children: [
                                 const SizedBox(height: 6),
-
                                 const Text(
                                   'UNO',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 34,
+                                    fontSize: 40,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 1.2,
                                   ),
                                 ),
-
-                                const SizedBox(height: 6),
-
+                                const SizedBox(height: 8),
                                 const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -83,9 +79,7 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
                                     ),
                                   ],
                                 ),
-
                                 const SizedBox(height: 4),
-
                                 const Text(
                                   'Partida Privada',
                                   style: TextStyle(
@@ -95,15 +89,18 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
                                   ),
                                 ),
 
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 18),
 
-                                // Panel CREAR SALA
+                                // PANEL CREAR SALA
                                 Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
                                   decoration: BoxDecoration(
-                                    color: card,
-                                    borderRadius: BorderRadius.circular(18),
+                                    color: cardBg,
+                                    borderRadius: BorderRadius.circular(22),
+                                    boxShadow: [
+                                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10)
+                                    ],
                                   ),
                                   child: Column(
                                     children: [
@@ -111,107 +108,73 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
                                         'CREAR SALA',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: 22,
+                                          fontSize: 24,
                                           fontWeight: FontWeight.w900,
-                                          shadows: [
-                                            Shadow(blurRadius: 2, offset: Offset(0, 1)),
-                                          ],
+                                          letterSpacing: 1.5,
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
+                                      const SizedBox(height: 20),
 
                                       Row(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          // IZQUIERDA: reglas + num cartas
+                                          // IZQUIERDA: REGLAS + NUM CARTAS
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 const Text(
-                                                  'Reglas',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w900,
-                                                  ),
+                                                  'Reglas de juego',
+                                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900),
                                                 ),
-                                                const SizedBox(height: 10),
-
-                                                Row(
-                                                  children: [
-                                                    Expanded(
-                                                      child: _RuleTile(
-                                                        selected: vm.regla == ReglaPersonalizada.normal,
-                                                        emoji: '🟥',
-                                                        label: 'Normal',
-                                                        onTap: () => vm.setRegla(ReglaPersonalizada.normal),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 10),
-                                                    Expanded(
-                                                      child: _RuleTile(
-                                                        selected: vm.regla == ReglaPersonalizada.roles,
-                                                        emoji: '🎭',
-                                                        label: 'Roles',
-                                                        onTap: () => vm.setRegla(ReglaPersonalizada.roles),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 10),
-                                                    Expanded(
-                                                      child: _RuleTile(
-                                                        selected: vm.regla == ReglaPersonalizada.cartasEspeciales,
-                                                        emoji: '⚡',
-                                                        label: 'Cartas esp.',
-                                                        onTap: () => vm.setRegla(ReglaPersonalizada.cartasEspeciales),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-
                                                 const SizedBox(height: 12),
-
-                                                // Num cartas
                                                 Row(
                                                   children: [
-                                                    Expanded(
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                                        decoration: BoxDecoration(
-                                                          color: inner,
-                                                          borderRadius: BorderRadius.circular(14),
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                          children: [
-                                                            _MiniSquareBtn(label: '–', onTap: vm.decCartas),
-                                                            Row(
-                                                              children: [
-                                                                const Text(
-                                                                  'Num cartas',
-                                                                  style: TextStyle(
-                                                                    color: Colors.white70,
-                                                                    fontSize: 11,
-                                                                    fontWeight: FontWeight.w800,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(width: 10),
-                                                                Text(
-                                                                  vm.numCartas.toString(),
-                                                                  style: const TextStyle(
-                                                                    color: Colors.white,
-                                                                    fontSize: 18,
-                                                                    fontWeight: FontWeight.w900,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            _MiniSquareBtn(label: '+', onTap: vm.incCartas),
-                                                          ],
-                                                        ),
-                                                      ),
+                                                    _AnimatedRuleTile(
+                                                      selected: vm.regla == ReglaPersonalizada.normal,
+                                                      emoji: '🟥',
+                                                      label: 'Normal',
+                                                      onTap: () => vm.setRegla(ReglaPersonalizada.normal),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    _AnimatedRuleTile(
+                                                      selected: vm.regla == ReglaPersonalizada.roles,
+                                                      emoji: '🎭',
+                                                      label: 'Roles',
+                                                      onTap: () => vm.setRegla(ReglaPersonalizada.roles),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    _AnimatedRuleTile(
+                                                      selected: vm.regla == ReglaPersonalizada.cartasEspeciales,
+                                                      emoji: '⚡',
+                                                      label: 'Esp.',
+                                                      onTap: () => vm.setRegla(ReglaPersonalizada.cartasEspeciales),
                                                     ),
                                                   ],
+                                                ),
+
+                                                const SizedBox(height: 16),
+
+                                                // CONTROL NUM CARTAS
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                  decoration: BoxDecoration(
+                                                    color: inner,
+                                                    borderRadius: BorderRadius.circular(15),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      _AnimatedSquareBtn(label: '–', onTap: vm.decCartas),
+                                                      Column(
+                                                        children: [
+                                                          const Text('CARTAS', style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w900)),
+                                                          Text(vm.numCartas.toString(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                                                        ],
+                                                      ),
+                                                      _AnimatedSquareBtn(label: '+', onTap: vm.incCartas),
+                                                    ],
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -219,45 +182,33 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
 
                                           const SizedBox(width: 16),
 
-                                          // DERECHA: toggles
+                                          // DERECHA: TOGGLES
                                           SizedBox(
-                                            width: 140,
+                                            width: 130,
                                             child: Column(
                                               children: [
-                                                _ToggleRow(
-                                                  label: 'MÚSICA',
-                                                  value: vm.musica,
-                                                  onChanged: vm.toggleMusica,
-                                                ),
-                                                const SizedBox(height: 10),
-                                                _ToggleRow(
-                                                  label: 'SONIDO',
-                                                  value: vm.sonido,
-                                                  onChanged: vm.toggleSonido,
-                                                ),
-                                                const SizedBox(height: 10),
-                                                _ToggleRow(
-                                                  label: 'VIBRACIÓN',
-                                                  value: vm.vibracion,
-                                                  onChanged: vm.toggleVibracion,
-                                                ),
+                                                _AnimatedToggleRow(label: 'MÚSICA', value: vm.musica, onChanged: vm.toggleMusica),
+                                                const SizedBox(height: 8),
+                                                _AnimatedToggleRow(label: 'SONIDO', value: vm.sonido, onChanged: vm.toggleSonido),
+                                                const SizedBox(height: 8),
+                                                _AnimatedToggleRow(label: 'VIBRAR', value: vm.vibracion, onChanged: vm.toggleVibracion),
                                               ],
                                             ),
                                           ),
                                         ],
                                       ),
 
-                                      const SizedBox(height: 14),
+                                      const SizedBox(height: 24),
 
-                                      _GreenButton(
-                                        label: 'Crear partida',
+                                      // BOTÓN CREAR PARTIDA (ESCALA 1.06)
+                                      _AnimatedGreenButton(
+                                        label: 'CREAR PARTIDA',
                                         onTap: () => vm.crearPartida(context),
                                       ),
                                     ],
                                   ),
                                 ),
-
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 20),
                               ],
                             );
                           },
@@ -267,12 +218,12 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
                   },
                 ),
 
-                // ✅ Botón volver siempre encima y clicable
+                // BOTÓN VOLVER (TOP RIGHT)
                 Align(
                   alignment: Alignment.topRight,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 14, right: 14),
-                    child: _BackPill(
+                    child: _AnimatedBackPill(
                       onTap: () {
                         if (Navigator.canPop(context)) Navigator.pop(context);
                       },
@@ -288,75 +239,144 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
   }
 }
 
-// ===== Widgets UI =====
+// ---------------------------------------------------------
+// COMPONENTES REFACTORIZADOS (HOVER/GLOW)
+// ---------------------------------------------------------
 
-class _BackPill extends StatelessWidget {
+class _AnimatedRuleTile extends StatefulWidget {
+  final bool selected;
+  final String emoji;
+  final String label;
   final VoidCallback onTap;
-  const _BackPill({required this.onTap});
+
+  const _AnimatedRuleTile({required this.selected, required this.emoji, required this.label, required this.onTap});
+
+  @override
+  State<_AnimatedRuleTile> createState() => _AnimatedRuleTileState();
+}
+
+class _AnimatedRuleTileState extends State<_AnimatedRuleTile> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A316B),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.arrow_back, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Volver',
-              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+    const gold = Color(0xFFF4C542);
+    const idleBg = Color(0xFF3E6FB1);
+
+    return Expanded(
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 150),
+            scale: _isHovered ? 1.08 : 1.0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.selected ? const Color(0xFF5A86C9) : idleBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: widget.selected ? gold : Colors.transparent, width: 2),
+                boxShadow: (widget.selected || _isHovered)
+                    ? [BoxShadow(color: (widget.selected ? gold : Colors.white).withOpacity(0.2), blurRadius: 8)]
+                    : [],
+              ),
+              child: Column(
+                children: [
+                  Text(widget.emoji, style: const TextStyle(fontSize: 22)),
+                  const SizedBox(height: 6),
+                  Text(widget.label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _RuleTile extends StatelessWidget {
-  final bool selected;
-  final String emoji;
+class _AnimatedSquareBtn extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
+  const _AnimatedSquareBtn({required this.label, required this.onTap});
 
-  const _RuleTile({
-    required this.selected,
-    required this.emoji,
-    required this.label,
-    required this.onTap,
-  });
+  @override
+  State<_AnimatedSquareBtn> createState() => _AnimatedSquareBtnState();
+}
+
+class _AnimatedSquareBtnState extends State<_AnimatedSquareBtn> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? const Color(0xFF5A86C9) : const Color(0xFF3E6FB1);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
+    const activeBlue = Color(0xFF3A6BFF);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          scale: _isHovered ? 1.15 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: _isHovered ? activeBlue : const Color(0xFF263064),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: _isHovered ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 10)] : [],
+            ),
+            child: Center(
+              child: Text(widget.label, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+            ),
+          ),
         ),
-        child: Column(
+      ),
+    );
+  }
+}
+
+class _AnimatedToggleRow extends StatefulWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _AnimatedToggleRow({required this.label, required this.value, required this.onChanged});
+
+  @override
+  State<_AnimatedToggleRow> createState() => _AnimatedToggleRowState();
+}
+
+class _AnimatedToggleRowState extends State<_AnimatedToggleRow> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: _isHovered ? Colors.white.withOpacity(0.05) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 22)),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
+            Expanded(child: Text(widget.label, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900))),
+            Transform.scale(
+              scale: 0.8,
+              child: Switch(
+                value: widget.value,
+                onChanged: widget.onChanged,
+                activeTrackColor: const Color(0xFF53D86A),
+                inactiveTrackColor: const Color(0xFFD65B5B),
+                trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
               ),
             ),
           ],
@@ -366,27 +386,43 @@ class _RuleTile extends StatelessWidget {
   }
 }
 
-class _MiniSquareBtn extends StatelessWidget {
+class _AnimatedGreenButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
-  const _MiniSquareBtn({required this.label, required this.onTap});
+  const _AnimatedGreenButton({required this.label, required this.onTap});
+
+  @override
+  State<_AnimatedGreenButton> createState() => _AnimatedGreenButtonState();
+}
+
+class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: const Color(0xFF263064),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+    const green = Color(0xFF53D86A);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          scale: _isHovered ? 1.06 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 220,
+            height: 44,
+            decoration: BoxDecoration(
+              color: green,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered
+                  ? [BoxShadow(color: green.withOpacity(0.5), blurRadius: 15, spreadRadius: 2)]
+                  : [const BoxShadow(color: Colors.black26, blurRadius: 5, offset: Offset(0, 2))],
+            ),
+            child: Center(
+              child: Text(widget.label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14)),
+            ),
           ),
         ),
       ),
@@ -394,61 +430,43 @@ class _MiniSquareBtn extends StatelessWidget {
   }
 }
 
-class _ToggleRow extends StatelessWidget {
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _ToggleRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+class _AnimatedBackPill extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedBackPill({required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
+  State<_AnimatedBackPill> createState() => _AnimatedBackPillState();
 }
 
-class _GreenButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _GreenButton({required this.label, required this.onTap});
-
+class _AnimatedBackPillState extends State<_AnimatedBackPill> {
+  bool _isHovered = false;
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Container(
-        width: 200,
-        height: 38,
-        decoration: BoxDecoration(
-          color: const Color(0xFF53D86A),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13),
+    const activeBlue = Color(0xFF3A6BFF);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          scale: _isHovered ? 1.05 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isHovered ? activeBlue : const Color(0xFF263064),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 10)] : [],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text('Volver', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+              ],
+            ),
           ),
         ),
       ),

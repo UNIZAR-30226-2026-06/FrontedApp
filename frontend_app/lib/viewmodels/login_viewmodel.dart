@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../models/usuario_model.dart';
 
 class LoginViewModel extends ChangeNotifier {
+  // Dejamos el repo instanciado pero no lo usaremos en el bypass
   final AuthRepository _authRepo = AuthRepository(ApiService());
 
   final nombreController = TextEditingController();
@@ -18,37 +19,41 @@ class LoginViewModel extends ChangeNotifier {
   UsuarioModel? _usuarioLogueado;
   UsuarioModel? get usuarioLogueado => _usuarioLogueado;
 
-  /// Intenta realizar el login real contra el backend de Node.js.
+  /// Método de login con Bypass provisional
   Future<bool> intentarLogin() async {
     final nombre = nombreController.text.trim();
-    final password = passwordController.text.trim();
-
-    if (nombre.isEmpty || password.isEmpty) {
-      _mensajeError = "Campos obligatorios vacíos";
-      notifyListeners();
-      return false;
-    }
+    // final password = passwordController.text.trim(); // Comentado por ahora
 
     _setLoading(true);
-    _mensajeError = null; // Limpiamos errores previos
+    _mensajeError = null;
 
     try {
-      // Realizamos la petición HTTP real al servidor
-      // El repositorio ya se encarga de gestionar el JSON y el Token
+      // === BLOQUE COMENTADO: CONEXIÓN REAL CON EL SERVIDOR ===
+      /*
       _usuarioLogueado = await _authRepo.login(nombre, password);
+      debugPrint("Login real exitoso para: ${_usuarioLogueado?.nombreUsuario}");
+      */
+      // =======================================================
 
-      debugPrint("Login exitoso en DB para: ${_usuarioLogueado?.nombreUsuario}");
+      // === BYPASS PROVISIONAL (MAGIA) ===
+      // Creamos el usuario sin token para que no dé errores
+      _usuarioLogueado = UsuarioModel(
+        nombreUsuario: nombre.isEmpty ? "Invitado" : nombre,
+        correo: "${nombre.isEmpty ? 'guest' : nombre}@test.com",
+        monedas: 999, // Monedas de regalo para testear
+      );
+
+      // Simulamos latencia para que veas el spinner un momento
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      debugPrint("Bypass activo: Entrando como ${_usuarioLogueado?.nombreUsuario}");
 
       _setLoading(false);
-      return true; // Éxito: La View permitirá la navegación al Home
+      return true; // ESTO ES LO QUE HACE QUE LA VISTA NAVEGUE AL HOME
+      // ==================================
 
     } catch (e) {
-      // Capturamos los errores devueltos por auth.controller.js
-      _mensajeError = e.toString().contains("Exception: ")
-          ? e.toString().split("Exception: ")[1]
-          : "Error de conexión con el servidor";
-
-      debugPrint("Error en el login: $_mensajeError");
+      _mensajeError = "Error inesperado en el bypass";
       _setLoading(false);
       return false;
     }

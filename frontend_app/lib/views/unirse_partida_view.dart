@@ -53,10 +53,11 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
             ),
             child: Stack(
               children: [
+                // BOTÓN VOLVER ANIMADO (TOP RIGHT)
                 Positioned(
                   top: 14,
                   right: 14,
-                  child: _BackPill(onTap: () => Navigator.pop(context)),
+                  child: _AnimatedBackPill(onTap: () => Navigator.pop(context)),
                 ),
 
                 Center(
@@ -121,22 +122,22 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                 const SizedBox(width: 10),
                                 SizedBox(
                                   width: 90,
-                                  height: 26,
+                                  height: 30, // Un poco más alto para mejor tacto
                                   child: TextField(
                                     controller: _controller,
                                     onChanged: vm.setCodigo,
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       color: Colors.black,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
                                     ),
                                     decoration: InputDecoration(
                                       filled: true,
                                       fillColor: Colors.white,
                                       contentPadding: EdgeInsets.zero,
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(8),
                                         borderSide: BorderSide.none,
                                       ),
                                     ),
@@ -145,11 +146,12 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                               ],
                             ),
 
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 24),
 
-                            _GreenButton(
+                            // BOTÓN UNIRSE ANIMADO (VERDE NEÓN)
+                            _AnimatedGreenButton(
                               label: 'Unirse partida',
-                              onTap: () => vm.unirse(context), // abierto
+                              onTap: () => vm.unirse(context),
                             ),
                           ],
                         );
@@ -166,67 +168,115 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
   }
 }
 
-// ---- UI helpers ----
+// ---------------------------------------------------------
+// COMPONENTES ANIMADOS (EXTREME GLOW & HOVER)
+// ---------------------------------------------------------
 
-class _BackPill extends StatelessWidget {
+class _AnimatedGreenButton extends StatefulWidget {
+  final String label;
   final VoidCallback onTap;
-  const _BackPill({required this.onTap});
+  const _AnimatedGreenButton({required this.label, required this.onTap});
+
+  @override
+  State<_AnimatedGreenButton> createState() => _AnimatedGreenButtonState();
+}
+
+class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A316B),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.arrow_back, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Volver',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
+    const greenBase = Color(0xFF53D86A);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          // ESCALA 1.15 para máximo impacto
+          scale: _isHovered ? 1.15 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 200,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _isHovered ? greenBase.withOpacity(0.9) : greenBase,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered
+                  ? [BoxShadow(
+                  color: greenBase.withOpacity(0.6),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 2)
+              )]
+                  : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+            ),
+            child: Center(
+              child: Text(
+                widget.label,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _GreenButton extends StatelessWidget {
-  final String label;
+class _AnimatedBackPill extends StatefulWidget {
   final VoidCallback onTap;
-  const _GreenButton({required this.label, required this.onTap});
+  const _AnimatedBackPill({required this.onTap});
+
+  @override
+  State<_AnimatedBackPill> createState() => _AnimatedBackPillState();
+}
+
+class _AnimatedBackPillState extends State<_AnimatedBackPill> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Container(
-        width: 190,
-        height: 38,
-        decoration: BoxDecoration(
-          color: const Color(0xFF53D86A),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
+    const activeBlue = Color(0xFF3A6BFF);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          scale: _isHovered ? 1.1 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isHovered ? activeBlue : const Color(0xFF2A316B),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered
+                  ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 10)]
+                  : [],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Volver',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

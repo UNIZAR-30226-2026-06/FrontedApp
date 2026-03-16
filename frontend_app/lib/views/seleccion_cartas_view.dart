@@ -52,7 +52,7 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
             ),
             child: Stack(
               children: [
-                // ✅ contenido con scroll (por si crece)
+                // Contenido con scroll
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
@@ -67,7 +67,7 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
                               'UNO',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 34,
+                                fontSize: 40,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.2,
                               ),
@@ -101,19 +101,20 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
                               ),
                             ),
 
-                            const SizedBox(height: 22),
+                            const SizedBox(height: 25),
 
                             const Text(
                               'Selecciona el modo de juego',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 20),
 
-                            _BigChoiceButton(
+                            // BOTÓN JUGAR VS IA (ROJO CORAL NEÓN) - ESCALA 1.06
+                            _AnimatedBigChoiceButton(
                               background: const Color(0xFFCF5C5C),
                               title: 'Jugar vs IA',
                               subtitle: 'Compite contra la IA en frenéticas partidas',
@@ -129,12 +130,14 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
                               },
                             ),
 
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
 
-                            _BigChoiceButton(
+                            // BOTÓN MULTIJUGADOR (VERDE NEÓN) - ESCALA 1.06
+                            _AnimatedBigChoiceButton(
                               background: const Color(0xFF53D86A),
                               title: 'Modo Multijugador',
                               subtitle: 'Desafía a otros rivales para demostrar quién es el mejor',
+                              isTextDark: true,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -157,12 +160,12 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
                   },
                 ),
 
-                // ✅ Volver encima y clicable
+                // Botón Volver (Top Right) - ESCALA 1.05
                 Align(
                   alignment: Alignment.topRight,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 14, right: 14),
-                    child: _BackPill(
+                    child: _AnimatedBackPill(
                       onTap: () {
                         if (Navigator.canPop(context)) Navigator.pop(context);
                       },
@@ -178,88 +181,135 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
   }
 }
 
-// ===== Widgets UI =====
+// ---------------------------------------------------------
+// COMPONENTES ANIMADOS CON ESCALA SUAVIZADA (1.06)
+// ---------------------------------------------------------
 
-class _BackPill extends StatelessWidget {
+class _AnimatedBigChoiceButton extends StatefulWidget {
+  final Color background;
+  final String title;
+  final String subtitle;
   final VoidCallback onTap;
-  const _BackPill({required this.onTap});
+  final bool isTextDark;
+
+  const _AnimatedBigChoiceButton({
+    required this.background,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.isTextDark = false,
+  });
+
+  @override
+  State<_AnimatedBigChoiceButton> createState() => _AnimatedBigChoiceButtonState();
+}
+
+class _AnimatedBigChoiceButtonState extends State<_AnimatedBigChoiceButton> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A316B),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.arrow_back, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Volver',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          // AJUSTADO: Escala 1.06 para evitar que sea muy exagerado al ser ancho
+          scale: _isHovered ? 1.06 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: _isHovered ? widget.background.withOpacity(0.95) : widget.background,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: _isHovered
+                  ? [BoxShadow(
+                  color: widget.background.withOpacity(0.6),
+                  blurRadius: 20,
+                  spreadRadius: 3,
+                  offset: const Offset(0, 4)
+              )]
+                  : [const BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
             ),
-          ],
+            child: Column(
+              children: [
+                Text(
+                  widget.title,
+                  style: TextStyle(
+                    color: widget.isTextDark ? Colors.black : Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: widget.isTextDark ? Colors.black87 : Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _BigChoiceButton extends StatelessWidget {
-  final Color background;
-  final String title;
-  final String subtitle;
+class _AnimatedBackPill extends StatefulWidget {
   final VoidCallback onTap;
+  const _AnimatedBackPill({required this.onTap});
 
-  const _BigChoiceButton({
-    required this.background,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
+  @override
+  State<_AnimatedBackPill> createState() => _AnimatedBackPillState();
+}
+
+class _AnimatedBackPillState extends State<_AnimatedBackPill> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-              ),
+    const activeBlue = Color(0xFF3A6BFF);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          scale: _isHovered ? 1.05 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isHovered ? activeBlue : const Color(0xFF2A316B),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 12)] : [],
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Volver',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

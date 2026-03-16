@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../viewmodels/config_roles_multijugador_viewmodel.dart';
 
 class ConfigRolesMultijugadorView extends StatefulWidget {
-  final String modoTitulo; // "Modo con roles"
+  final String modoTitulo;
 
   const ConfigRolesMultijugadorView({
     super.key,
@@ -48,7 +48,6 @@ class _ConfigRolesMultijugadorViewState
             ),
             child: Stack(
               children: [
-                // ✅ CONTENIDO con SCROLL (evita overflow)
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
@@ -78,9 +77,9 @@ class _ConfigRolesMultijugadorViewState
                                   ],
                                 ),
 
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 12),
 
-                                // ✅ Diferencia: "Modo multijugador" + código
+                                // Fila de información de partida y Código
                                 Row(
                                   children: [
                                     Expanded(
@@ -93,19 +92,27 @@ class _ConfigRolesMultijugadorViewState
                                         ),
                                       ),
                                     ),
-                                    Text(
-                                      'Código de la partida: ${vm.codigoPartida}',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: inner.withOpacity(0.5),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Código: ${vm.codigoPartida}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF53D86A), // Verde neón para el código
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
 
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 16),
 
+                                // Panel de selección de jugadores
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -131,20 +138,20 @@ class _ConfigRolesMultijugadorViewState
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          _SquareBtn(label: '–', onTap: vm.dec),
+                                          _AnimatedSquareBtn(label: '–', onTap: vm.dec),
                                           Text(
                                             vm.jugadores.toString(),
                                             style: const TextStyle(
                                               color: Colors.white,
-                                              fontSize: 24,
+                                              fontSize: 28,
                                               fontWeight: FontWeight.w900,
                                             ),
                                           ),
-                                          _SquareBtn(label: '+', onTap: vm.inc),
+                                          _AnimatedSquareBtn(label: '+', onTap: vm.inc),
                                         ],
                                       ),
 
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 12),
                                       Text(
                                         vm.detalleJugadores,
                                         style: const TextStyle(
@@ -166,14 +173,15 @@ class _ConfigRolesMultijugadorViewState
                                   ),
                                 ),
 
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 20),
 
-                                _GreenWideButton(
+                                // BOTÓN COMENZAR (VERDE NEÓN)
+                                _AnimatedGreenButton(
                                   label: 'Comenzar partida',
                                   onTap: () => vm.comenzarPartida(context),
                                 ),
 
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 16),
 
                                 _RulesSection(
                                   open: vm.reglasAbiertas,
@@ -190,12 +198,12 @@ class _ConfigRolesMultijugadorViewState
                   },
                 ),
 
-                // ✅ BOTÓN VOLVER SIEMPRE ENCIMA y CLICKABLE
+                // BOTÓN VOLVER ANIMADO
                 Align(
                   alignment: Alignment.topRight,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 14, right: 14),
-                    child: _BackPill(
+                    child: _AnimatedBackPill(
                       onTap: () {
                         if (Navigator.canPop(context)) {
                           Navigator.pop(context);
@@ -213,66 +221,49 @@ class _ConfigRolesMultijugadorViewState
   }
 }
 
-// ===== Widgets de estilo =====
+// ---------------------------------------------------------
+// COMPONENTES ANIMADOS (ESTILO EXTREME GLOW)
+// ---------------------------------------------------------
 
-class _BackPill extends StatelessWidget {
-  final VoidCallback onTap;
-  const _BackPill({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A316B),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.arrow_back, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Volver',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SquareBtn extends StatelessWidget {
+class _AnimatedSquareBtn extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
-  const _SquareBtn({required this.label, required this.onTap});
+  const _AnimatedSquareBtn({required this.label, required this.onTap});
+
+  @override
+  State<_AnimatedSquareBtn> createState() => _AnimatedSquareBtnState();
+}
+
+class _AnimatedSquareBtnState extends State<_AnimatedSquareBtn> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: const Color(0xFF263064),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
+    const activeBlue = Color(0xFF3A6BFF);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          scale: _isHovered ? 1.15 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: _isHovered ? activeBlue : const Color(0xFF263064),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: _isHovered
+                  ? [BoxShadow(color: activeBlue.withOpacity(0.5), blurRadius: 12, spreadRadius: 1)]
+                  : [],
+            ),
+            child: Center(
+              child: Text(
+                widget.label,
+                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+              ),
             ),
           ),
         ),
@@ -281,30 +272,99 @@ class _SquareBtn extends StatelessWidget {
   }
 }
 
-class _GreenWideButton extends StatelessWidget {
+class _AnimatedGreenButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
-  const _GreenWideButton({required this.label, required this.onTap});
+  const _AnimatedGreenButton({required this.label, required this.onTap});
+
+  @override
+  State<_AnimatedGreenButton> createState() => _AnimatedGreenButtonState();
+}
+
+class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: 34,
-        decoration: BoxDecoration(
-          color: const Color(0xFF53D86A),
-          borderRadius: BorderRadius.circular(12),
+    const greenBase = Color(0xFF53D86A);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          // ESCALA 1.08 para botones anchos
+          scale: _isHovered ? 1.08 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: double.infinity,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _isHovered ? greenBase.withOpacity(0.9) : greenBase,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered
+                  ? [BoxShadow(color: greenBase.withOpacity(0.5), blurRadius: 15, spreadRadius: 2)]
+                  : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+            ),
+            child: Center(
+              child: Text(
+                widget.label,
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14),
+              ),
+            ),
+          ),
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
+      ),
+    );
+  }
+}
+
+class _AnimatedBackPill extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedBackPill({required this.onTap});
+
+  @override
+  State<_AnimatedBackPill> createState() => _AnimatedBackPillState();
+}
+
+class _AnimatedBackPillState extends State<_AnimatedBackPill> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const activeBlue = Color(0xFF3A6BFF);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 150),
+          scale: _isHovered ? 1.1 : 1.0,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isHovered ? activeBlue : const Color(0xFF2A316B),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: _isHovered ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 12)] : [],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Volver',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -326,36 +386,29 @@ class _RulesSection extends StatelessWidget {
         InkWell(
           borderRadius: BorderRadius.circular(10),
           onTap: onToggle,
-          child: Row(
-            children: [
-              Icon(
-                open ? Icons.keyboard_arrow_down : Icons.chevron_right,
-                color: Colors.white70,
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'Reglas del UNO',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Icon(open ? Icons.keyboard_arrow_down : Icons.chevron_right,
+                    color: Colors.white70, size: 20),
+                const SizedBox(width: 6),
+                const Text('Reglas del UNO',
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 8),
         AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState:
-          open ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          duration: const Duration(milliseconds: 250),
+          crossFadeState: open ? CrossFadeState.showFirst : CrossFadeState.showSecond,
           firstChild: Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFF2A316B),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Text(
               '• Juega una carta que coincida en color o número con la carta superior\n'
@@ -363,12 +416,7 @@ class _RulesSection extends StatelessWidget {
                   '• Reversa: Cambia la dirección del juego\n'
                   '• +2: El siguiente jugador roba 2 cartas\n'
                   '• +4 / Cambio color: Elige el color y el siguiente jugador roba 4 cartas',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 11,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5, fontWeight: FontWeight.w600),
             ),
           ),
           secondChild: const SizedBox.shrink(),
