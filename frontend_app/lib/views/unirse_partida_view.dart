@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../viewmodels/unirse_partida_viewmodel.dart';
 
 class UnirsePartidaView extends StatefulWidget {
-  final String modoTitulo;    // "Modo con roles"
-  final String modoSubtitulo; // "Partida Privada"
+  final String modoTitulo;
+  final String modoSubtitulo;
 
   const UnirsePartidaView({
     super.key,
@@ -53,15 +53,10 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
             ),
             child: Stack(
               children: [
-                // BOTÓN VOLVER ANIMADO (TOP RIGHT)
-                Positioned(
-                  top: 14,
-                  right: 14,
-                  child: _AnimatedBackPill(onTap: () => Navigator.pop(context)),
-                ),
-
+                // 1. CONTENIDO (Capa inferior)
                 Center(
-                  child: Padding(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 26),
                     child: ListenableBuilder(
                       listenable: vm,
@@ -122,7 +117,7 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                 const SizedBox(width: 10),
                                 SizedBox(
                                   width: 90,
-                                  height: 30, // Un poco más alto para mejor tacto
+                                  height: 35,
                                   child: TextField(
                                     controller: _controller,
                                     onChanged: vm.setCodigo,
@@ -148,7 +143,7 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
 
                             const SizedBox(height: 24),
 
-                            // BOTÓN UNIRSE ANIMADO (VERDE NEÓN)
+                            // BOTÓN UNIRSE INSTANTÁNEO
                             _AnimatedGreenButton(
                               label: 'Unirse partida',
                               onTap: () => vm.unirse(context),
@@ -157,6 +152,15 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                         );
                       },
                     ),
+                  ),
+                ),
+
+                // 2. BOTÓN VOLVER (Capa superior)
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: _AnimatedBackPill(
+                    onTap: () => Navigator.pop(context),
                   ),
                 ),
               ],
@@ -169,7 +173,7 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
 }
 
 // ---------------------------------------------------------
-// COMPONENTES ANIMADOS (EXTREME GLOW & HOVER)
+// COMPONENTES CON RESPUESTA 0ms Y BRILLO 0.7
 // ---------------------------------------------------------
 
 class _AnimatedGreenButton extends StatefulWidget {
@@ -182,45 +186,44 @@ class _AnimatedGreenButton extends StatefulWidget {
 }
 
 class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const greenBase = Color(0xFF53D86A);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          // ESCALA 1.15 para máximo impacto
-          scale: _isHovered ? 1.15 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 200,
-            height: 42,
-            decoration: BoxDecoration(
-              color: _isHovered ? greenBase.withOpacity(0.9) : greenBase,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: _isHovered
-                  ? [BoxShadow(
-                  color: greenBase.withOpacity(0.6),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 2)
-              )]
-                  : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
-            ),
-            child: Center(
-              child: Text(
-                widget.label,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          width: 200,
+          height: 42,
+          decoration: BoxDecoration(
+            color: greenBase,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: _isPressed
+                ? [BoxShadow(
+              color: greenBase.withOpacity(0.7),
+              blurRadius: 15,
+              spreadRadius: 4,
+            )]
+                : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+          ),
+          child: Center(
+            child: Text(
+              widget.label,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
               ),
             ),
           ),
@@ -239,45 +242,50 @@ class _AnimatedBackPill extends StatefulWidget {
 }
 
 class _AnimatedBackPillState extends State<_AnimatedBackPill> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const activeBlue = Color(0xFF3A6BFF);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.1 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: _isHovered ? activeBlue : const Color(0xFF2A316B),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: _isHovered
-                  ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 10)]
-                  : [],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.arrow_back, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Volver',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _isPressed ? activeBlue : const Color(0xFF2A316B),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: _isPressed
+                ? [BoxShadow(
+              color: activeBlue.withOpacity(0.7),
+              blurRadius: 15,
+              spreadRadius: 4,
+            )]
+                : [],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_back, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Volver',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

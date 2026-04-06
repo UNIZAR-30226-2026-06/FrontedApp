@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/jugador_model.dart';
 import '../models/tienda_item_model.dart';
 import '../viewmodels/tienda_viewmodel.dart';
 import 'package:frontend_app/views/widgets/confirmacion_dialogo.dart';
@@ -58,27 +57,23 @@ class _TiendaViewState extends State<TiendaView> {
           animation: vm,
           builder: (context, _) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               child: Container(
                 decoration: BoxDecoration(
                   color: panel,
                   borderRadius: BorderRadius.circular(22),
                 ),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                 child: Column(
                   children: [
                     // Header
                     Row(
                       children: [
-                        const Icon(Icons.store, color: Colors.white, size: 26),
+                        const Icon(Icons.store, color: Colors.white, size: 24),
                         const SizedBox(width: 10),
                         const Text(
                           'Tienda',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
                         ),
                         const Spacer(),
                         _Pill(
@@ -86,63 +81,61 @@ class _TiendaViewState extends State<TiendaView> {
                           foreground: Colors.black,
                           child: Row(
                             children: [
-                              const Icon(Icons.attach_money, size: 18),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${vm.jugador.coins} Monedas',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
+                              const Icon(Icons.attach_money, size: 16),
+                              const SizedBox(width: 4),
+                              Text('${vm.jugador.coins} Monedas', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                             ],
                           ),
                         ),
                         const SizedBox(width: 10),
-                        // Botón Volver Animado
-                        _HoverIconButton(
+                        // BOTÓN VOLVER UNIFORMADO CON EL PERFIL
+                        _AnimatedBackPill(
                           onTap: () => Navigator.pop(context),
-                          label: 'Volver',
-                          icon: Icons.arrow_back,
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
-                    // Filtros Animados
-                    Row(
-                      children: [
-                        _AnimatedFilterChip(
-                          label: 'Todos',
-                          selected: vm.filtro == TiendaFiltro.todos,
-                          onTap: () => vm.setFiltro(TiendaFiltro.todos),
-                        ),
-                        const SizedBox(width: 8),
-                        _AnimatedFilterChip(
-                          label: 'Avatares',
-                          selected: vm.filtro == TiendaFiltro.avatares,
-                          onTap: () => vm.setFiltro(TiendaFiltro.avatares),
-                        ),
-                        const SizedBox(width: 8),
-                        _AnimatedFilterChip(
-                          label: 'Diseño de cartas',
-                          selected: vm.filtro == TiendaFiltro.disenos,
-                          onTap: () => vm.setFiltro(TiendaFiltro.disenos),
-                        ),
-                      ],
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _AnimatedFilterChip(
+                            label: 'Todos',
+                            selected: vm.filtro == TiendaFiltro.todos,
+                            onTap: () => vm.setFiltro(TiendaFiltro.todos),
+                          ),
+                          const SizedBox(width: 8),
+                          _AnimatedFilterChip(
+                            label: 'Avatares',
+                            selected: vm.filtro == TiendaFiltro.avatares,
+                            onTap: () => vm.setFiltro(TiendaFiltro.avatares),
+                          ),
+                          const SizedBox(width: 8),
+                          _AnimatedFilterChip(
+                            label: 'Diseño de cartas',
+                            selected: vm.filtro == TiendaFiltro.disenos,
+                            onTap: () => vm.setFiltro(TiendaFiltro.disenos),
+                          ),
+                        ],
+                      ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final isWide = constraints.maxWidth >= 700;
+                          final isWide = constraints.maxWidth >= 600;
                           return GridView.builder(
+                            physics: const BouncingScrollPhysics(),
                             itemCount: vm.itemsFiltrados.length,
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: isWide ? 2 : 1,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: isWide ? 2.9 : 3.2,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: isWide ? 2.8 : 3.5,
                             ),
                             itemBuilder: (context, index) {
                               final item = vm.itemsFiltrados[index];
@@ -167,7 +160,54 @@ class _TiendaViewState extends State<TiendaView> {
   }
 }
 
-/* ================= COMPONENTES ANIMADOS ================= */
+/* ================= COMPONENTES CON RESPUESTA 0ms ================= */
+
+class _AnimatedBackPill extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedBackPill({required this.onTap});
+  @override
+  State<_AnimatedBackPill> createState() => _AnimatedBackPillState();
+}
+
+class _AnimatedBackPillState extends State<_AnimatedBackPill> {
+  bool _isPressed = false;
+  @override
+  Widget build(BuildContext context) {
+    const activeBlue = Color(0xFF3A6BFF);
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _isPressed ? activeBlue : const Color(0xFF263064),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: _isPressed
+                ? [BoxShadow(
+                color: activeBlue.withOpacity(0.7), // Brillo exacto al 0.7
+                blurRadius: 15,
+                spreadRadius: 4
+            )]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.arrow_back, color: Colors.white, size: 18),
+              SizedBox(width: 6),
+              Text('Volver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _AnimatedBuyButton extends StatefulWidget {
   final VoidCallback onTap;
@@ -178,37 +218,32 @@ class _AnimatedBuyButton extends StatefulWidget {
 }
 
 class _AnimatedBuyButtonState extends State<_AnimatedBuyButton> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const greenBase = Color(0xFF26C84B);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.05 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            height: 34,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: _isHovered ? greenBase.withOpacity(0.9) : greenBase,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: _isHovered
-                  ? [BoxShadow(color: greenBase.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2))]
-                  : [],
-            ),
-            child: const Center(
-              child: Text(
-                'Comprar',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900),
-              ),
-            ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.05 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          height: 32,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: greenBase,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: _isPressed
+                ? [BoxShadow(color: greenBase.withOpacity(0.7), blurRadius: 12, spreadRadius: 2)]
+                : [],
+          ),
+          child: const Center(
+            child: Text('Comprar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13)),
           ),
         ),
       ),
@@ -220,95 +255,40 @@ class _AnimatedFilterChip extends StatefulWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-
-  const _AnimatedFilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+  const _AnimatedFilterChip({required this.label, required this.selected, required this.onTap});
 
   @override
   State<_AnimatedFilterChip> createState() => _AnimatedFilterChipState();
 }
 
 class _AnimatedFilterChipState extends State<_AnimatedFilterChip> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final activeBlue = const Color(0xFF3A6BFF);
-    final idleBlue = const Color(0xFF263064);
+    const activeBlue = Color(0xFF3A6BFF);
+    const idleBlue = Color(0xFF263064);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.1 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: widget.selected ? activeBlue : (_isHovered ? activeBlue.withOpacity(0.7) : idleBlue),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: (_isHovered || widget.selected)
-                  ? [BoxShadow(color: activeBlue.withOpacity(0.3), blurRadius: 6)]
-                  : [],
-            ),
-            child: Text(
-              widget.label,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HoverIconButton extends StatefulWidget {
-  final VoidCallback onTap;
-  final String label;
-  final IconData icon;
-
-  const _HoverIconButton({required this.onTap, required this.label, required this.icon});
-
-  @override
-  State<_HoverIconButton> createState() => _HoverIconButtonState();
-}
-
-class _HoverIconButtonState extends State<_HoverIconButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: _isHovered ? const Color(0xFF3A4288) : const Color(0xFF263064),
+            color: widget.selected ? activeBlue : (_isPressed ? activeBlue.withOpacity(0.7) : idleBlue),
             borderRadius: BorderRadius.circular(14),
-            border: _isHovered ? Border.all(color: Colors.white24) : null,
+            boxShadow: (_isPressed || widget.selected)
+                ? [BoxShadow(color: activeBlue.withOpacity(0.7), blurRadius: 10)]
+                : [],
           ),
-          child: Row(
-            children: [
-              Icon(widget.icon, color: _isHovered ? Colors.white : Colors.white70, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white70,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+          child: Text(
+            widget.label,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12),
           ),
         ),
       ),
@@ -322,50 +302,49 @@ class _ShopCard extends StatelessWidget {
   final Color background;
   final TiendaItem item;
   final VoidCallback onBuy;
-
   const _ShopCard({required this.background, required this.item, required this.onBuy});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(18)),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [
           Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(color: const Color(0xFF1F2454), borderRadius: BorderRadius.circular(14)),
+            width: 50, height: 50,
+            decoration: BoxDecoration(color: const Color(0xFF1F2454), borderRadius: BorderRadius.circular(12)),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               child: item.assetPath == null
                   ? Icon(item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style, color: Colors.white70)
                   : Image.asset(item.assetPath!, fit: BoxFit.cover, errorBuilder: (c, e, s) => Icon(item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style, color: Colors.white70)),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(item.titulo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 6),
+                Text(item.titulo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.attach_money, size: 16, color: Colors.white70),
-                    const SizedBox(width: 4),
-                    Text(item.precio.toString(), style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w800)),
+                    const Icon(Icons.attach_money, size: 14, color: Colors.white70),
+                    const SizedBox(width: 2),
+                    Text(item.precio.toString(), style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w800, fontSize: 12)),
                   ],
                 ),
                 const Spacer(),
-                // BOTÓN COMPRAR REFACTORIZADO
                 _AnimatedBuyButton(onTap: onBuy),
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Align(
             alignment: Alignment.topRight,
-            child: Text(item.tipoLabel, style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.w700, fontSize: 12)),
+            child: Text(item.tipoLabel, style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.w700, fontSize: 10)),
           ),
         ],
       ),
@@ -382,12 +361,9 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(14)),
-      child: DefaultTextStyle(
-        style: TextStyle(color: foreground),
-        child: IconTheme(data: IconThemeData(color: foreground), child: child),
-      ),
+      child: DefaultTextStyle(style: TextStyle(color: foreground), child: IconTheme(data: IconThemeData(color: foreground), child: child)),
     );
   }
 }

@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Cambia 'localhost' por tu IP local si pruebas en un móvil físico
-  final String baseUrl = "http://localhost:3000/api/v1";
+  static const String _host = "10.0.2.2";
+  final String baseUrl = "http://10.0.2.2:3000/api/v1";
   String? _token;
 
   void setToken(String token) => _token = token;
@@ -14,7 +14,7 @@ class ApiService {
       url,
       headers: {
         'Content-Type': 'application/json',
-        if (_token != null) 'Authorization': 'Bearer $_token', // Requerido por vuestro middleware
+        if (_token != null) 'Authorization': 'Bearer $_token',
       },
       body: json.encode(body),
     );
@@ -29,4 +29,27 @@ class ApiService {
       },
     );
   }
+
+  Future<http.Response> delete(String endpoint) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    return await http.delete(
+      url,
+      headers: {
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      },
+    );
+  }
+
+  Future<http.Response> put(String endpoint, [Map<String, dynamic>? body]) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    return await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      },
+      body: body != null ? json.encode(body) : null,
+    );
+  }
+
 }

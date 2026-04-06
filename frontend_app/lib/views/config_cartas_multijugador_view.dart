@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../viewmodels/config_cartas_multijugador_viewmodel.dart';
 
 class ConfigCartasMultijugadorView extends StatefulWidget {
-  final String modoTitulo; // "Modo cartas"
+  final String modoTitulo;
 
   const ConfigCartasMultijugadorView({
     super.key,
@@ -49,6 +49,7 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -59,7 +60,6 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 8),
-
                                 Row(
                                   children: [
                                     const Text('⚡', style: TextStyle(fontSize: 22)),
@@ -74,115 +74,59 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
                                     ),
                                   ],
                                 ),
-
                                 const SizedBox(height: 12),
-
-                                // Fila de subtítulo y código resaltado
+                                // Fila de info y Código de partida (estilo multijugador)
                                 Row(
                                   children: [
                                     Expanded(
                                       child: Text(
                                         vm.subtitulo,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700),
                                       ),
                                     ),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: inner.withOpacity(0.5),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
+                                      decoration: BoxDecoration(color: inner.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
                                       child: Text(
                                         'Código: ${vm.codigoPartida}',
-                                        style: const TextStyle(
-                                          color: Color(0xFF53D86A), // Verde neón
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w900,
-                                        ),
+                                        style: const TextStyle(color: Color(0xFF53D86A), fontSize: 12, fontWeight: FontWeight.w900),
                                       ),
                                     ),
                                   ],
                                 ),
-
                                 const SizedBox(height: 16),
-
-                                // Panel de selección de jugadores
+                                // PANEL CONTADOR JUGADORES
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                                  decoration: BoxDecoration(
-                                    color: inner,
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
+                                  decoration: BoxDecoration(color: inner, borderRadius: BorderRadius.circular(16)),
                                   child: Column(
                                     children: [
                                       const Align(
                                         alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          'Número de jugadores',
-                                          style: TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
+                                        child: Text('Número de jugadores', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
                                       ),
                                       const SizedBox(height: 12),
-
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           _AnimatedSquareBtn(label: '–', onTap: vm.dec),
-                                          Text(
-                                            vm.jugadores.toString(),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
+                                          Text(vm.jugadores.toString(), style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
                                           _AnimatedSquareBtn(label: '+', onTap: vm.inc),
                                         ],
                                       ),
-
                                       const SizedBox(height: 12),
-                                      Text(
-                                        vm.detalleJugadores,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      const Text(
-                                        'Mínimo 2, máximo 4 jugadores',
-                                        style: TextStyle(
-                                          color: Colors.white38,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                                      Text(vm.detalleJugadores, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
                                     ],
                                   ),
                                 ),
-
                                 const SizedBox(height: 20),
-
-                                // BOTÓN COMENZAR ANIMADO (VERDE NEÓN)
                                 _AnimatedGreenButton(
                                   label: 'Comenzar partida',
                                   onTap: () => vm.comenzarPartida(context),
                                 ),
-
                                 const SizedBox(height: 16),
-
                                 _RulesSection(open: vm.reglasAbiertas, onToggle: vm.toggleReglas),
-
                                 const SizedBox(height: 20),
                               ],
                             );
@@ -192,17 +136,12 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
                     );
                   },
                 ),
-
-                // BOTÓN VOLVER (TOP RIGHT)
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 14, right: 14),
-                    child: _AnimatedBackPill(
-                      onTap: () {
-                        if (Navigator.canPop(context)) Navigator.pop(context);
-                      },
-                    ),
+                // BOTÓN VOLVER (Capa superior)
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: _AnimatedBackPill(
+                    onTap: () => Navigator.pop(context),
                   ),
                 ),
               ],
@@ -214,8 +153,10 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
   }
 }
 
+// ... (Incluye aquí los componentes animados: _AnimatedSquareBtn, _AnimatedGreenButton, _AnimatedBackPill y _RulesSection que ya tenemos refactorizados)
+
 // ---------------------------------------------------------
-// COMPONENTES ANIMADOS (ESTILO EXTREME GLOW)
+// COMPONENTES REFACTORIZADOS (0ms / Brillo 0.7)
 // ---------------------------------------------------------
 
 class _AnimatedSquareBtn extends StatefulWidget {
@@ -228,35 +169,36 @@ class _AnimatedSquareBtn extends StatefulWidget {
 }
 
 class _AnimatedSquareBtnState extends State<_AnimatedSquareBtn> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const activeBlue = Color(0xFF3A6BFF);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.15 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _isHovered ? activeBlue : const Color(0xFF263064),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: _isHovered
-                  ? [BoxShadow(color: activeBlue.withOpacity(0.5), blurRadius: 12, spreadRadius: 1)]
-                  : [],
-            ),
-            child: Center(
-              child: Text(
-                widget.label,
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
-              ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.15 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: _isPressed ? activeBlue : const Color(0xFF263064),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: _isPressed
+                ? [BoxShadow(color: activeBlue.withOpacity(0.7), blurRadius: 15, spreadRadius: 3)]
+                : [],
+          ),
+          child: Center(
+            child: Text(
+              widget.label,
+              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
             ),
           ),
         ),
@@ -275,35 +217,36 @@ class _AnimatedGreenButton extends StatefulWidget {
 }
 
 class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const greenBase = Color(0xFF53D86A);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.08 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: double.infinity,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _isHovered ? greenBase.withOpacity(0.9) : greenBase,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: _isHovered
-                  ? [BoxShadow(color: greenBase.withOpacity(0.5), blurRadius: 15, spreadRadius: 2)]
-                  : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
-            ),
-            child: Center(
-              child: Text(
-                widget.label,
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14),
-              ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          width: double.infinity,
+          height: 44,
+          decoration: BoxDecoration(
+            color: greenBase,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: _isPressed
+                ? [BoxShadow(color: greenBase.withOpacity(0.7), blurRadius: 15, spreadRadius: 4)]
+                : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+          ),
+          child: Center(
+            child: Text(
+              widget.label,
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14),
             ),
           ),
         ),
@@ -321,36 +264,43 @@ class _AnimatedBackPill extends StatefulWidget {
 }
 
 class _AnimatedBackPillState extends State<_AnimatedBackPill> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const activeBlue = Color(0xFF3A6BFF);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.1 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: _isHovered ? activeBlue : const Color(0xFF2A316B),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: _isHovered ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 12)] : [],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.arrow_back, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text('Volver',
-                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
-              ],
-            ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _isPressed ? activeBlue : const Color(0xFF2A316B),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: _isPressed
+                ? [BoxShadow(
+              color: activeBlue.withOpacity(0.7),
+              blurRadius: 15,
+              spreadRadius: 4,
+            )]
+                : [],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_back, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Volver',
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+            ],
           ),
         ),
       ),
@@ -359,7 +309,7 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
 }
 
 // ---------------------------------------------------------
-// SECCIÓN DE REGLAS (Mantiene lógica de AnimatedCrossFade)
+// SECCIÓN DE REGLAS (MANTIENE LÓGICA DE ANIMATEDCROSSFADE)
 // ---------------------------------------------------------
 
 class _RulesSection extends StatelessWidget {

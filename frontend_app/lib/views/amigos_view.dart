@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/jugador_model.dart';
+import 'package:provider/provider.dart';
 import '../viewmodels/amigos_viewmodel.dart';
-import '../models/amigo_model.dart';
 import 'package:frontend_app/views/widgets/confirmacion_dialogo.dart';
+import '../services/api_service.dart';
+import '../repositories/amigos_repository.dart';
+import '../providers/auth_provider.dart';
 
 class AmigosView extends StatefulWidget {
   const AmigosView({super.key});
@@ -17,22 +19,24 @@ class _AmigosViewState extends State<AmigosView> {
   @override
   void initState() {
     super.initState();
-    vm = AmigosViewModel();
-  }
 
-  @override
-  void dispose() {
-    vm.dispose();
-    super.dispose();
+    final apiService = ApiService();
+
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.usuario?.token != null) {
+      apiService.setToken(authProvider.usuario!.token!);
+    }
+
+    final amigosRepo = AmigosRepository(apiService);
+    vm = AmigosViewModel(repo: amigosRepo);
   }
 
   void _confirmarAccion({
     required BuildContext context,
-    required String userId,
+    required String nombre,
     required String mensaje,
     required VoidCallback accion,
   }) {
-    final nombre = vm.getNombreUsuario(userId);
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -58,13 +62,13 @@ class _AmigosViewState extends State<AmigosView> {
           animation: vm,
           builder: (context, _) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               child: Container(
                 decoration: BoxDecoration(
                   color: panel,
                   borderRadius: BorderRadius.circular(22),
                 ),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                 child: Column(
                   children: [
                     // HEADER
@@ -74,31 +78,29 @@ class _AmigosViewState extends State<AmigosView> {
                         const SizedBox(width: 10),
                         const Text(
                           'Amigos',
-                          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
                         ),
                         const Spacer(),
-                        // BOTÓN VOLVER ANIMADO
-                        _HoverIconButton(
-                          onTap: () => Navigator.pop(context, vm.buildJugadorActualizado()),
-                          label: 'Volver',
-                          icon: Icons.arrow_back,
+                        _AnimatedBackPill(
+                          // Ya no pasamos el jugador actualizado, la BBDD manda
+                          onTap: () => Navigator.pop(context),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
 
-                    // TABS DE NAVEGACIÓN ANIMADAS
+                    // TABS DE NAVEGACIÓN INSTANTÁNEAS
                     Row(
                       children: [
                         Expanded(
                           child: _AnimatedTabButton(
-                            label: 'Mis Amigos (${vm.friendsCount})',
+                            label: 'Amigos (${vm.misAmigos.length})',
                             selected: vm.tab == AmigosTab.misAmigos,
                             onTap: () => vm.setTab(AmigosTab.misAmigos),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: _AnimatedTabButton(
                             label: 'Buscar',
@@ -106,10 +108,10 @@ class _AmigosViewState extends State<AmigosView> {
                             onTap: () => vm.setTab(AmigosTab.buscar),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: _AnimatedTabButton(
-                            label: 'Solicitudes (${vm.requestsCount})',
+                            label: 'Solicitudes (${vm.solicitudes.length})',
                             selected: vm.tab == AmigosTab.solicitudes,
                             onTap: () => vm.setTab(AmigosTab.solicitudes),
                           ),
@@ -117,21 +119,29 @@ class _AmigosViewState extends State<AmigosView> {
                       ],
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
 
                     Expanded(
-                      child: SingleChildScrollView(
+                      child: vm.isLoading
+                          ? const Center(child: CircularProgressIndicator(color: Color(0xFF53D86A)))
+                          : SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
                         child: Column(
                           children: [
                             if (vm.tab == AmigosTab.buscar) ...[
-                              _SearchBox(controller: vm.searchController),
-                              const SizedBox(height: 12),
+                              // Añadido onSearch para disparar la petición al backend
+                              _SearchBox(
+                                controller: vm.searchController,
+                                onSearch: () => vm.buscarUsuarios(),
+                              ),
+                              const SizedBox(height: 10),
                             ],
 
-                            // LISTADO DINÁMICO
+                            // LISTADO DE AMIGOS
                             if (vm.tab == AmigosTab.misAmigos)
                               ...vm.misAmigos.map((u) => _UserCard(
-                                user: u,
+                                nombre: u.nombre,
+                                avatarEmoji: '',
                                 background: cardColor,
                                 trailing: _AnimatedActionButton(
                                   label: 'Eliminar',
@@ -139,16 +149,18 @@ class _AmigosViewState extends State<AmigosView> {
                                   color: const Color(0xFFE53935),
                                   onTap: () => _confirmarAccion(
                                     context: context,
-                                    userId: u.id,
-                                    mensaje: '¿Seguro que quieres eliminar a {nombre} de tus amigos?',
-                                    accion: () => vm.eliminarAmigo(u.id),
+                                    nombre: u.nombre,
+                                    mensaje: '¿Seguro que quieres eliminar a {nombre}?',
+                                    accion: () => vm.eliminarAmigo(u.nombre),
                                   ),
                                 ),
                               )),
 
+                            // BUSCAR USUARIOS
                             if (vm.tab == AmigosTab.buscar)
-                              ...vm.buscarUsuarios.map((u) => _UserCard(
-                                user: u,
+                              ...vm.resultadosBusqueda.map((u) => _UserCard(
+                                nombre: u.nombre,
+                                avatarEmoji: '🔍',
                                 background: cardColor,
                                 trailing: _AnimatedActionButton(
                                   label: 'Agregar',
@@ -156,51 +168,57 @@ class _AmigosViewState extends State<AmigosView> {
                                   color: const Color(0xFF2DBE4D),
                                   onTap: () => _confirmarAccion(
                                     context: context,
-                                    userId: u.id,
-                                    mensaje: '¿Seguro que desea agregar a {nombre} como amigo?',
-                                    accion: () => vm.agregarAmigoDesdeBuscar(u.id),
+                                    nombre: u.nombre,
+                                    mensaje: '¿Agregar a {nombre} como amigo?',
+                                    accion: () => vm.enviarSolicitud(u.nombre),
                                   ),
                                 ),
                               )),
 
+                            // SOLICITUDES
                             if (vm.tab == AmigosTab.solicitudes)
-                              ...vm.solicitudes.map((u) => _UserCard(
-                                user: u,
-                                background: cardColor,
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _AnimatedActionButton(
-                                      label: 'Aceptar',
-                                      icon: Icons.check,
-                                      color: const Color(0xFF2DBE4D),
-                                      onTap: () => _confirmarAccion(
-                                        context: context,
-                                        userId: u.id,
-                                        mensaje: '¿Quieres aceptar la solicitud de {nombre}?',
-                                        accion: () => vm.aceptarSolicitud(u.id),
+                              ...vm.solicitudes.map((s) {
+                                final nombreUser = s['nombre'] ?? 'Desconocido';
+                                final idSolicitud = s['id']?.toString() ?? nombreUser;
+                                return _UserCard(
+                                  nombre: nombreUser,
+                                  avatarEmoji: '👋',
+                                  background: cardColor,
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _AnimatedActionButton(
+                                        label: 'Ok',
+                                        icon: Icons.check,
+                                        color: const Color(0xFF2DBE4D),
+                                        onTap: () => _confirmarAccion(
+                                          context: context,
+                                          nombre: nombreUser,
+                                          mensaje: '¿Aceptar a {nombre}?',
+                                          accion: () => vm.responderSolicitud(idSolicitud, true),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _AnimatedActionButton(
-                                      label: 'Rechazar',
-                                      icon: Icons.close,
-                                      color: const Color(0xFFE53935),
-                                      onTap: () => _confirmarAccion(
-                                        context: context,
-                                        userId: u.id,
-                                        mensaje: '¿Deseas rechazar la solicitud de {nombre}?',
-                                        accion: () => vm.eliminarSolicitud(u.id),
+                                      const SizedBox(width: 6),
+                                      _AnimatedActionButton(
+                                        label: 'No',
+                                        icon: Icons.close,
+                                        color: const Color(0xFFE53935),
+                                        onTap: () => _confirmarAccion(
+                                          context: context,
+                                          nombre: nombreUser,
+                                          mensaje: '¿Rechazar a {nombre}?',
+                                          accion: () => vm.responderSolicitud(idSolicitud, false),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              )),
+                                    ],
+                                  ),
+                                );
+                              }),
 
-                            // MENSAJES VACÍOS
+                            // LABELS DE VACÍO
                             if (vm.tab == AmigosTab.misAmigos && vm.misAmigos.isEmpty) const _EmptyLabel(text: 'No tienes amigos todavía.'),
-                            if (vm.tab == AmigosTab.buscar && vm.buscarUsuarios.isEmpty) const _EmptyLabel(text: 'No hay usuarios que coincidan.'),
-                            if (vm.tab == AmigosTab.solicitudes && vm.solicitudes.isEmpty) const _EmptyLabel(text: 'No tienes solicitudes pendientes.'),
+                            if (vm.tab == AmigosTab.buscar && vm.resultadosBusqueda.isEmpty) const _EmptyLabel(text: 'No hay resultados.'),
+                            if (vm.tab == AmigosTab.solicitudes && vm.solicitudes.isEmpty) const _EmptyLabel(text: 'Sin solicitudes pendientes.'),
                           ],
                         ),
                       ),
@@ -216,14 +234,56 @@ class _AmigosViewState extends State<AmigosView> {
   }
 }
 
-/* ================= COMPONENTES REFACTORIZADOS (HOVER/GLOW) ================= */
+/* ================= COMPONENTES UNIFORMADOS (0ms / Brillo 0.7) ================= */
+
+class _AnimatedBackPill extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedBackPill({required this.onTap});
+  @override
+  State<_AnimatedBackPill> createState() => _AnimatedBackPillState();
+}
+
+class _AnimatedBackPillState extends State<_AnimatedBackPill> {
+  bool _isPressed = false;
+  @override
+  Widget build(BuildContext context) {
+    const activeBlue = Color(0xFF3A6BFF);
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _isPressed ? activeBlue : const Color(0xFF263064),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: _isPressed
+                ? [BoxShadow(color: activeBlue.withOpacity(0.7), blurRadius: 15, spreadRadius: 4)]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.arrow_back, color: Colors.white, size: 18),
+              SizedBox(width: 6),
+              Text('Volver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _AnimatedActionButton extends StatefulWidget {
   final String label;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-
   const _AnimatedActionButton({required this.label, required this.icon, required this.color, required this.onTap});
 
   @override
@@ -231,44 +291,31 @@ class _AnimatedActionButton extends StatefulWidget {
 }
 
 class _AnimatedActionButtonState extends State<_AnimatedActionButton> {
-  bool _isHovered = false;
-
+  bool _isPressed = false;
   @override
   Widget build(BuildContext context) {
     bool isRed = widget.color.value == 0xFFE53935;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.15 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: _isHovered ? widget.color.withOpacity(0.9) : widget.color,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: _isHovered
-                  ? [BoxShadow(color: widget.color.withOpacity(0.5), blurRadius: 15, spreadRadius: 2)]
-                  : [],
-            ),
-            child: Row(
-              children: [
-                Icon(widget.icon, size: 16, color: isRed ? Colors.white : Colors.black),
-                const SizedBox(width: 6),
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: isRed ? Colors.white : Colors.black,
-                      fontSize: 12
-                  ),
-                ),
-              ],
-            ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.1 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: widget.color,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: _isPressed ? [BoxShadow(color: widget.color.withOpacity(0.7), blurRadius: 12, spreadRadius: 3)] : [],
+          ),
+          child: Row(
+            children: [
+              Icon(widget.icon, size: 14, color: isRed ? Colors.white : Colors.black),
+              const SizedBox(width: 4),
+              Text(widget.label, style: TextStyle(fontWeight: FontWeight.w900, color: isRed ? Colors.white : Colors.black, fontSize: 11)),
+            ],
           ),
         ),
       ),
@@ -280,7 +327,6 @@ class _AnimatedTabButton extends StatefulWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-
   const _AnimatedTabButton({required this.label, required this.selected, required this.onTap});
 
   @override
@@ -288,85 +334,29 @@ class _AnimatedTabButton extends StatefulWidget {
 }
 
 class _AnimatedTabButtonState extends State<_AnimatedTabButton> {
-  bool _isHovered = false;
-
+  bool _isPressed = false;
   @override
   Widget build(BuildContext context) {
     const activeBlue = Color(0xFF2F6BFF);
     const idleBlue = Color(0xFF263064);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.05 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: widget.selected ? activeBlue : (_isHovered ? activeBlue.withOpacity(0.6) : idleBlue),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: (widget.selected || _isHovered)
-                  ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 10)]
-                  : [],
-            ),
-            child: Center(
-              child: Text(
-                widget.label,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
-              ),
-            ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.05 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: widget.selected ? activeBlue : (_isPressed ? activeBlue.withOpacity(0.7) : idleBlue),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: (widget.selected || _isPressed) ? [BoxShadow(color: activeBlue.withOpacity(0.7), blurRadius: 10)] : [],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HoverIconButton extends StatefulWidget {
-  final VoidCallback onTap;
-  final String label;
-  final IconData icon;
-
-  const _HoverIconButton({required this.onTap, required this.label, required this.icon});
-
-  @override
-  State<_HoverIconButton> createState() => _HoverIconButtonState();
-}
-
-class _HoverIconButtonState extends State<_HoverIconButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    const activeBlue = Color(0xFF3A6BFF);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.1 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: _isHovered ? activeBlue : const Color(0xFF263064),
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: _isHovered ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 10)] : [],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(widget.icon, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Text(widget.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ],
-            ),
+          child: Center(
+            child: Text(widget.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
           ),
         ),
       ),
@@ -379,33 +369,82 @@ class _HoverIconButtonState extends State<_HoverIconButton> {
 class _FriendsIcon extends StatelessWidget {
   const _FriendsIcon();
   @override
-  Widget build(BuildContext context) => Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF263064), borderRadius: BorderRadius.circular(14)), child: const Center(child: Icon(Icons.group, color: Colors.white70)));
+  Widget build(BuildContext context) => Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFF263064), borderRadius: BorderRadius.circular(12)), child: const Center(child: Icon(Icons.group, color: Colors.white70, size: 22)));
 }
 
 class _SearchBox extends StatelessWidget {
   final TextEditingController controller;
-  const _SearchBox({required this.controller});
+  final VoidCallback onSearch; // Añadido para disparar la búsqueda
+  const _SearchBox({required this.controller, required this.onSearch});
+
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: const Color(0xFF263064), borderRadius: BorderRadius.circular(14)), child: Row(children: [const Icon(Icons.search, color: Colors.white54), const SizedBox(width: 10), Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'Buscar usuarios...', hintStyle: TextStyle(color: Colors.white54), border: InputBorder.none)))]));
+  Widget build(BuildContext context) => Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(color: const Color(0xFF263064), borderRadius: BorderRadius.circular(14)),
+      child: Row(
+          children: [
+            const Icon(Icons.search, color: Colors.white54, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+                child: TextField(
+                    controller: controller,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    onSubmitted: (_) => onSearch(), // Llama al backend al pulsar "Enter" en el teclado
+                    decoration: const InputDecoration(hintText: 'Buscar usuarios...', hintStyle: TextStyle(color: Colors.white54), border: InputBorder.none)
+                )
+            )
+          ]
+      )
+  );
 }
 
 class _UserCard extends StatelessWidget {
-  final UsuarioApp user; final Color background; final Widget trailing;
-  const _UserCard({required this.user, required this.background, required this.trailing});
+  final String nombre;
+  final String avatarEmoji;
+  final Color background;
+  final Widget trailing;
+
+  const _UserCard({
+    required this.nombre,
+    required this.avatarEmoji,
+    required this.background,
+    required this.trailing
+  });
+
   @override
-  Widget build(BuildContext context) => Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(18)), child: Row(children: [_Avatar(emoji: user.avatarEmoji), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(user.nombre, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)), const SizedBox(height: 2), Text('${user.coins} monedas', style: const TextStyle(color: Colors.white54, fontWeight: FontWeight.w700, fontSize: 11))])), trailing]));
+  Widget build(BuildContext context) => Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(16)),
+      child: Row(
+          children: [
+            _Avatar(emoji: avatarEmoji),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(nombre, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
+                    ]
+                )
+            ),
+            trailing
+          ]
+      )
+  );
 }
 
 class _Avatar extends StatelessWidget {
   final String emoji;
   const _Avatar({required this.emoji});
   @override
-  Widget build(BuildContext context) => Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle), child: Center(child: Text(emoji, style: const TextStyle(fontSize: 20))));
+  Widget build(BuildContext context) => Container(width: 36, height: 36, decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle), child: Center(child: Text(emoji, style: const TextStyle(fontSize: 18))));
 }
 
 class _EmptyLabel extends StatelessWidget {
   final String text;
   const _EmptyLabel({required this.text});
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(top: 18), child: Text(text, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(top: 14), child: Text(text, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 12)));
 }

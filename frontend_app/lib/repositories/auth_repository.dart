@@ -7,8 +7,28 @@ class AuthRepository {
 
   AuthRepository(this._apiService);
 
+  //Registro de un nuevo usuario
+  Future<UsuarioModel> register(String username, String email, String password) async {
+    final response = await _apiService.post('/auth/register', {
+      'nombre_usuario': username,
+      'correo': email,
+      'password': password,
+    });
+
+    if (response.statusCode == 201) {
+      final data = json.decode(response.body);
+      final token = data['token'];
+      _apiService.setToken(token);
+
+      return UsuarioModel.fromJson(data['user'], token: token);
+    } else {
+      final error = json.decode(response.body);
+      throw Exception(error['error'] ?? 'Error al registrar usuario');
+    }
+  }
+
+  //Login de un usuario
   Future<UsuarioModel> login(String username, String password) async {
-    // Cuerpo esperado por vuestro backend: { nombre_usuario, password }
     final response = await _apiService.post('/auth/login', {
       'nombre_usuario': username,
       'password': password,
@@ -25,4 +45,6 @@ class AuthRepository {
       throw Exception(error['error'] ?? 'Error al iniciar sesión');
     }
   }
+
+
 }

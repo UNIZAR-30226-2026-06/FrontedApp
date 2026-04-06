@@ -1,61 +1,51 @@
 import 'package:flutter/material.dart';
-import '../repositories/auth_repository.dart';
-import '../services/api_service.dart';
-import '../models/usuario_model.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class LoginViewModel extends ChangeNotifier {
-  // Dejamos el repo instanciado pero no lo usaremos en el bypass
-  final AuthRepository _authRepo = AuthRepository(ApiService());
-
+  // Quitamos la instancia manual del repositorio, usaremos el Provider
   final nombreController = TextEditingController();
   final passwordController = TextEditingController();
 
   bool _estaCargando = false;
   bool get estaCargando => _estaCargando;
 
-  String? _mensajeError;
-  String? get mensajeError => _mensajeError;
+  /// MÉTODO DE LOGIN REAL
+  Future<void> ejecutarLogin(BuildContext context) async {
+    final email = nombreController.text.trim();
+    final password = passwordController.text;
 
-  UsuarioModel? _usuarioLogueado;
-  UsuarioModel? get usuarioLogueado => _usuarioLogueado;
+    // Validación básica local
+    if (email.isEmpty || password.isEmpty) {
+      _mostrarSnackBar(context, "Por favor, introduce tus credenciales", esError: true);
+      return;
+    }
 
-  /// Método de login con Bypass provisional
-  Future<bool> intentarLogin() async {
-    final nombre = nombreController.text.trim();
-    // final password = passwordController.text.trim(); // Comentado por ahora
+    // Obtenemos el motor de autenticación
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     _setLoading(true);
-    _mensajeError = null;
 
     try {
-      // === BLOQUE COMENTADO: CONEXIÓN REAL CON EL SERVIDOR ===
-      /*
-      _usuarioLogueado = await _authRepo.login(nombre, password);
-      debugPrint("Login real exitoso para: ${_usuarioLogueado?.nombreUsuario}");
-      */
-      // =======================================================
+      // LLAMADA REAL AL BACKEND
+      // Nota: nombreController aquí actúa como el campo de Email/Usuario
+      await authProvider.login(email, password);
 
-      // === BYPASS PROVISIONAL (MAGIA) ===
-      // Creamos el usuario sin token para que no dé errores
-      _usuarioLogueado = UsuarioModel(
-        nombreUsuario: nombre.isEmpty ? "Invitado" : nombre,
-        correo: "${nombre.isEmpty ? 'guest' : nombre}@test.com",
-        monedas: 999, // Monedas de regalo para testear
-      );
-
-      // Simulamos latencia para que veas el spinner un momento
-      await Future.delayed(const Duration(milliseconds: 600));
-
-      debugPrint("Bypass activo: Entrando como ${_usuarioLogueado?.nombreUsuario}");
-
-      _setLoading(false);
-      return true; // ESTO ES LO QUE HACE QUE LA VISTA NAVEGUE AL HOME
-      // ==================================
-
+      if (context.mounted) {
+        _mostrarSnackBar(context, "¡Bienvenido de nuevo!", esError: false);
+        // Navegamos al Home y limpiamos el historial para que no pueda volver atrás al login
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } catch (e) {
-      _mensajeError = "Error inesperado en el bypass";
+      if (context.mounted) {
+        // Si el backend devuelve 401, el error dirá algo como "Invalid credentials"
+        String mensaje = e.toString().replaceAll('Exception: ', '');
+        if (mensaje.contains("401")) mensaje = "Usuario o contraseña incorrectos";
+
+        _mostrarSnackBar(context, mensaje, esError: true);
+      }
+    } finally {
       _setLoading(false);
-      return false;
     }
   }
 
@@ -64,10 +54,19 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _mostrarSnackBar(BuildContext context, String mensaje, {required bool esError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: esError ? Colors.red : Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void limpiarCampos() {
     nombreController.clear();
     passwordController.clear();
-    _mensajeError = null;
     notifyListeners();
   }
 

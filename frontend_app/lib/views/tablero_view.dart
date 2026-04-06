@@ -21,7 +21,6 @@ class _TableroViewState extends State<TableroView> {
   void initState() {
     super.initState();
     vm = TableroViewModel();
-    // Preparamos la partida con el perfil recibido del Home
     vm.prepararPartida(widget.miPerfil);
   }
 
@@ -33,10 +32,9 @@ class _TableroViewState extends State<TableroView> {
         builder: (context, _) {
           return Stack(
             children: [
-              // 1. FONDO
               _buildFondo(),
 
-              // 2. OPONENTES
+              // OPONENTES
               if (vm.bots.length >= 3) ...[
                 Positioned(
                   top: 150, left: 40,
@@ -52,7 +50,7 @@ class _TableroViewState extends State<TableroView> {
                 ),
               ],
 
-              // 3. CENTRO DE MESA
+              // CENTRO DE MESA
               Center(
                 child: MazoCentralWidget(
                   cartaEnMesa: vm.cartaActual,
@@ -60,15 +58,16 @@ class _TableroViewState extends State<TableroView> {
                 ),
               ),
 
-              // 4. HUD SUPERIOR (Aquí está el botón de las 3 rayas)
+              // HUD SUPERIOR
               _buildTopBar(),
 
-              // 5. TU MANO
+              // TU MANO
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 30),
                   child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -86,6 +85,7 @@ class _TableroViewState extends State<TableroView> {
                 ),
               ),
 
+              // OVERLAY DE AJUSTES (Capa superior)
               if (vm.mostrandoAjustes)
                 Positioned.fill(
                   child: AjustesOverlay(
@@ -98,9 +98,6 @@ class _TableroViewState extends State<TableroView> {
       ),
     );
   }
-
-  // --- ELEMENTOS DE DISEÑO ESTATICO ---
-  // Estos se quedan aquí porque son específicos de esta pantalla y no se reutilizan
 
   Widget _buildFondo() {
     return Container(
@@ -123,37 +120,132 @@ class _TableroViewState extends State<TableroView> {
             Image.asset('assets/images/logo.png', height: 40),
             const Text(
                 "0:00",
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)
             ),
-            _botonPausa(),
 
-            // SUSTITUIMOS EL ICON POR UN ICONBUTTON
-            IconButton(
-              icon: const Icon(Icons.menu, color: Colors.cyanAccent, size: 40),
-              onPressed: () {
-                // Llamamos al método del ViewModel que cambia el booleano a true
-                vm.abrirAjustes();
+            // BOTÓN PAUSA REFACTORIZADO
+            _AnimatedPauseButton(
+              onTap: () {
+                // Lógica de pausa aquí
               },
+            ),
+
+            // BOTÓN AJUSTES REFACTORIZADO (EL DE LAS 3 RAYAS)
+            _AnimatedSettingsButton(
+              onTap: () => vm.abrirAjustes(),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _botonPausa() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFD65B5B),
-        borderRadius: BorderRadius.circular(10),
+// ---------------------------------------------------------
+// COMPONENTES HUD CON RESPUESTA 0ms Y BRILLO 0.7
+// ---------------------------------------------------------
+
+class _AnimatedSettingsButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedSettingsButton({required this.onTap});
+
+  @override
+  State<_AnimatedSettingsButton> createState() => _AnimatedSettingsButtonState();
+}
+
+class _AnimatedSettingsButtonState extends State<_AnimatedSettingsButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const neonCyan = Color(0xFF00FFFF);
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.2 : 1.0, // Un poco más de escala por ser un icono pequeño
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _isPressed ? neonCyan.withOpacity(0.1) : Colors.transparent,
+            shape: BoxShape.circle,
+            boxShadow: _isPressed
+                ? [BoxShadow(
+                color: neonCyan.withOpacity(0.7), // Brillo estándar 0.7
+                blurRadius: 15,
+                spreadRadius: 2
+            )]
+                : [],
+          ),
+          child: const Icon(
+              Icons.menu,
+              color: neonCyan,
+              size: 36
+          ),
+        ),
       ),
-      child: const Row(
-        children: [
-          Icon(Icons.pause, color: Colors.white, size: 16),
-          SizedBox(width: 4),
-          Text("PAUSAR (1/4)", style: TextStyle(color: Colors.white, fontSize: 12)),
-        ],
+    );
+  }
+}
+
+class _AnimatedPauseButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedPauseButton({required this.onTap});
+
+  @override
+  State<_AnimatedPauseButton> createState() => _AnimatedPauseButtonState();
+}
+
+class _AnimatedPauseButtonState extends State<_AnimatedPauseButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const errorRed = Color(0xFFD65B5B);
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: errorRed,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: _isPressed
+                ? [BoxShadow(
+                color: errorRed.withOpacity(0.7),
+                blurRadius: 15,
+                spreadRadius: 4
+            )]
+                : [const BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.pause, color: Colors.white, size: 16),
+              SizedBox(width: 6),
+              Text(
+                  "PAUSAR (1/4)",
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

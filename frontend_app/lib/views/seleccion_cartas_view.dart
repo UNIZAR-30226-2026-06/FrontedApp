@@ -4,8 +4,8 @@ import 'config_cartas_vs_ia_view.dart';
 import 'multijugador_menu_cartas_view.dart';
 
 class SeleccionCartasView extends StatefulWidget {
-  final String modoTitulo;     // "Modo cartas"
-  final String modoSubtitulo;  // "Partida Privada"
+  final String modoTitulo;
+  final String modoSubtitulo;
 
   const SeleccionCartasView({
     super.key,
@@ -52,10 +52,11 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
             ),
             child: Stack(
               children: [
-                // Contenido con scroll
+                // 1. CONTENIDO (Capa inferior)
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -113,7 +114,6 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
                             ),
                             const SizedBox(height: 20),
 
-                            // BOTÓN JUGAR VS IA (ROJO CORAL NEÓN) - ESCALA 1.06
                             _AnimatedBigChoiceButton(
                               background: const Color(0xFFCF5C5C),
                               title: 'Jugar vs IA',
@@ -132,11 +132,10 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
 
                             const SizedBox(height: 16),
 
-                            // BOTÓN MULTIJUGADOR (VERDE NEÓN) - ESCALA 1.06
                             _AnimatedBigChoiceButton(
                               background: const Color(0xFF53D86A),
                               title: 'Modo Multijugador',
-                              subtitle: 'Desafía a otros rivales para demostrar quién es el mejor',
+                              subtitle: 'Desafía a otros rivales de la Arena',
                               isTextDark: true,
                               onTap: () {
                                 Navigator.push(
@@ -160,16 +159,14 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
                   },
                 ),
 
-                // Botón Volver (Top Right) - ESCALA 1.05
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 14, right: 14),
-                    child: _AnimatedBackPill(
-                      onTap: () {
-                        if (Navigator.canPop(context)) Navigator.pop(context);
-                      },
-                    ),
+                // 2. BOTÓN VOLVER (Capa superior)
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: _AnimatedBackPill(
+                    onTap: () {
+                      if (Navigator.canPop(context)) Navigator.pop(context);
+                    },
                   ),
                 ),
               ],
@@ -182,7 +179,7 @@ class _SeleccionCartasViewState extends State<SeleccionCartasView> {
 }
 
 // ---------------------------------------------------------
-// COMPONENTES ANIMADOS CON ESCALA SUAVIZADA (1.06)
+// COMPONENTES CON RESPUESTA 0ms Y BRILLO 0.7
 // ---------------------------------------------------------
 
 class _AnimatedBigChoiceButton extends StatefulWidget {
@@ -205,57 +202,57 @@ class _AnimatedBigChoiceButton extends StatefulWidget {
 }
 
 class _AnimatedBigChoiceButtonState extends State<_AnimatedBigChoiceButton> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          // AJUSTADO: Escala 1.06 para evitar que sea muy exagerado al ser ancho
-          scale: _isHovered ? 1.06 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: _isHovered ? widget.background.withOpacity(0.95) : widget.background,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: _isHovered
-                  ? [BoxShadow(
-                  color: widget.background.withOpacity(0.6),
-                  blurRadius: 20,
-                  spreadRadius: 3,
-                  offset: const Offset(0, 4)
-              )]
-                  : [const BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
-            ),
-            child: Column(
-              children: [
-                Text(
-                  widget.title,
-                  style: TextStyle(
-                    color: widget.isTextDark ? Colors.black : Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: widget.background,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: _isPressed
+                ? [BoxShadow(
+              color: widget.background.withOpacity(0.7),
+              blurRadius: 20,
+              spreadRadius: 6,
+            )]
+                : [const BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
+          ),
+          child: Column(
+            children: [
+              Text(
+                widget.title,
+                style: TextStyle(
+                  color: widget.isTextDark ? Colors.black : Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: widget.isTextDark ? Colors.black87 : Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: widget.isTextDark ? Colors.black87 : Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -272,43 +269,50 @@ class _AnimatedBackPill extends StatefulWidget {
 }
 
 class _AnimatedBackPillState extends State<_AnimatedBackPill> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const activeBlue = Color(0xFF3A6BFF);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.05 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: _isHovered ? activeBlue : const Color(0xFF2A316B),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: _isHovered ? [BoxShadow(color: activeBlue.withOpacity(0.4), blurRadius: 12)] : [],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.arrow_back, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Volver',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _isPressed ? activeBlue : const Color(0xFF2A316B),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: _isPressed
+                ? [BoxShadow(
+              color: activeBlue.withOpacity(0.7),
+              blurRadius: 15,
+              spreadRadius: 4,
+            )]
+                : [],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_back, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Volver',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

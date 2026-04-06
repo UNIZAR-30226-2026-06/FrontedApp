@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/registro_viewmodel.dart';
-import 'login_view.dart';
 
 class RegistroView extends StatefulWidget {
   const RegistroView({super.key});
@@ -26,7 +25,6 @@ class _RegistroViewState extends State<RegistroView> {
 
   @override
   Widget build(BuildContext context) {
-    // Azul oficial del diseño de vuestro proyecto
     const Color bgBlue = Color(0xFF2D3473);
 
     return ListenableBuilder(
@@ -54,7 +52,6 @@ class _SeccionLogoZorro extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          // Recomendación: Usar vuestro logo.png para mantener uniformidad
           image: AssetImage('assets/images/logo.png'),
           fit: BoxFit.contain,
         ),
@@ -70,63 +67,62 @@ class _FormularioRegistro extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            '¡ÚNETE A LA ARENA!',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 34,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+      child: Center(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              const Text(
+                '¡ÚNETE A LA ARENA!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              _buildInput(label: "Nombre de usuario", controller: vm.nombreController),
+              _buildInput(label: "Email", controller: vm.emailController),
+              _buildInput(label: "Contraseña", controller: vm.passwordController, isSecret: true),
+              _buildInput(label: "Confirmar Contraseña", controller: vm.confirmarpasswordController, isSecret: true),
+
+              const SizedBox(height: 20),
+
+              _AnimatedRegisterButton(
+                onTap: () => vm.ejecutarRegistro(context),
+                isLoading: vm.cargando,
+              ),
+
+              const SizedBox(height: 20),
+
+              _AnimatedTextLink(
+                label: '¿Ya tienes cuenta? Inicia sesión',
+                onTap: () => Navigator.pop(context),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
-          const SizedBox(height: 40),
-
-          _buildInput(label: "Nombre de usuario", controller: vm.nombreController),
-          _buildInput(label: "Email", controller: vm.emailController),
-          _buildInput(label: "Contraseña", controller: vm.passwordController, isSecret: true),
-          _buildInput(label: "Confirmar Contraseña", controller: vm.confirmarpasswordController, isSecret: true),
-
-          const SizedBox(height: 30),
-
-          // BOTÓN PRINCIPAL ANIMADO: ¡A JUGAR!
-          _AnimatedRegisterButton(
-            onTap: () async {
-              bool exito = await vm.registrarUsuario();
-              if (exito && context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginView()),
-                      (route) => false,
-                );
-              }
-            },
-          ),
-
-          const SizedBox(height: 25),
-
-          // ENLACE ANIMADO PARA VOLVER
-          _AnimatedTextLink(
-            label: '¿Ya tienes cuenta? Inicia sesión',
-            onTap: () => Navigator.pop(context),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildInput({required String label, required TextEditingController controller, bool isSecret = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 15),
       child: SizedBox(
         width: 400,
         child: TextField(
           controller: controller,
           obscureText: isSecret,
-          style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             hintText: label,
             filled: true,
@@ -135,7 +131,7 @@ class _FormularioRegistro extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           ),
         ),
       ),
@@ -144,55 +140,61 @@ class _FormularioRegistro extends StatelessWidget {
 }
 
 // ---------------------------------------------------------
-// COMPONENTES ANIMADOS ESPECÍFICOS DE REGISTRO
+// COMPONENTES ANIMADOS INSTANTÁNEOS (TAP VS HOVER)
 // ---------------------------------------------------------
 
 class _AnimatedRegisterButton extends StatefulWidget {
   final VoidCallback onTap;
-  const _AnimatedRegisterButton({required this.onTap});
+  final bool isLoading;
+  const _AnimatedRegisterButton({required this.onTap, this.isLoading = false});
 
   @override
   State<_AnimatedRegisterButton> createState() => _AnimatedRegisterButtonState();
 }
 
 class _AnimatedRegisterButtonState extends State<_AnimatedRegisterButton> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const orangePrimary = Colors.orange;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          // IGUALADO A LA TIENDA: Escala 1.1 para impacto visual
-          scale: _isHovered ? 1.1 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 280,
-            height: 60,
-            decoration: BoxDecoration(
-              color: orangePrimary,
-              borderRadius: BorderRadius.circular(15),
-              // IGUALADO A LA TIENDA: Resplandor con blur 15 y spread 2
-              boxShadow: _isHovered ? [
-                BoxShadow(
-                    color: orangePrimary.withOpacity(0.5),
-                    blurRadius: 15,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 4)
-                )
-              ] : [const BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
-            ),
-            child: const Center(
-              child: Text(
-                '¡A JUGAR!',
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
-              ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        if (!widget.isLoading) widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero, // Respuesta instantánea
+        scale: _isPressed && !widget.isLoading ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero, // Respuesta instantánea
+          width: 280,
+          height: 60,
+          decoration: BoxDecoration(
+            color: widget.isLoading ? Colors.grey : orangePrimary,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: _isPressed && !widget.isLoading ? [
+              BoxShadow(
+                  color: orangePrimary.withOpacity(0.7), // Opacidad al 0.7
+                  blurRadius: 25,
+                  spreadRadius: 6,
+                  offset: Offset.zero
+              )
+            ] : [const BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
+          ),
+          child: Center(
+            child: widget.isLoading
+                ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+            )
+                : const Text(
+              '¡A JUGAR!',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
             ),
           ),
         ),
@@ -211,28 +213,28 @@ class _AnimatedTextLink extends StatefulWidget {
 }
 
 class _AnimatedTextLinkState extends State<_AnimatedTextLink> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.1 : 1.0,
-          child: Text(
-            widget.label,
-            style: TextStyle(
-              color: _isHovered ? Colors.white : Colors.white70,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              decoration: TextDecoration.underline,
-              // Sombra blanca sutil en hover para el efecto de brillo
-              shadows: _isHovered ? [const Shadow(color: Colors.white54, blurRadius: 10)] : [],
-            ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.1 : 1.0,
+        child: Text(
+          widget.label,
+          style: TextStyle(
+            color: _isPressed ? Colors.white : Colors.white70,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.underline,
+            shadows: _isPressed ? [const Shadow(color: Colors.white54, blurRadius: 10)] : [],
           ),
         ),
       ),

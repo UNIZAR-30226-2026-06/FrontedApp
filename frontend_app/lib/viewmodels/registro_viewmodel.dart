@@ -1,73 +1,94 @@
 import 'package:flutter/material.dart';
- import '../views/login_view.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class RegisterViewModel extends ChangeNotifier {
+  // Controladores de texto para la UI
   final nombreController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmarpasswordController = TextEditingController();
 
-  // --- NUEVO MÉTODO PARA NAVEGACIÓN ---
+  // Estado para mostrar un spinner en la UI si fuera necesario
+  bool _cargando = false;
+  bool get cargando => _cargando;
+
+  /// MÉTODO PRINCIPAL: Es el que debe llamar tu botón de "Registrar"
   Future<void> ejecutarRegistro(BuildContext context) async {
-    bool exito = await registrarUsuario();
+    // 1. Validaciones locales previas (sin tocar el servidor aún)
+    String? errorValidacion = _validarCampos();
+    if (errorValidacion != null) {
+      _mostrarSnackBar(context, errorValidacion, esError: true);
+      return;
+    }
 
-    if (exito) {
+    // 2. Obtener el AuthProvider (nuestro motor de datos)
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // 3. Intentar el registro real
+    _setLoading(true);
+    try {
+      // Llamada al backend a través del flujo: ViewModel -> Provider -> Repository -> API
+      await authProvider.register(
+        nombreController.text.trim(),
+        emailController.text.trim(),
+        passwordController.text,
+      );
+
+      // 4. Éxito: Navegación y mensaje
       if (context.mounted) {
-        Navigator.pop(context);
+        _mostrarSnackBar(context, "¡Usuario registrado con éxito!", esError: false);
+        Navigator.pushReplacementNamed(context, '/login');
       }
-    }
-  }
-
-  Future<bool> registrarUsuario() async {
-    final String nombre = nombreController.text;
-    final String email = emailController.text;
-    final String password = passwordController.text;
-    final String confirmarPassword = confirmarpasswordController.text;
-
-    List<String> errores = [];
-
-    if(nombreController.text.isEmpty) errores.add("nombre");
-    if(emailController.text.isEmpty) errores.add("email");
-    if(passwordController.text.isEmpty) errores.add("contraseña");
-    if(confirmarpasswordController.text.isEmpty) errores.add("confirmar contraseña");
-
-    if(errores.isNotEmpty){
-      // He añadido 'default' para que no falle si hay 4 errores
-      switch(errores.length){
-        case 1:
-          _showErrorMessage("Falta el campo ${errores[0]}");
-          break;
-        case 2:
-          _showErrorMessage("Faltan los campos: ${errores.join(' y ')}");
-          break;
-        default:
-          _showErrorMessage("Faltan varios campos. Introduce los datos");
-          break;
+    } catch (e) {
+      // 5. Error: El backend nos devuelve algo (ej: "El correo ya existe")
+      if (context.mounted) {
+        // Limpiamos el mensaje de error para que no diga "Exception: ..."
+        final mensajeLimpio = e.toString().replaceAll('Exception: ', '');
+        _mostrarSnackBar(context, mensajeLimpio, esError: true);
       }
-      return false;
+    } finally {
+      _setLoading(false);
     }
-
-    if(password != confirmarPassword){
-      _showErrorMessage("Contraseñas no coincidentes.");
-      return false;
-    }
-
-    bool exito = await _enviarAlBackend(nombre, email, password);
-    return exito;
   }
 
-  Future<bool> _enviarAlBackend(String nombre, String email, String password) async {
-    // Simulación de delay de red
-    await Future.delayed(const Duration(seconds: 1));
-    return true;
+  /// Lógica de validación de formularios
+  String? _validarCampos() {
+    if (nombreController.text.isEmpty ||
+        emailController.text.isEmpty ||
+        passwordController.text.isEmpty) {
+      return "Todos los campos son obligatorios";
+    }
+
+    if (passwordController.text != confirmarpasswordController.text) {
+      return "Las contraseñas no coinciden";
+    }
+
+    if (passwordController.text.length < 6) {
+      return "La contraseña debe tener al menos 6 caracteres";
+    }
+
+    return null; // Todo OK
   }
 
-  void _showErrorMessage(String mensaje){
-    debugPrint("ALERTA DE VALIDACIÓN: $mensaje");
+  /// Utilidad para mostrar mensajes al usuario
+  void _mostrarSnackBar(BuildContext context, String mensaje, {required bool esError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: esError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _setLoading(bool valor) {
+    _cargando = valor;
+    notifyListeners();
   }
 
   @override
-  void dispose(){
+  void dispose() {
     nombreController.dispose();
     emailController.dispose();
     passwordController.dispose();

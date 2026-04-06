@@ -19,18 +19,16 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    // Colores estandarizados del proyecto
     const panelBg = Color(0xFF3A4288);
     const innerBg = Color(0xFF2A316B);
     const neonGreen = Color(0xFF53D86A);
 
     return Scaffold(
-      backgroundColor: Colors.black54, // Fondo oscurecido para el overlay
+      backgroundColor: Colors.black87, // Un poco más oscuro para que resalte el panel
       body: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: MediaQuery.of(context).size.width * 0.65,
-          height: MediaQuery.of(context).size.height * 0.75,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.70,
+          height: MediaQuery.of(context).size.height * 0.80,
           decoration: BoxDecoration(
             color: panelBg,
             borderRadius: BorderRadius.circular(28),
@@ -47,7 +45,7 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
             children: [
               // HEADER
               Padding(
-                padding: const EdgeInsets.fromLTRB(30, 24, 20, 10),
+                padding: const EdgeInsets.fromLTRB(30, 20, 20, 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -55,13 +53,13 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
                       'AJUSTES',
                       style: TextStyle(
                         color: neonGreen,
-                        fontSize: 28,
+                        fontSize: 26,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 2.0,
                       ),
                     ),
-                    // BOTÓN CERRAR ANIMADO
-                    _HoverCloseButton(onTap: widget.onClose),
+                    // BOTÓN CERRAR SNAPPY (Rojo)
+                    _AnimatedCloseButton(onTap: widget.onClose),
                   ],
                 ),
               ),
@@ -70,26 +68,26 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
 
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 20),
                       const Text(
                         'REGLAS ACTIVAS',
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.1,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
 
-                      // CAJA DE REGLAS ESTILO "INNER"
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(18),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: innerBg,
                           borderRadius: BorderRadius.circular(20),
@@ -100,28 +98,28 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white54,
-                            fontSize: 13,
+                            fontSize: 12,
                             height: 1.4,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 35),
+                      const SizedBox(height: 30),
 
-                      // FILAS DE AJUSTES ANIMADAS
+                      // FILAS DE AJUSTES TÁCTILES
                       _AnimatedSettingRow(
                         label: 'MÚSICA DE FONDO',
                         value: musica,
                         onChanged: (val) => setState(() => musica = val),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       _AnimatedSettingRow(
                         label: 'EFECTOS DE SONIDO',
                         value: sonido,
                         onChanged: (val) => setState(() => sonido = val),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       _AnimatedSettingRow(
                         label: 'VIBRACIÓN HÁPTICA',
                         value: vibracion,
@@ -142,67 +140,59 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
 }
 
 // ---------------------------------------------------------
-// COMPONENTES ANIMADOS (GLOW & HOVER)
+// COMPONENTES CON RESPUESTA 0ms Y BRILLO 0.7
 // ---------------------------------------------------------
 
 class _AnimatedSettingRow extends StatefulWidget {
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
-
-  const _AnimatedSettingRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+  const _AnimatedSettingRow({required this.label, required this.value, required this.onChanged});
 
   @override
   State<_AnimatedSettingRow> createState() => _AnimatedSettingRowState();
 }
 
 class _AnimatedSettingRowState extends State<_AnimatedSettingRow> {
-  bool _isHovered = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = Color(0xFF53D86A);
-    const inactiveColor = Color(0xFFD65B5B);
+    const neonGreen = Color(0xFF53D86A);
+    const errorRed = Color(0xFFD65B5B);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        duration: Duration.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: _isHovered ? Colors.white.withOpacity(0.05) : Colors.transparent,
+          color: _isPressed ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.03),
           borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: _isPressed ? Colors.white24 : Colors.transparent,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            AnimatedScale(
-              duration: const Duration(milliseconds: 200),
-              scale: _isHovered ? 1.05 : 1.0,
-              child: Text(
-                widget.label,
-                style: TextStyle(
-                  color: _isHovered ? Colors.white : Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                ),
+            Text(
+              widget.label,
+              style: TextStyle(
+                color: _isPressed ? Colors.white : Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
               ),
             ),
             Transform.scale(
-              scale: 0.9,
+              scale: 0.85,
               child: Switch(
                 value: widget.value,
                 onChanged: widget.onChanged,
-                activeColor: Colors.white,
-                activeTrackColor: activeColor,
-                inactiveThumbColor: Colors.white,
-                inactiveTrackColor: inactiveColor,
+                activeTrackColor: neonGreen,
+                inactiveTrackColor: errorRed,
                 trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
               ),
             ),
@@ -213,44 +203,49 @@ class _AnimatedSettingRowState extends State<_AnimatedSettingRow> {
   }
 }
 
-class _HoverCloseButton extends StatefulWidget {
+class _AnimatedCloseButton extends StatefulWidget {
   final VoidCallback onTap;
-  const _HoverCloseButton({required this.onTap});
+  const _AnimatedCloseButton({required this.onTap});
 
   @override
-  State<_HoverCloseButton> createState() => _HoverCloseButtonState();
+  State<_AnimatedCloseButton> createState() => _AnimatedCloseButtonState();
 }
 
-class _HoverCloseButtonState extends State<_HoverCloseButton> {
-  bool _isHovered = false;
+class _AnimatedCloseButtonState extends State<_AnimatedCloseButton> {
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     const errorRed = Color(0xFFD65B5B);
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 150),
-          scale: _isHovered ? 1.2 : 1.0,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _isHovered ? errorRed.withOpacity(0.2) : Colors.transparent,
-              shape: BoxShape.circle,
-              boxShadow: _isHovered
-                  ? [BoxShadow(color: errorRed.withOpacity(0.3), blurRadius: 10)]
-                  : [],
-            ),
-            child: Icon(
-                Icons.close,
-                color: _isHovered ? errorRed : Colors.white70,
-                size: 28
-            ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.15 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _isPressed ? errorRed.withOpacity(0.2) : const Color(0xFF2A316B),
+            shape: BoxShape.circle,
+            boxShadow: _isPressed
+                ? [BoxShadow(
+                color: errorRed.withOpacity(0.7),
+                blurRadius: 15,
+                spreadRadius: 2
+            )]
+                : [],
+          ),
+          child: Icon(
+              Icons.close,
+              color: _isPressed ? errorRed : Colors.white70,
+              size: 24
           ),
         ),
       ),

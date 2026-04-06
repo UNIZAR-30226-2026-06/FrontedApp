@@ -6,6 +6,7 @@ class UsuarioModel {
   final int totalPartidas;
   final int? idAvatarSeleccionado;
   final int? idEstiloSeleccionado;
+  final String? token;
 
   UsuarioModel({
     required this.nombreUsuario,
@@ -15,10 +16,10 @@ class UsuarioModel {
     this.totalPartidas = 0,
     this.idAvatarSeleccionado,
     this.idEstiloSeleccionado,
+    this.token,
   });
 
-  // El servidor devuelve estos nombres en camelCase o snake_case dependiendo del endpoint
-  // Esta factory cubre el endpoint /usuarios/me y /auth/me
+
   factory UsuarioModel.fromJson(Map<String, dynamic> json, {required token}) {
     return UsuarioModel(
       nombreUsuario: json['nombre_usuario'] ?? '',
@@ -28,6 +29,7 @@ class UsuarioModel {
       totalPartidas: json['total_partidas'] ?? 0,
       idAvatarSeleccionado: json['id_avatar_seleccionado'] ?? json['avatar'],
       idEstiloSeleccionado: json['id_estilo_seleccionado'] ?? json['estilo'],
+      token: token,
     );
   }
 
