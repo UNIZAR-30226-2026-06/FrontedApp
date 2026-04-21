@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/user_repository.dart';
 
 // Importación de ViewModels
 import '../viewmodels/login_viewmodel.dart';
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget {
     // 1. Instanciamos la base de la pirámide (Solo una vez para toda la app)
     final apiService = ApiService();
     final authRepository = AuthRepository(apiService);
+    final userRepository = UserRepository(apiService);
 
     return MultiProvider(
       providers: [
@@ -33,10 +35,7 @@ class MyApp extends StatelessWidget {
 
         // 3. Registramos los ViewModels pasando las dependencias necesarias
         ChangeNotifierProvider(create: (_) => LoginViewModel()),
-        ChangeNotifierProvider(create: (_) => HomeViewModel()),
-
-        // NOTA: Si tu LoginViewModel necesita hacer login,
-        // debería recibir el authRepository en su constructor.
+        ChangeNotifierProvider(create: (_) => HomeViewModel(userRepo: userRepository)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
