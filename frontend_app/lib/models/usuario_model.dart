@@ -19,8 +19,31 @@ class UsuarioModel {
     this.token,
   });
 
+  // Método empleado para actualizar datos del usuario
+  UsuarioModel copyWith({
+    String? nombreUsuario,
+    String? correo,
+    int? monedas,
+    int? totalGanadas,
+    int? totalPartidas,
+    int? idAvatarSeleccionado,
+    int? idEstiloSeleccionado,
+    String? token,
+  }) {
+    return UsuarioModel(
+      nombreUsuario: nombreUsuario ?? this.nombreUsuario,
+      correo: correo ?? this.correo,
+      monedas: monedas ?? this.monedas,
+      totalGanadas: totalGanadas ?? this.totalGanadas,
+      totalPartidas: totalPartidas ?? this.totalPartidas,
+      idAvatarSeleccionado: idAvatarSeleccionado ?? this.idAvatarSeleccionado,
+      idEstiloSeleccionado: idEstiloSeleccionado ?? this.idEstiloSeleccionado,
+      token: token ?? this.token,
+    );
+  }
 
   factory UsuarioModel.fromJson(Map<String, dynamic> json, {required token}) {
+    print('💰 MONEDAS QUE VAN AL MODELO: ${json['monedas']}');
     return UsuarioModel(
       nombreUsuario: json['nombre_usuario'] ?? '',
       correo: json['correo'] ?? '',

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../viewmodels/home_viewmodel.dart';
+import '../providers/auth_provider.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -21,7 +23,7 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     vm = HomeViewModel();
     _pageController = PageController(
-      viewportFraction: 0.55, // Ajustado para mejor visibilidad en horizontal
+      viewportFraction: 0.55,
       initialPage: _kLoopBase,
     );
     _currentPage = _kLoopBase % _kModeCount;
@@ -34,15 +36,14 @@ class _HomeViewState extends State<HomeView> {
     super.dispose();
   }
 
-  // Animaciones de flechas: mantenemos un pequeño delay para que el scroll sea fluido
   void _next() => _pageController.nextPage(duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
   void _prev() => _pageController.previousPage(duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
 
-  String _avatarEmoji(String avatarId) {
+  String _avatarEmoji(String? avatarId) {
     switch (avatarId) {
-      case 'a1': return '🤖';
-      case 'a2': return '🤠';
-      case 'a3': return '😈';
+      case '1': return '🤖';
+      case '2': return '🤠';
+      case '3': return '😈';
       default: return '👤';
     }
   }
@@ -52,6 +53,9 @@ class _HomeViewState extends State<HomeView> {
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const card = Color(0xFF2A316B);
+
+    // ESCUCHAMOS AL AUTHPROVIDER PARA LAS MONEDAS REALES
+    final usuario = context.watch<AuthProvider>().usuario;
 
     final modes = <Widget>[
       _ModeCardDual(
@@ -105,18 +109,33 @@ class _HomeViewState extends State<HomeView> {
           listenable: vm,
           builder: (context, _) {
             return Padding(
-              // Reducimos padding vertical para evitar el overflow en horizontal
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               child: Column(
                 children: [
-                  // --- TOP BAR ---
+                  // --- TOP BAR CON DATOS REALES ---
                   Row(
                     children: [
-                      _AvatarBubble(emoji: _avatarEmoji(vm.jugador.avatarId)),
+                      _AvatarBubble(emoji: _avatarEmoji(usuario?.idAvatarSeleccionado?.toString())),
                       const Spacer(),
-                      _Pill(background: const Color(0xFFF4C542), foreground: Colors.black, child: Row(children: [const Icon(Icons.attach_money, size: 16), const SizedBox(width: 4), Text(vm.jugador.coins.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))])),
+                      _Pill(
+                          background: const Color(0xFFF4C542),
+                          foreground: Colors.black,
+                          child: Row(children: [
+                            const Icon(Icons.attach_money, size: 16),
+                            const SizedBox(width: 4),
+                            Text('${usuario?.monedas ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))
+                          ])
+                      ),
                       const SizedBox(width: 8),
-                      _Pill(background: const Color(0xFF7E8AA3), foreground: Colors.black, child: Row(children: [const Icon(Icons.person, size: 16), const SizedBox(width: 4), Text(vm.jugador.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))])),
+                      _Pill(
+                          background: const Color(0xFF7E8AA3),
+                          foreground: Colors.black,
+                          child: Row(children: [
+                            const Icon(Icons.person, size: 16),
+                            const SizedBox(width: 4),
+                            Text(usuario?.nombreUsuario ?? 'Usuario', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))
+                          ])
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -130,7 +149,6 @@ class _HomeViewState extends State<HomeView> {
                           const Text('¡Bienvenido!', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
                           const Text('Elige un modo para empezar', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
                           const SizedBox(height: 10),
-                          // CAROUSEL AJUSTADO (Altura 160 para evitar overflow)
                           SizedBox(
                             height: 160,
                             child: Row(
@@ -178,18 +196,32 @@ class _HomeViewState extends State<HomeView> {
   }
 }
 
-// ---------------------------------------------------------
-// COMPONENTES REFACTORIZADOS: RESPUESTA INSTANTÁNEA (TAP)
-// ---------------------------------------------------------
+// =========================================================
+// COMPONENTES DE APOYO (LOS QUE TE FALTABAN)
+// =========================================================
+
+class _AvatarBubble extends StatelessWidget {
+  final String emoji;
+  const _AvatarBubble({required this.emoji});
+  @override
+  Widget build(BuildContext context) => Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle), child: Center(child: Text(emoji, style: const TextStyle(fontSize: 22))));
+}
+
+class _Pill extends StatelessWidget {
+  final Widget child;
+  final Color background;
+  final Color foreground;
+  const _Pill({required this.child, required this.background, required this.foreground});
+  @override
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(14)), child: DefaultTextStyle(style: TextStyle(color: foreground), child: IconTheme(data: IconThemeData(color: foreground), child: child)));
+}
 
 class _ActionButton extends StatefulWidget {
   final String label;
   final Color background;
   final VoidCallback onTap;
   final bool isDark;
-
   const _ActionButton({required this.label, required this.background, required this.onTap, this.isDark = true});
-
   @override
   State<_ActionButton> createState() => _ActionButtonState();
 }
@@ -211,13 +243,9 @@ class _ActionButtonState extends State<_ActionButton> {
           decoration: BoxDecoration(
             color: widget.background,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: _isPressed ? [
-              BoxShadow(color: widget.background.withOpacity(0.7), blurRadius: 15, spreadRadius: 4)
-            ] : [],
+            boxShadow: _isPressed ? [BoxShadow(color: widget.background.withOpacity(0.7), blurRadius: 15, spreadRadius: 4)] : [],
           ),
-          child: Center(
-            child: Text(widget.label, style: TextStyle(color: widget.isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
+          child: Center(child: Text(widget.label, style: TextStyle(color: widget.isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
         ),
       ),
     );
@@ -228,7 +256,6 @@ class _ArrowButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
   const _ArrowButton({required this.icon, required this.onTap});
-
   @override
   State<_ArrowButton> createState() => _ArrowButtonState();
 }
@@ -261,7 +288,6 @@ class _BottomMenu extends StatelessWidget {
   final int currentIndex;
   final void Function(int) onTap;
   const _BottomMenu({required this.currentIndex, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -284,7 +310,6 @@ class _BottomItem extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
   const _BottomItem({required this.selected, required this.icon, required this.label, required this.onTap});
-
   @override
   State<_BottomItem> createState() => _BottomItemState();
 }
@@ -308,7 +333,6 @@ class _BottomItemState extends State<_BottomItem> {
             decoration: BoxDecoration(
               color: (widget.selected || _isPressed) ? activeBlue : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: (_isPressed && !widget.selected) ? [BoxShadow(color: activeBlue.withOpacity(0.7), blurRadius: 15, spreadRadius: 2)] : [],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -323,19 +347,6 @@ class _BottomItemState extends State<_BottomItem> {
       ),
     );
   }
-}
-
-// --- CLASES DE SOPORTE (AJUSTADAS) ---
-class _AvatarBubble extends StatelessWidget {
-  final String emoji; const _AvatarBubble({required this.emoji});
-  @override
-  Widget build(BuildContext context) => Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle), child: Center(child: Text(emoji, style: const TextStyle(fontSize: 22))));
-}
-
-class _Pill extends StatelessWidget {
-  final Widget child; final Color background; final Color foreground; const _Pill({required this.child, required this.background, required this.foreground});
-  @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(14)), child: DefaultTextStyle(style: TextStyle(color: foreground), child: IconTheme(data: IconThemeData(color: foreground), child: child)));
 }
 
 class _ModeCardDual extends StatelessWidget {

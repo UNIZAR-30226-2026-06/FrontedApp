@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/tienda_item_model.dart';
 import '../viewmodels/tienda_viewmodel.dart';
 import 'package:frontend_app/views/widgets/confirmacion_dialogo.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../repositories/tienda_repository.dart';
+import '../services/api_service.dart';
 
 class TiendaView extends StatefulWidget {
   const TiendaView({super.key});
@@ -16,28 +20,69 @@ class _TiendaViewState extends State<TiendaView> {
   @override
   void initState() {
     super.initState();
-    vm = TiendaViewModel();
+    final apiService = ApiService();
+
+    final auth = context.read<AuthProvider>();
+    if(auth.usuario?.token != null){
+      apiService.setToken(auth.usuario!.token!);
+    }
+
+    vm = TiendaViewModel(
+      repo: TiendaRepository(apiService),
+    );
   }
 
   void _intentarComprar(BuildContext context, TiendaItem item) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return ConfirmationDialog(
           message: "¿Deseas comprar '${item.titulo}' por ${item.precio} monedas?",
           confirmText: "Comprar",
-          onConfirm: () {
-            final exito = vm.ejecutarCompra(item);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(exito
-                    ? "¡Compra realizada con éxito!"
-                    : "No tienes suficientes monedas para este artículo."),
-                backgroundColor: exito ? Colors.green : Colors.red,
-                duration: const Duration(seconds: 2),
-              ),
-            );
+          // 1. CAMBIO: Hacemos el botón asíncrono (async)
+          onConfirm: () async {
+            final auth = context.read<AuthProvider>();
+
+            try {
+              // 2. CAMBIO: Esperamos al servidor (await) para recibir el nuevo saldo
+              final nuevoSaldo = await vm.ejecutarCompra(item);
+
+              // Actualizamos las monedas globalmente
+              auth.actualizarMonedas(nuevoSaldo);
+
+              // Cerramos el diálogo de confirmación
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+
+              // Mostramos mensaje verde de éxito
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("¡Compra realizada con éxito!"),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            } catch (e) {
+              // Si falla (ej: sin dinero), cerramos el diálogo y mostramos error rojo
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+
+              if (context.mounted) {
+                final errorMsg = e.toString().replaceAll('Exception: ', '');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(errorMsg),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            }
           },
         );
       },
@@ -83,12 +128,16 @@ class _TiendaViewState extends State<TiendaView> {
                             children: [
                               const Icon(Icons.attach_money, size: 16),
                               const SizedBox(width: 4),
-                              Text('${vm.jugador.coins} Monedas', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              // 3. CAMBIO: Leemos las monedas reales del AuthProvider
+                              Text(
+                                '${context.watch<AuthProvider>().usuario?.monedas ?? 0} Monedas',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 10),
-                        // BOTÓN VOLVER UNIFORMADO CON EL PERFIL
+                        // BOTÓN VOLVER
                         _AnimatedBackPill(
                           onTap: () => Navigator.pop(context),
                         ),
@@ -195,9 +244,9 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
             )]
                 : [],
           ),
-          child: Row(
+          child: const Row( // Corregido const Row
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(Icons.arrow_back, color: Colors.white, size: 18),
               SizedBox(width: 6),
               Text('Volver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),

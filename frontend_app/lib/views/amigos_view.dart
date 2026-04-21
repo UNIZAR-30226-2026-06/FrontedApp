@@ -49,6 +49,24 @@ class _AmigosViewState extends State<AmigosView> {
     );
   }
 
+  void _mostrarNotificacion(String mensaje, {bool esError = false}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            mensaje,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+        ),
+        // Verde (éxito) o Rojo (error/rechazo)
+        backgroundColor: esError ? const Color(0xFFE53935) : const Color(0xFF2DBE4D),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const bg = Color(0xFF2D3473);
@@ -151,7 +169,10 @@ class _AmigosViewState extends State<AmigosView> {
                                     context: context,
                                     nombre: u.nombre,
                                     mensaje: '¿Seguro que quieres eliminar a {nombre}?',
-                                    accion: () => vm.eliminarAmigo(u.nombre),
+                                    accion: () async {
+                                      await vm.eliminarAmigo(u.nombre);
+                                      _mostrarNotificacion('Has eliminado a ${u.nombre}');
+                                    },
                                   ),
                                 ),
                               )),
@@ -170,7 +191,10 @@ class _AmigosViewState extends State<AmigosView> {
                                     context: context,
                                     nombre: u.nombre,
                                     mensaje: '¿Agregar a {nombre} como amigo?',
-                                    accion: () => vm.enviarSolicitud(u.nombre),
+                                    accion: () async {
+                                      await vm.enviarSolicitud(u.nombre);
+                                      _mostrarNotificacion('Solicitud enviada a ${u.nombre}');
+                                    },
                                   ),
                                 ),
                               )),
@@ -195,7 +219,10 @@ class _AmigosViewState extends State<AmigosView> {
                                           context: context,
                                           nombre: nombreUser,
                                           mensaje: '¿Aceptar a {nombre}?',
-                                          accion: () => vm.responderSolicitud(idSolicitud, true),
+                                          accion: () async {
+                                            await vm.responderSolicitud(idSolicitud, true);
+                                            _mostrarNotificacion('Has añadido a $nombreUser a tus amigos');
+                                          },
                                         ),
                                       ),
                                       const SizedBox(width: 6),
@@ -207,7 +234,10 @@ class _AmigosViewState extends State<AmigosView> {
                                           context: context,
                                           nombre: nombreUser,
                                           mensaje: '¿Rechazar a {nombre}?',
-                                          accion: () => vm.responderSolicitud(idSolicitud, false),
+                                          accion: () async {
+                                            await vm.responderSolicitud(idSolicitud, false);
+                                            _mostrarNotificacion('Has rechazado a $nombreUser', esError: true);
+                                          },
                                         ),
                                       ),
                                     ],

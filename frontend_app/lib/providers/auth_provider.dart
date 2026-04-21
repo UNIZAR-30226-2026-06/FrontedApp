@@ -42,4 +42,12 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  //Actualiza la cantidad de monedas del usuario
+  void actualizarMonedas(int nuevaCantidad) {
+    if(_usuario != null){
+      _usuario = _usuario!.copyWith(monedas : nuevaCantidad);
+      notifyListeners();
+    }
+  }
 }
