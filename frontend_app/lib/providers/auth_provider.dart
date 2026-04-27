@@ -31,23 +31,57 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Llamamos al repositorio para validar contra el backend
       _usuario = await _repository.login(email, password);
-      notifyListeners();
+      if (_usuario != null) {
+        await cargarInventarioCompleto();
+      }
     } catch (e) {
       _usuario = null;
-      rethrow; // Lanzamos el error para que el ViewModel lo capture
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  //Actualiza la cantidad de monedas del usuario
+  Future<void> cargarInventarioCompleto() async {
+    if (_usuario == null) return;
+
+    try {
+      final resultados = await Future.wait([
+        _repository.obtenerAvataresComprados(),
+        _repository.obtenerEstilosComprados(),
+      ]);
+
+      _usuario = _usuario!.copyWith(
+        avataresComprados: resultados[0],
+        estilosComprados: resultados[1],
+      );
+
+      notifyListeners();
+      print("Inventario cargado exitosamente: ${_usuario!.avataresComprados}");
+    } catch (e) {
+      debugPrint("Error al cargar inventario: $e");
+    }
+  }
+
   void actualizarMonedas(int nuevaCantidad) {
-    if(_usuario != null){
-      _usuario = _usuario!.copyWith(monedas : nuevaCantidad);
+    if (_usuario != null) {
+      _usuario = _usuario!.copyWith(monedas: nuevaCantidad);
       notifyListeners();
     }
+  }
+
+  void registrarCompraExitosa(int idComprado, int nuevoSaldo, {required bool esAvatar}) {
+    if (_usuario == null) return;
+
+    final listaActual = esAvatar ? _usuario!.avataresComprados : _usuario!.estilosComprados;
+    final nuevaLista = {...listaActual, idComprado}.toList();
+
+    _usuario = esAvatar
+        ? _usuario!.copyWith(avataresComprados: nuevaLista)
+        : _usuario!.copyWith(estilosComprados: nuevaLista);
+
+    actualizarMonedas(nuevoSaldo);
   }
 }

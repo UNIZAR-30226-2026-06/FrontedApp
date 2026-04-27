@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+
 import '../services/api_service.dart';
 import '../models/usuario_model.dart';
 
@@ -27,7 +29,6 @@ class AuthRepository {
         final meData = json.decode(meResponse.body);
         final walletData = json.decode(walletResponse.body);
 
-        // Juntamos los datos: inyectamos las "coins" del wallet como "monedas"
         meData['monedas'] = walletData['coins'] ?? 0;
 
         return UsuarioModel.fromJson(meData, token: token);
@@ -56,15 +57,10 @@ class AuthRepository {
       final meResponse = await _apiService.get('/auth/me');
       final walletResponse = await _apiService.get('/wallet/balance');
 
-      print('🚨 --- ESPIONAJE DE APIS --- 🚨');
-      print('Ruta /auth/me -> Status: ${meResponse.statusCode} | Cuerpo: ${meResponse.body}');
-      print('Ruta /wallet  -> Status: ${walletResponse.statusCode} | Cuerpo: ${walletResponse.body}');
-
       if (meResponse.statusCode == 200 && walletResponse.statusCode == 200) {
         final meData = json.decode(meResponse.body);
         final walletData = json.decode(walletResponse.body);
 
-        // Juntamos los datos: inyectamos las "coins" del wallet como "monedas"
         meData['monedas'] = walletData['coins'] ?? 0;
 
         return UsuarioModel.fromJson(meData, token: token);
@@ -76,6 +72,36 @@ class AuthRepository {
       final error = json.decode(response.body);
       throw Exception(
           error['error'] ?? error['message'] ?? 'Error al iniciar sesión');
+    }
+  }
+
+  Future<List<int>> obtenerAvataresComprados() async {
+    try {
+      final response = await _apiService.get('/usuarios/me/avatares');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((e) => e['id_avatar'] as int).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error obteniendo avatares comprados: $e");
+      return [];
+    }
+  }
+
+  Future<List<int>> obtenerEstilosComprados() async {
+    try {
+      final response = await _apiService.get('/usuarios/me/estilos');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((e) => e['id_estilo'] as int).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error obteniendo estilos comprados: $e");
+      return [];
     }
   }
 }

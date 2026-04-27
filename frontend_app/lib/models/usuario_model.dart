@@ -7,6 +7,8 @@ class UsuarioModel {
   final int? idAvatarSeleccionado;
   final int? idEstiloSeleccionado;
   final String? token;
+  final List<int> avataresComprados;
+  final List<int> estilosComprados;
 
   UsuarioModel({
     required this.nombreUsuario,
@@ -17,6 +19,8 @@ class UsuarioModel {
     this.idAvatarSeleccionado,
     this.idEstiloSeleccionado,
     this.token,
+    this.avataresComprados = const [],
+    this.estilosComprados = const [],
   });
 
   // Método empleado para actualizar datos del usuario
@@ -29,6 +33,8 @@ class UsuarioModel {
     int? idAvatarSeleccionado,
     int? idEstiloSeleccionado,
     String? token,
+    List<int>? avataresComprados,
+    List<int>? estilosComprados,
   }) {
     return UsuarioModel(
       nombreUsuario: nombreUsuario ?? this.nombreUsuario,
@@ -39,11 +45,12 @@ class UsuarioModel {
       idAvatarSeleccionado: idAvatarSeleccionado ?? this.idAvatarSeleccionado,
       idEstiloSeleccionado: idEstiloSeleccionado ?? this.idEstiloSeleccionado,
       token: token ?? this.token,
+      avataresComprados: avataresComprados ?? this.avataresComprados,
+      estilosComprados: estilosComprados ?? this.estilosComprados,
     );
   }
 
   factory UsuarioModel.fromJson(Map<String, dynamic> json, {required token}) {
-    print('💰 MONEDAS QUE VAN AL MODELO: ${json['monedas']}');
     return UsuarioModel(
       nombreUsuario: json['nombre_usuario'] ?? '',
       correo: json['correo'] ?? '',
@@ -53,6 +60,12 @@ class UsuarioModel {
       idAvatarSeleccionado: json['id_avatar_seleccionado'] ?? json['avatar'],
       idEstiloSeleccionado: json['id_estilo_seleccionado'] ?? json['estilo'],
       token: token,
+      avataresComprados: json['avatares_comprados'] != null
+          ? List<int>.from(json['avatares_comprados'])
+          : [],
+      estilosComprados: json['estilos_comprados'] != null
+        ? List<int>.from(json['estilos_comprados'])
+          : []
     );
   }
 
@@ -61,10 +74,15 @@ class UsuarioModel {
     return {
       'nombre_usuario': nombreUsuario,
       'correo': correo,
-      if (password != null) 'password': password, // El campo se llama 'password' en la API
+      'id_avatar_seleccionado': idAvatarSeleccionado,
+      'id_estilo_seleccionado': idEstiloSeleccionado,
+      'avatares_comprados': avataresComprados,
+      'estilos_comprados' : estilosComprados,
+      if (password != null) 'password': password,
     };
   }
 
+  //Tengo mis dudas si modificar los datos devueltos
   @override
   String toString() => 'Usuario(nombre: $nombreUsuario, correo: $correo, monedas: $monedas)';
 }

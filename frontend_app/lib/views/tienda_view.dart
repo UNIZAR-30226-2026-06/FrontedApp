@@ -40,16 +40,19 @@ class _TiendaViewState extends State<TiendaView> {
         return ConfirmationDialog(
           message: "¿Deseas comprar '${item.titulo}' por ${item.precio} monedas?",
           confirmText: "Comprar",
-          // 1. CAMBIO: Hacemos el botón asíncrono (async)
           onConfirm: () async {
             final auth = context.read<AuthProvider>();
 
             try {
-              // 2. CAMBIO: Esperamos al servidor (await) para recibir el nuevo saldo
               final nuevoSaldo = await vm.ejecutarCompra(item);
 
-              // Actualizamos las monedas globalmente
-              auth.actualizarMonedas(nuevoSaldo);
+              int idItem = int.parse(item.id.replaceAll(RegExp(r'[^0-9]'), '')); // Extracción del id (int)
+
+              auth.registrarCompraExitosa(
+                idItem,
+                nuevoSaldo,
+                esAvatar: item.tipo == TiendaItemTipo.avatar,
+              );
 
               // Cerramos el diálogo de confirmación
               if (dialogContext.mounted) {
@@ -67,7 +70,6 @@ class _TiendaViewState extends State<TiendaView> {
                 );
               }
             } catch (e) {
-              // Si falla (ej: sin dinero), cerramos el diálogo y mostramos error rojo
               if (dialogContext.mounted) {
                 Navigator.pop(dialogContext);
               }
@@ -91,6 +93,23 @@ class _TiendaViewState extends State<TiendaView> {
 
   @override
   Widget build(BuildContext context) {
+
+    final auth = context.watch<AuthProvider>();
+    final user = auth.usuario;
+
+    if (vm.filtro == TiendaFiltro.avatares) {
+      vm.actualizarInventario(user?.avataresComprados ?? []);
+    }
+    else if (vm.filtro == TiendaFiltro.disenos) {
+      vm.actualizarInventario(user?.estilosComprados ?? []);
+    }
+    else {
+      vm.actualizarInventario([
+        ...(user?.avataresComprados ?? []),
+        ...(user?.estilosComprados ?? []),
+      ]);
+    }
+
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const cardColor = Color(0xFF2A316B);

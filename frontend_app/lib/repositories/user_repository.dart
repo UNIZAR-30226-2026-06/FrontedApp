@@ -7,15 +7,29 @@ class UserRepository {
 
   UserRepository(this._api);
 
+
   /// Obtiene los datos actualizados del perfil del usuario logueado
   Future<Jugador> getProfile() async {
-    final response = await _api.get('/profile'); // Ajusta segun tu endpoint real
+    final response = await _api.get('/profile'); // ajustar segun endpoint
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return Jugador.fromJson(data);
     } else {
       throw Exception('Error al obtener perfil');
+    }
+  }
+
+  Future<bool> updateSelectedAvatar(int avatarId) async {
+    final response = await _api.post(
+      '/auth/update-avatar',
+     {'id_avatar' : avatarId}
+    );
+
+    if(response.statusCode == 200){
+      return true;
+    }else{
+      throw Exception('No se pudo cambiar el avatar');
     }
   }
 
