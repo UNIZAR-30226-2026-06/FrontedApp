@@ -9,26 +9,41 @@ class CartaWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 60,
-        height: 90,
-        decoration: BoxDecoration(
-          color: _getColor(carta.color),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4, offset: const Offset(2, 2))
-          ],
-        ),
-        child: Center(
-          child: Text(
-            _getValor(carta.valor),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+    return TweenAnimationBuilder(
+      duration: const Duration(milliseconds: 300),
+      tween: Tween<double>(begin: 0.8, end: 1.0),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: value,
+          child: child,
+        );
+      },
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 60,
+          height: 90,
+          decoration: BoxDecoration(
+            color: _getColor(carta.color),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(2, 2),
+              )
+            ],
+          ),
+          child: Center(
+            child: Text(
+              _getValor(carta.valor),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -47,13 +62,11 @@ class CartaWidget extends StatelessWidget {
   }
 
   String _getValor(CartaValor v) {
-    // Convierte el enum a texto (ej: masDos -> +2)
     String nombre = v.name;
     if (nombre.contains('mas')) return nombre.replaceAll('mas', '+');
     if (nombre == 'reversa') return '🔄';
     if (nombre == 'saltar') return '🚫';
 
-    // Si es un número (cero, uno...), puedes mapearlo o usar un helper
     Map<CartaValor, String> numeros = {
       CartaValor.cero: '0', CartaValor.uno: '1', CartaValor.dos: '2',
       CartaValor.tres: '3', CartaValor.cuatro: '4', CartaValor.cinco: '5',

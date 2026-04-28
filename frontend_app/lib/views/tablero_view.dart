@@ -34,18 +34,30 @@ class _TableroViewState extends State<TableroView> {
             children: [
               _buildFondo(),
 
+              // Bots con indicadores de turno
               if (vm.bots.length >= 3) ...[
                 Positioned(
                   top: 150, left: 40,
-                  child: AvatarJugadorWidget(participante: vm.bots[0]),
+                  child: AvatarJugadorWidget(
+                    participante: vm.bots[0],
+                    esSuTurno: vm.turnoIndex == 1,
+                  ),
                 ),
                 Positioned(
                   top: 80, left: 0, right: 0,
-                  child: Center(child: AvatarJugadorWidget(participante: vm.bots[1])),
+                  child: Center(
+                    child: AvatarJugadorWidget(
+                      participante: vm.bots[1],
+                      esSuTurno: vm.turnoIndex == 2,
+                    ),
+                  ),
                 ),
                 Positioned(
                   top: 150, right: 40,
-                  child: AvatarJugadorWidget(participante: vm.bots[2]),
+                  child: AvatarJugadorWidget(
+                    participante: vm.bots[2],
+                    esSuTurno: vm.turnoIndex == 3,
+                  ),
                 ),
               ],
 
@@ -58,26 +70,47 @@ class _TableroViewState extends State<TableroView> {
 
               _buildTopBar(),
 
+              // Mano del jugador humano
               Align(
                 alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 30),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: vm.jugadorHumano?.mano.map((carta) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: CartaWidget(
-                            carta: carta,
-                            onTap: () => vm.intentarTirarCarta(carta),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (vm.turnoIndex == 0)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          "¡TU TURNO!",
+                          style: TextStyle(
+                            color: Colors.yellowAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            shadows: [Shadow(color: Colors.black, blurRadius: 4)],
                           ),
-                        );
-                      }).toList() ?? [],
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 30),
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: vm.jugadorHumano?.mano.map((carta) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: CartaWidget(
+                                carta: carta,
+                                onTap: vm.turnoIndex == 0 
+                                    ? () => vm.intentarTirarCarta(carta)
+                                    : null,
+                              ),
+                            );
+                          }).toList() ?? [],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
 
@@ -134,7 +167,6 @@ class _TableroViewState extends State<TableroView> {
   }
 }
 
-
 class _AnimatedSettingsButton extends StatefulWidget {
   final VoidCallback onTap;
   const _AnimatedSettingsButton({required this.onTap});
@@ -159,7 +191,7 @@ class _AnimatedSettingsButtonState extends State<_AnimatedSettingsButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
         duration: Duration.zero,
-        scale: _isPressed ? 1.2 : 1.0, // Un poco más de escala por ser un icono pequeño
+        scale: _isPressed ? 1.2 : 1.0, 
         child: AnimatedContainer(
           duration: Duration.zero,
           padding: const EdgeInsets.all(8),
@@ -168,7 +200,7 @@ class _AnimatedSettingsButtonState extends State<_AnimatedSettingsButton> {
             shape: BoxShape.circle,
             boxShadow: _isPressed
                 ? [BoxShadow(
-                color: neonCyan.withOpacity(0.7), // Brillo estándar 0.7
+                color: neonCyan.withOpacity(0.7),
                 blurRadius: 15,
                 spreadRadius: 2
             )]
