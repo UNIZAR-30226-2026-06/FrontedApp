@@ -1,5 +1,7 @@
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import '../viewmodels/multijugador_menu_cartas_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 import 'config_cartas_multijugador_view.dart';
 import 'unirse_partida_view.dart';
 
@@ -25,10 +27,13 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
   @override
   void initState() {
     super.initState();
+    final partidaActualVM = context.read<PartidaActualViewModel>();
+
     vm = MultijugadorMenuCartasViewModel(
       modoTitulo: widget.modoTitulo,
       modoSubtitulo1: widget.modoSubtitulo1,
       modoSubtitulo2: widget.modoSubtitulo2,
+      partidaActualViewModel: partidaActualVM,
     );
   }
 
@@ -55,7 +60,6 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
             ),
             child: Stack(
               children: [
-                // 1. CONTENIDO (Capa inferior)
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
@@ -106,7 +110,6 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
 
                             const SizedBox(height: 24),
 
-                            // BOTÓN CREAR PARTIDA (CORREGIDO PARA MULTIJUGADOR)
                             _AnimatedGreenButton(
                               label: 'Crear partida',
                               onTap: () {
@@ -143,7 +146,6 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
                   },
                 ),
 
-                // 2. BOTÓN VOLVER UNIFORMADO (Capa superior para asegurar el click)
                 Positioned(
                   top: 14,
                   right: 14,
@@ -161,10 +163,6 @@ class _MultijugadorMenuCartasViewState extends State<MultijugadorMenuCartasView>
     );
   }
 }
-
-// ---------------------------------------------------------
-// COMPONENTES REFACTORIZADOS (0ms / Brillo 0.7)
-// ---------------------------------------------------------
 
 class _AnimatedGreenButton extends StatefulWidget {
   final String label;

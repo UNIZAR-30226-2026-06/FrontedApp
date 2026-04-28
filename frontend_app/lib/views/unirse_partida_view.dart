@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 import '../viewmodels/unirse_partida_viewmodel.dart';
+import 'package:provider/provider.dart';
 
 class UnirsePartidaView extends StatefulWidget {
   final String modoTitulo;
@@ -19,12 +21,16 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
   late final UnirsePartidaViewModel vm;
   late final TextEditingController _controller;
 
+
   @override
   void initState() {
     super.initState();
+    final partidaActualVM = context.read<PartidaActualViewModel>();
+
     vm = UnirsePartidaViewModel(
       modoTitulo: widget.modoTitulo,
       modoSubtitulo: widget.modoSubtitulo,
+      partidaActualViewModel: partidaActualVM,
     );
     _controller = TextEditingController(text: vm.codigo);
   }

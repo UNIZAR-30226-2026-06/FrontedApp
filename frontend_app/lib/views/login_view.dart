@@ -64,7 +64,6 @@ class _LoginViewState extends State<LoginView> {
 
                     const SizedBox(height: 25),
 
-                    // ENLACES ROJOS CON ANIMACIÓN DE PRESIÓN
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -82,7 +81,6 @@ class _LoginViewState extends State<LoginView> {
 
                     const SizedBox(height: 40),
 
-                    // BOTÓN INICIAR SESIÓN (CON ANIMACIÓN TÁCTIL)
                     _AnimatedLoginButton(
                       isLoading: vm.estaCargando,
                       // Llamamos directamente al método refactorizado del ViewModel
@@ -124,9 +122,6 @@ class _LoginViewState extends State<LoginView> {
   }
 }
 
-// ---------------------------------------------------------
-// COMPONENTES ANIMADOS OPTIMIZADOS PARA MÓVIL (TAP VS HOVER)
-// ---------------------------------------------------------
 
 class _AnimatedLoginButton extends StatefulWidget {
   final VoidCallback? onTap;

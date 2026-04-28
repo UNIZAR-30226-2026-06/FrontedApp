@@ -27,12 +27,10 @@ class HomeViewModel extends ChangeNotifier {
   int _bottomIndex = -1;
   int get bottomIndex => _bottomIndex;
 
-  /// Actualiza el jugador localmente y en el servidor
   Future<void> setJugador(Jugador nuevo) async {
     _jugador = nuevo;
     notifyListeners();
 
-    // Sincronización con el servidor
     if (_userRepo != null) {
       try {
         await _userRepo!.updateProfile(nuevo);
@@ -43,7 +41,6 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Refresca los datos del jugador desde el servidor
   Future<void> refreshProfile() async {
     if (_userRepo != null) {
       try {
@@ -94,7 +91,7 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> openTienda(BuildContext context) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const TiendaView()));
-    await refreshProfile(); // Refrescamos por si compró algo
+    await refreshProfile();
   }
 
   Future<void> openPerfil(BuildContext context) async {

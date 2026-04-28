@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/socket_service.dart';
+
+import '../providers/auth_provider.dart';
+
 import '../repositories/auth_repository.dart';
 import '../repositories/user_repository.dart';
+import '../repositories/partida_repository.dart';
 
-// Importación de ViewModels
 import '../viewmodels/login_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 
-// Importación de Vistas
 import '../views/login_view.dart';
 import '../views/home_view.dart';
 import '../views/registro_view.dart';
@@ -23,17 +26,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Instanciamos la base de la pirámide (Solo una vez para toda la app)
     final apiService = ApiService();
     final authRepository = AuthRepository(apiService);
     final userRepository = UserRepository(apiService);
+    final partidaRepository = PartidaRepository(apiService);
 
     return MultiProvider(
       providers: [
-        // 2. Inyectamos el AuthProvider que gestionará el estado global de la sesión
-        ChangeNotifierProvider(create: (_) => AuthProvider(authRepository)),
+        ChangeNotifierProvider(create: (_) => SocketService()),
 
-        // 3. Registramos los ViewModels pasando las dependencias necesarias
+        ChangeNotifierProvider(
+          create: (context) => AuthProvider(
+            authRepository,
+            context.read<SocketService>(),
+          ),
+        ),
+
+        ChangeNotifierProvider(
+          create: (context) => PartidaActualViewModel(
+            partidaRepository,
+            context.read<SocketService>(),
+          ),
+        ),
+
         ChangeNotifierProvider(create: (_) => LoginViewModel()),
         ChangeNotifierProvider(create: (_) => HomeViewModel(userRepo: userRepository)),
       ],

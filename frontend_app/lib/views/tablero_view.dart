@@ -34,7 +34,6 @@ class _TableroViewState extends State<TableroView> {
             children: [
               _buildFondo(),
 
-              // OPONENTES
               if (vm.bots.length >= 3) ...[
                 Positioned(
                   top: 150, left: 40,
@@ -50,7 +49,6 @@ class _TableroViewState extends State<TableroView> {
                 ),
               ],
 
-              // CENTRO DE MESA
               Center(
                 child: MazoCentralWidget(
                   cartaEnMesa: vm.cartaActual,
@@ -58,10 +56,8 @@ class _TableroViewState extends State<TableroView> {
                 ),
               ),
 
-              // HUD SUPERIOR
               _buildTopBar(),
 
-              // TU MANO
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
@@ -85,7 +81,6 @@ class _TableroViewState extends State<TableroView> {
                 ),
               ),
 
-              // OVERLAY DE AJUSTES (Capa superior)
               if (vm.mostrandoAjustes)
                 Positioned.fill(
                   child: AjustesOverlay(
@@ -123,14 +118,12 @@ class _TableroViewState extends State<TableroView> {
                 style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)
             ),
 
-            // BOTÓN PAUSA REFACTORIZADO
             _AnimatedPauseButton(
               onTap: () {
                 // Lógica de pausa aquí
               },
             ),
 
-            // BOTÓN AJUSTES REFACTORIZADO (EL DE LAS 3 RAYAS)
             _AnimatedSettingsButton(
               onTap: () => vm.abrirAjustes(),
             ),
@@ -141,9 +134,6 @@ class _TableroViewState extends State<TableroView> {
   }
 }
 
-// ---------------------------------------------------------
-// COMPONENTES HUD CON RESPUESTA 0ms Y BRILLO 0.7
-// ---------------------------------------------------------
 
 class _AnimatedSettingsButton extends StatefulWidget {
   final VoidCallback onTap;
