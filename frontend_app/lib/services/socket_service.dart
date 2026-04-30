@@ -8,6 +8,7 @@ class SocketService with ChangeNotifier {
   bool get isConnected => _isConnected;
   IO.Socket? get socket => _socket;
 
+
   void connect(String token) {
     _socket = IO.io('http://10.0.2.2:3000',
         IO.OptionBuilder()

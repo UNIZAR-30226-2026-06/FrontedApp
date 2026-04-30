@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'partida_actual_viewmodel.dart';
-import '../views/tablero_view.dart';
+import '../views/sala_espera_view.dart';
 
 class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
   final String modoTitulo;
@@ -39,12 +39,14 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
 
 
   void comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm) {
-    partidaVm.iniciarPartida();
-    
-    Navigator.pushReplacement(
+    // 1. Aquí podrías llamar al backend para notificar que la configuración ha terminado
+    // partidaVm.actualizarConfiguracion(jugadores: _jugadores);
+
+    // 2. Navegamos a la Sala de Espera que acabamos de crear
+    Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const TableroView(),
+        builder: (context) => SalaEsperaView(modoJuego: modoTitulo),
       ),
     );
   }
