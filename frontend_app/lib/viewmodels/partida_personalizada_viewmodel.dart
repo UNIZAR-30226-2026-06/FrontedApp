@@ -64,12 +64,6 @@ class PartidaPersonalizadaViewModel extends ChangeNotifier {
 
       if (!context.mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const TableroView(),
-        ),
-      );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

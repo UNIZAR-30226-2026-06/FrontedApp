@@ -13,14 +13,21 @@ class PartidaActualViewModel extends ChangeNotifier {
   PartidaModel? _partidaActual;
   bool _cargando = false;
   String? _error;
+  bool _isVsIA = false;
+  int _maxJugadores = 4;
 
   String? get error => _error;
   PartidaModel? get partidaActual => _partidaActual;
   bool get cargando => _cargando;
   bool get hayPartidaActiva => _partidaActual != null;
+  bool get isVsIA => _isVsIA;
+  int get maxJugadores => _maxJugadores;
 
   void iniciarPartida({bool vsIA = false, int cantidadBots = 0}) {
     if (_partidaActual == null) return;
+
+    _isVsIA = vsIA;
+    notifyListeners();
 
     _socketService.emitir('start_game', {
       'partidaID': _partidaActual!.gameId,
@@ -43,16 +50,28 @@ class PartidaActualViewModel extends ChangeNotifier {
 
     _socketService.socket!.on('partida_iniciada', (data) {
       if (_partidaActual != null) {
-        final miJugador = JugadorPartidaModel(
-          id: _partidaActual!.jugadorLocal ?? 'yo',
-          hand: data['manoInicial'] ?? [],
-        );
+        final misCartas = data['manoInicial'] ?? [];
+        final miId = _partidaActual!.jugadorLocal ?? 'yo';
+
+        // Mapeamos la lista actual para no borrar a los bots ni a otros humanos
+        List<JugadorPartidaModel> jugadoresActualizados = _partidaActual!.jugadores.map((j) {
+          if (j.id == miId) {
+            // Actualizamos solo al jugador local con sus cartas
+            return JugadorPartidaModel(id: j.id, hand: misCartas);
+          }
+          return j;
+        }).toList();
+
+        // Por si acaso la lista estaba vacía, nos añadimos
+        if (jugadoresActualizados.isEmpty) {
+          jugadoresActualizados.add(JugadorPartidaModel(id: miId, hand: misCartas));
+        }
 
         _partidaActual = _partidaActual!.copyWith(
           phase: 'playing',
           rolesMode: data['modoJuego'] == 'roles',
           specialCardsMode: data['modoJuego'] == 'cards',
-          jugadores: [miJugador],
+          jugadores: jugadoresActualizados,
         );
         notifyListeners();
       }
@@ -75,19 +94,30 @@ class PartidaActualViewModel extends ChangeNotifier {
     });
 
     _socketService.socket!.on('turno_siguiente', (data) {
-      // Aqui actualizarias quien tiene el turno y que carta hay en la mesa
-      // sea un humano o un bot quien haya movido.
       notifyListeners();
     });
   }
 
-  Future<void> crearPartida({required bool isPrivate, String? jugadorLocal}) async {
+  Future<void> crearPartida({required bool isPrivate, String? jugadorLocal, int maxJugadores = 4}) async {
     _cargando = true;
     _error = null;
+    _maxJugadores = maxJugadores;
     notifyListeners();
+
     try {
       final partida = await _repository.crearPartida(isPrivate: isPrivate);
-      _partidaActual = partida.copyWith(jugadorLocal: jugadorLocal);
+
+      // FIX: Si el backend devuelve la lista vacía, nos añadimos nosotros
+      List<JugadorPartidaModel> listaInicial = partida.jugadores;
+      if (listaInicial.isEmpty) {
+        listaInicial = [JugadorPartidaModel(id: jugadorLocal ?? 'Yo')];
+      }
+
+      _partidaActual = partida.copyWith(
+        jugadorLocal: jugadorLocal,
+        jugadores: listaInicial,
+      );
+
       _activarTiempoReal();
     } catch (e) {
       _error = e.toString();
@@ -157,5 +187,22 @@ class PartidaActualViewModel extends ChangeNotifier {
     _partidaActual = null;
     _error = null;
     notifyListeners();
+  }
+
+  Future<void> abandonarYBorrarPartida() async {
+    if (_partidaActual == null) return;
+
+    _cargando = true;
+    notifyListeners();
+
+    try {
+      await _repository.borrarPartida(_partidaActual!.gameId);
+    } catch (e) {
+      // Manejo silencioso de errores al intentar borrar
+    } finally {
+      limpiarPartida();
+      _cargando = false;
+      notifyListeners();
+    }
   }
 }

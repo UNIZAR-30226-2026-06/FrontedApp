@@ -35,9 +35,8 @@ class _ConfigRolesMultijugadorViewState
 
   @override
   Widget build(BuildContext context) {
-    // 1. Inyectamos el ViewModel de la partida real para escuchar los cambios
+    // Inyectamos el ViewModel de la partida real para pasarlo a la función comenzarPartida
     final partidaVm = context.watch<PartidaActualViewModel>();
-    final codigoReal = partidaVm.partidaActual?.code ?? 'Cargando...';
 
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
@@ -85,36 +84,14 @@ class _ConfigRolesMultijugadorViewState
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                // Fila de información y Código
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        vm.subtitulo,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: inner.withOpacity(0.5),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        // 2. Mostramos el código que viene desde el backend
-                                        'Código: $codigoReal',
-                                        style: const TextStyle(
-                                          color: Color(0xFF53D86A),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                // Subtítulo
+                                Text(
+                                  vm.subtitulo,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                                 const SizedBox(height: 16),
                                 // Panel contador
@@ -177,9 +154,13 @@ class _ConfigRolesMultijugadorViewState
                                 ),
                                 const SizedBox(height: 20),
                                 _AnimatedGreenButton(
-                                  label: 'Comenzar partida',
-                                  // 3. Pasamos el cerebro de la partida al ViewModel para que ejecute el Socket
-                                  onTap: () => vm.comenzarPartida(context, partidaVm),
+                                  // Cambiamos el texto dinámicamente si está cargando
+                                  label: vm.isCreating ? 'Creando sala...' : 'Comenzar partida',
+                                  onTap: () {
+                                    if (!vm.isCreating) {
+                                      vm.comenzarPartida(context, partidaVm);
+                                    }
+                                  },
                                 ),
                                 const SizedBox(height: 16),
                                 _RulesSection(

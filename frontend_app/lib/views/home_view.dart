@@ -150,7 +150,7 @@ class _HomeViewState extends State<HomeView> {
                           const Text('Elige un modo para empezar', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
                           const SizedBox(height: 10),
                           SizedBox(
-                            height: 160,
+                            height: 204,
                             child: Row(
                               children: [
                                 _ArrowButton(icon: Icons.chevron_left, onTap: _prev),

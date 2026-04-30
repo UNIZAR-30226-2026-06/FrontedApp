@@ -30,14 +30,18 @@ class PartidaModel {
 
   factory PartidaModel.fromJson(Map<String, dynamic> json) {
     return PartidaModel(
-      gameId: (json['gameId'] ?? json['id'] ?? '').toString(),
-      code: json['code']?.toString(),
-      isPrivate: json['isPrivate'] == true ||
+      gameId: (json['id_partida'] ?? json['gameId'] ?? json['id'] ?? '').toString(),
+      code: (json['codigo'] ?? json['code'])?.toString(),
+
+      isPrivate: json['partida_publica'] == false ||
+          json['isPrivate'] == true ||
           json['private'] == true ||
           json['visibility'] == 'private',
+
       jugadorLocal: json['jugadorLocal']?.toString(),
 
-      phase: json['phase']?.toString() ?? json['status']?.toString() ?? 'waiting',
+      phase: json['phase']?.toString() ?? json['estado']?.toString() ?? 'waiting',
+
       jugadores: (json['players'] as List?)
           ?.map((p) => JugadorPartidaModel.fromJson(p))
           .toList() ??
@@ -45,8 +49,8 @@ class PartidaModel {
       currentTurn: json['currentTurn'] ?? 0,
       direction: json['direction'] ?? 1,
       currentCard: json['currentCard'],
-      rolesMode: json['rolesMode'] ?? false,
-      specialCardsMode: json['specialCardsMode'] ?? false,
+      rolesMode: json['modo_roles'] ?? json['rolesMode'] ?? false,
+      specialCardsMode: json['modo_cartas_especiales'] ?? json['specialCardsMode'] ?? false,
     );
   }
 

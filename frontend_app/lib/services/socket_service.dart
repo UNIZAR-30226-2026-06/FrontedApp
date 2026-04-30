@@ -10,7 +10,7 @@ class SocketService with ChangeNotifier {
 
 
   void connect(String token) {
-    _socket = IO.io('http://10.0.2.2:3000',
+    _socket = IO.io('https://backend-i797.onrender.com',
         IO.OptionBuilder()
             .setTransports(['websocket'])
             .setAuth({'token': token})

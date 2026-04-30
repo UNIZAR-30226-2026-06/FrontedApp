@@ -9,9 +9,15 @@ class PartidaRepository {
 
   Future<PartidaModel> crearPartida({
     required bool isPrivate,
+    int maxJugadores = 4,
   }) async {
     final response = await _api.post('/partidas', {
-      'isPrivate': isPrivate,
+      'maxJugadores': maxJugadores,
+      'privada': isPrivate,
+      'modoCartasEspeciales': true,
+      'modoRoles': false,
+      'numCartasInicio': 7,
+      'timeoutTurno': 30
     });
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -23,7 +29,6 @@ class PartidaRepository {
   }
 
   Future<PartidaModel> unirsePartidaPublica() async {
-    // Cambiado de /departures/join a /partidas/join
     final response = await _api.post('/partidas/join', {});
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -35,7 +40,6 @@ class PartidaRepository {
   }
 
   Future<PartidaModel> unirsePorCodigo(String code) async {
-    // Limpiado el error de sintaxis y usando _api.post de forma consistente
     final response = await _api.post('/partidas/join-by-code', {
       'code': code,
     });
@@ -64,6 +68,14 @@ class PartidaRepository {
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Error al finalizar partida: ${response.body}');
+    }
+  }
+
+  Future<void> borrarPartida(String gameId) async {
+    final response = await _api.delete('/partidas/$gameId');
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Error al borrar la partida: ${response.body}');
     }
   }
 }

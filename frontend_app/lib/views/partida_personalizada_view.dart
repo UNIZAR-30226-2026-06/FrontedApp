@@ -34,213 +34,230 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
     const inner = Color(0xFF2A316B);
     const cardBg = Color(0xFF3F578C);
 
-    return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-          child: Container(
-            decoration: BoxDecoration(
-              color: panel,
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Stack(
-              children: [
-                // 1. CONTENIDO (Capa inferior)
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                        child: ListenableBuilder(
-                          listenable: vm,
-                          builder: (context, _) {
-                            return Column(
-                              children: [
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'UNO',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 38,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+    // 🔥 EL SELECTOR MÁGICO QUE ESPERA AL SERVIDOR 🔥
+    return Selector<PartidaActualViewModel, String>(
+      selector: (context, partidaVm) => partidaVm.partidaActual?.phase ?? 'waiting',
+      builder: (context, phase, child) {
+
+        // Cuando el servidor responde y reparte cartas, phase cambia a 'playing'
+        if (phase == 'playing') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const TableroView()),
+            );
+          });
+        }
+
+        return Scaffold(
+          backgroundColor: bg,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: panel,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Stack(
+                  children: [
+                    // 1. CONTENIDO (Capa inferior)
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            child: ListenableBuilder(
+                              listenable: vm,
+                              builder: (context, _) {
+                                return Column(
                                   children: [
-                                    Text('🛠️', style: TextStyle(fontSize: 18)),
-                                    SizedBox(width: 10),
-                                    Text(
-                                      'Partida personalizada',
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'UNO',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 16,
+                                        fontSize: 38,
                                         fontWeight: FontWeight.w900,
+                                        letterSpacing: 1.2,
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'Partida Privada',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 18),
-
-                                // PANEL CREAR SALA
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-                                  decoration: BoxDecoration(
-                                    color: cardBg,
-                                    borderRadius: BorderRadius.circular(22),
-                                    boxShadow: [
-                                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10)
-                                    ],
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      const Text(
-                                        'CREAR SALA',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 1.5,
+                                    const SizedBox(height: 8),
+                                    const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text('🛠️', style: TextStyle(fontSize: 18)),
+                                        SizedBox(width: 10),
+                                        Text(
+                                          'Partida personalizada',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w900,
+                                          ),
                                         ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Partida Privada',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
                                       ),
-                                      const SizedBox(height: 20),
+                                    ),
 
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                    const SizedBox(height: 18),
+
+                                    // PANEL CREAR SALA
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+                                      decoration: BoxDecoration(
+                                        color: cardBg,
+                                        borderRadius: BorderRadius.circular(22),
+                                        boxShadow: [
+                                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10)
+                                        ],
+                                      ),
+                                      child: Column(
                                         children: [
-                                          // IZQUIERDA: REGLAS + NUM CARTAS
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                const Text(
-                                                  'Reglas de juego',
-                                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900),
-                                                ),
-                                                const SizedBox(height: 12),
-                                                Row(
+                                          const Text(
+                                            'CREAR SALA',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 1.5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 20),
+
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              // IZQUIERDA: REGLAS + NUM CARTAS
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    _AnimatedRuleTile(
-                                                      selected: vm.regla == ReglaPersonalizada.normal,
-                                                      emoji: '🟥',
-                                                      label: 'Normal',
-                                                      onTap: () => vm.setRegla(ReglaPersonalizada.normal),
+                                                    const Text(
+                                                      'Reglas de juego',
+                                                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900),
                                                     ),
-                                                    const SizedBox(width: 8),
-                                                    _AnimatedRuleTile(
-                                                      selected: vm.regla == ReglaPersonalizada.roles,
-                                                      emoji: '🎭',
-                                                      label: 'Roles',
-                                                      onTap: () => vm.setRegla(ReglaPersonalizada.roles),
+                                                    const SizedBox(height: 12),
+                                                    Row(
+                                                      children: [
+                                                        _AnimatedRuleTile(
+                                                          selected: vm.regla == ReglaPersonalizada.normal,
+                                                          emoji: '🟥',
+                                                          label: 'Normal',
+                                                          onTap: () => vm.setRegla(ReglaPersonalizada.normal),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        _AnimatedRuleTile(
+                                                          selected: vm.regla == ReglaPersonalizada.roles,
+                                                          emoji: '🎭',
+                                                          label: 'Roles',
+                                                          onTap: () => vm.setRegla(ReglaPersonalizada.roles),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        _AnimatedRuleTile(
+                                                          selected: vm.regla == ReglaPersonalizada.cartasEspeciales,
+                                                          emoji: '⚡',
+                                                          label: 'Esp.',
+                                                          onTap: () => vm.setRegla(ReglaPersonalizada.cartasEspeciales),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    const SizedBox(width: 8),
-                                                    _AnimatedRuleTile(
-                                                      selected: vm.regla == ReglaPersonalizada.cartasEspeciales,
-                                                      emoji: '⚡',
-                                                      label: 'Esp.',
-                                                      onTap: () => vm.setRegla(ReglaPersonalizada.cartasEspeciales),
+
+                                                    const SizedBox(height: 16),
+
+                                                    // CONTROL NUM CARTAS
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                      decoration: BoxDecoration(
+                                                        color: inner,
+                                                        borderRadius: BorderRadius.circular(15),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: [
+                                                          _AnimatedSquareBtn(label: '–', onTap: vm.decCartas),
+                                                          Column(
+                                                            children: [
+                                                              const Text('CARTAS', style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w900)),
+                                                              Text(vm.numCartas.toString(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                                                            ],
+                                                          ),
+                                                          _AnimatedSquareBtn(label: '+', onTap: vm.incCartas),
+                                                        ],
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
+                                              ),
 
-                                                const SizedBox(height: 16),
+                                              const SizedBox(width: 16),
 
-                                                // CONTROL NUM CARTAS
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                  decoration: BoxDecoration(
-                                                    color: inner,
-                                                    borderRadius: BorderRadius.circular(15),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    children: [
-                                                      _AnimatedSquareBtn(label: '–', onTap: vm.decCartas),
-                                                      Column(
-                                                        children: [
-                                                          const Text('CARTAS', style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w900)),
-                                                          Text(vm.numCartas.toString(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                                                        ],
-                                                      ),
-                                                      _AnimatedSquareBtn(label: '+', onTap: vm.incCartas),
-                                                    ],
-                                                  ),
+                                              // DERECHA: TOGGLES
+                                              SizedBox(
+                                                width: 130,
+                                                child: Column(
+                                                  children: [
+                                                    _AnimatedToggleRow(label: 'MÚSICA', value: vm.musica, onChanged: vm.toggleMusica),
+                                                    const SizedBox(height: 8),
+                                                    _AnimatedToggleRow(label: 'SONIDO', value: vm.sonido, onChanged: vm.toggleSonido),
+                                                    const SizedBox(height: 8),
+                                                    _AnimatedToggleRow(label: 'VIBRAR', value: vm.vibracion, onChanged: vm.toggleVibracion),
+                                                  ],
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
 
-                                          const SizedBox(width: 16),
+                                          const SizedBox(height: 24),
 
-                                          // DERECHA: TOGGLES
-                                          SizedBox(
-                                            width: 130,
-                                            child: Column(
-                                              children: [
-                                                _AnimatedToggleRow(label: 'MÚSICA', value: vm.musica, onChanged: vm.toggleMusica),
-                                                const SizedBox(height: 8),
-                                                _AnimatedToggleRow(label: 'SONIDO', value: vm.sonido, onChanged: vm.toggleSonido),
-                                                const SizedBox(height: 8),
-                                                _AnimatedToggleRow(label: 'VIBRAR', value: vm.vibracion, onChanged: vm.toggleVibracion),
-                                              ],
-                                            ),
+                                          _AnimatedGreenButton(
+                                            label: 'CREAR PARTIDA',
+                                            onTap: () {
+                                              // Le pasamos la responsabilidad al ViewModel, ¡pero sin navegar aquí!
+                                              final partidaVm = context.read<PartidaActualViewModel>();
+                                              vm.crearPartida(context, partidaVm);
+                                            },
                                           ),
                                         ],
                                       ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
 
-                                      const SizedBox(height: 24),
-
-                                      _AnimatedGreenButton(
-                                        label: 'CREAR PARTIDA',
-                                        onTap: () {
-                                          // INYECTAMOS EL VIEWMODEL GLOBAL AQUÍ
-                                          final partidaVm = context.read<PartidaActualViewModel>();
-                                          vm.crearPartida(context, partidaVm);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                              ],
-                            );
-                          },
-                        ),
+                    Positioned(
+                      top: 14,
+                      right: 14,
+                      child: _AnimatedBackPill(
+                        onTap: () {
+                          if (Navigator.canPop(context)) Navigator.pop(context);
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-
-                Positioned(
-                  top: 14,
-                  right: 14,
-                  child: _AnimatedBackPill(
-                    onTap: () {
-                      if (Navigator.canPop(context)) Navigator.pop(context);
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

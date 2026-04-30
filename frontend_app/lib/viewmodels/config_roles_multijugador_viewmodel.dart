@@ -13,6 +13,8 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
   bool _reglasAbiertas = false;
   bool get reglasAbiertas => _reglasAbiertas;
 
+  bool _isCreating = false;
+  bool get isCreating => _isCreating;
 
   void inc() {
     if (_jugadores < 4) {
@@ -37,17 +39,44 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
 
   String get detalleJugadores => '$_jugadores humanos';
 
+  Future<void> comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm, {bool isPrivate = true}) async {
+    if (_isCreating) return;
 
-  void comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm) {
-    // 1. Aquí podrías llamar al backend para notificar que la configuración ha terminado
-    // partidaVm.actualizarConfiguracion(jugadores: _jugadores);
+    _isCreating = true;
+    notifyListeners();
 
-    // 2. Navegamos a la Sala de Espera que acabamos de crear
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SalaEsperaView(modoJuego: modoTitulo),
-      ),
-    );
+    try {
+      debugPrint("⏱️ 1. Solicitando al servidor crear sala multijugador...");
+
+      await partidaVm.crearPartida(
+        isPrivate: isPrivate,
+        maxJugadores: _jugadores,
+      );
+
+      debugPrint("Sala creada. Código: ${partidaVm.partidaActual?.code}");
+
+      if (!context.mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SalaEsperaView(modoJuego: modoTitulo),
+        ),
+      );
+
+    } catch (e) {
+      debugPrint("❌ Error al crear la sala: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de conexión con el servidor. Inténtalo de nuevo.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      _isCreating = false;
+      notifyListeners();
+    }
   }
 }

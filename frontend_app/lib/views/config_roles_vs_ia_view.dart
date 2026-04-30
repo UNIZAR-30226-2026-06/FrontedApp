@@ -148,13 +148,11 @@ class _ConfigRolesVsIaViewState extends State<ConfigRolesVsIaView> {
 
                                 const SizedBox(height: 20),
 
-                                // BOTÓN COMENZAR INSTANTÁNEO
                                 _AnimatedGreenButton(
                                   label: 'Comenzar partida',
-                                  onTap: () {
-                                    // Le pasamos el Provider de la partida actual al presionar
+                                  onTap: () async {
                                     final partidaVm = context.read<PartidaActualViewModel>();
-                                    vm.comenzarPartida(context, partidaVm);
+                                    await vm.comenzarPartida(context, partidaVm);
                                   },
                                 ),
 
@@ -172,7 +170,6 @@ class _ConfigRolesVsIaViewState extends State<ConfigRolesVsIaView> {
                   },
                 ),
 
-                // 2. BOTÓN VOLVER UNIFORMADO (Capa superior)
                 Positioned(
                   top: 14,
                   right: 14,
