@@ -23,7 +23,7 @@ class UserRepository {
   /// Cambiar el avatar activo (PUT /usuarios/me/avatar)
   Future<void> updateAvatar(String avatarId) async {
     final response = await _api.put('/usuarios/me/avatar', {
-      'id_avatar': avatarId,
+      'avatar_id': int.tryParse(avatarId) ?? avatarId,
     });
 
     if (response.statusCode != 200) {
@@ -35,7 +35,7 @@ class UserRepository {
   /// Cambiar el estilo activo (PUT /usuarios/me/estilo)
   Future<void> updateStyle(String estiloId) async {
     final response = await _api.put('/usuarios/me/estilo', {
-      'id_estilo': estiloId,
+      'estilo_id': int.tryParse(estiloId) ?? estiloId,
     });
 
     if (response.statusCode != 200) {
@@ -51,11 +51,11 @@ class UserRepository {
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((item) => TiendaItem(
-        id: item['id'].toString(),
+        id: (item['id_avatar'] ?? item['id'] ?? item['avatar_id']).toString(),
         titulo: item['nombre'] ?? '',
-        precio: item['precio'] ?? 0,
+        precio: item['precioavatar'] ?? item['precio'] ?? 0,
         tipo: TiendaItemTipo.avatar,
-        assetPath: item['assetPath'],
+        assetPath: item['image'] ?? item['assetPath'],
       )).toList();
     } else {
       throw Exception('Error al obtener avatares comprados');
@@ -69,11 +69,11 @@ class UserRepository {
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((item) => TiendaItem(
-        id: item['id'].toString(),
+        id: (item['id_estilo'] ?? item['id'] ?? item['estilo_id']).toString(),
         titulo: item['nombre'] ?? '',
-        precio: item['precio'] ?? 0,
+        precio: item['precioestilo'] ?? item['precio'] ?? 0,
         tipo: TiendaItemTipo.diseno,
-        assetPath: item['assetPath'],
+        assetPath: item['image'] ?? item['assetPath'],
       )).toList();
     } else {
       throw Exception('Error al obtener estilos comprados');
