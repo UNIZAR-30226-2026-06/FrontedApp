@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
-import '../views/tablero_view.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 
 class UnirsePartidaViewModel extends ChangeNotifier {
@@ -17,11 +16,14 @@ class UnirsePartidaViewModel extends ChangeNotifier {
   String _codigo = '';
   String get codigo => _codigo;
 
+  String? _mensajeError;
+  String? get mensajeError => _mensajeError;
+
   bool get cargando => _partidaActualViewModel.cargando;
-  String? get error => _partidaActualViewModel.error;
 
   void setCodigo(String value) {
     _codigo = value;
+    _mensajeError = null;
     notifyListeners();
   }
 
@@ -32,30 +34,23 @@ class UnirsePartidaViewModel extends ChangeNotifier {
     skinId: "default",
   );
 
-  Future<void> unirse(BuildContext context) async {
+  Future<void> unirse() async {
+    _mensajeError = null;
+    notifyListeners();
+
     try {
       await _partidaActualViewModel.unirsePorCodigo(
         _codigo,
         jugadorLocal: miPerfil.nombre,
       );
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TableroView(miPerfil: miPerfil),
-        ),
-      );
-
-      debugPrint(
-        'Uniéndose a partida $modoTitulo con código: $_codigo '
-            '=> gameId: ${_partidaActualViewModel.partidaActual?.gameId}',
-      );
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error ?? 'Error al unirse a la partida'),
-        ),
-      );
+    } catch (e) {
+      if (e.toString().contains('column "codigo" does not exist')) {
+        _mensajeError = "Error técnico: El servidor no reconoce la columna 'codigo'.";
+      } else {
+        _mensajeError = "No se ha encontrado ninguna partida con el código: $_codigo";
+      }
+      notifyListeners();
+      rethrow;
     }
   }
 }

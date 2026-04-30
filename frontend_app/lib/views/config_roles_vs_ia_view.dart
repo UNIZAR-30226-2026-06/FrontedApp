@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../viewmodels/config_roles_vs_ia_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 
 class ConfigRolesVsIaView extends StatefulWidget {
   final String modoTitulo;
@@ -46,7 +49,6 @@ class _ConfigRolesVsIaViewState extends State<ConfigRolesVsIaView> {
             ),
             child: Stack(
               children: [
-                // 1. CONTENIDO (Capa inferior)
                 LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
@@ -86,7 +88,6 @@ class _ConfigRolesVsIaViewState extends State<ConfigRolesVsIaView> {
                                 ),
                                 const SizedBox(height: 14),
 
-                                // PANEL CONTADOR
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -150,7 +151,11 @@ class _ConfigRolesVsIaViewState extends State<ConfigRolesVsIaView> {
                                 // BOTÓN COMENZAR INSTANTÁNEO
                                 _AnimatedGreenButton(
                                   label: 'Comenzar partida',
-                                  onTap: () => vm.comenzarPartida(context),
+                                  onTap: () {
+                                    // Le pasamos el Provider de la partida actual al presionar
+                                    final partidaVm = context.read<PartidaActualViewModel>();
+                                    vm.comenzarPartida(context, partidaVm);
+                                  },
                                 ),
 
                                 const SizedBox(height: 16),
@@ -186,9 +191,6 @@ class _ConfigRolesVsIaViewState extends State<ConfigRolesVsIaView> {
   }
 }
 
-// ---------------------------------------------------------
-// COMPONENTES REFACTORIZADOS (0ms / Brillo 0.7)
-// ---------------------------------------------------------
 
 class _AnimatedSquareBtn extends StatefulWidget {
   final String label;
@@ -339,9 +341,6 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
   }
 }
 
-// ---------------------------------------------------------
-// SECCIÓN DE REGLAS (MANTENEMOS LOGICA ORIGINAL)
-// ---------------------------------------------------------
 
 class _RulesSection extends StatelessWidget {
   final bool open;

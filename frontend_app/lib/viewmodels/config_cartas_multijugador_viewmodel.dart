@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ConfigCartasMultijugadorViewModel extends ChangeNotifier {
-  final String modoTitulo; // "Modo cartas"
+  final String modoTitulo;
 
   ConfigCartasMultijugadorViewModel({required this.modoTitulo});
 

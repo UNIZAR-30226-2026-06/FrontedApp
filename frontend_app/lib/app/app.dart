@@ -13,6 +13,7 @@ import '../repositories/partida_repository.dart';
 import '../viewmodels/login_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
+import '../viewmodels/tablero_viewmodel.dart';
 
 import '../views/login_view.dart';
 import '../views/home_view.dart';
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Instanciamos los servicios base una sola vez
     final apiService = ApiService();
     final authRepository = AuthRepository(apiService);
     final userRepository = UserRepository(apiService);
@@ -33,24 +35,41 @@ class MyApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
+        // --- SERVICIOS BASE ---
         ChangeNotifierProvider(create: (_) => SocketService()),
 
-        ChangeNotifierProvider(
+        // --- VIEWMODELS INDEPENDIENTES ---
+        ChangeNotifierProvider(create: (_) => LoginViewModel()),
+        ChangeNotifierProvider(create: (_) => HomeViewModel(userRepo: userRepository)),
+
+        // --- VIEWMODELS DEPENDIENTES DEL SOCKET (ProxyProviders) ---
+
+        // AuthProvider depende de SocketService
+        ChangeNotifierProxyProvider<SocketService, AuthProvider>(
           create: (context) => AuthProvider(
             authRepository,
             context.read<SocketService>(),
           ),
+          update: (context, socketService, previous) =>
+          previous ?? AuthProvider(authRepository, socketService),
         ),
 
-        ChangeNotifierProvider(
+        // PartidaActualViewModel depende de SocketService
+        ChangeNotifierProxyProvider<SocketService, PartidaActualViewModel>(
           create: (context) => PartidaActualViewModel(
             partidaRepository,
             context.read<SocketService>(),
           ),
+          update: (context, socketService, previous) =>
+          previous ?? PartidaActualViewModel(partidaRepository, socketService),
         ),
 
-        ChangeNotifierProvider(create: (_) => LoginViewModel()),
-        ChangeNotifierProvider(create: (_) => HomeViewModel(userRepo: userRepository)),
+        // TableroViewModel depende de PartidaActualViewModel
+        ChangeNotifierProxyProvider<PartidaActualViewModel, TableroViewModel>(
+          create: (context) => TableroViewModel(context.read<PartidaActualViewModel>()),
+          update: (context, partidaViewModel, previous) =>
+          previous ?? TableroViewModel(partidaViewModel),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

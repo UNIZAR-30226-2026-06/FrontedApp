@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../viewmodels/config_roles_multijugador_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 
 class ConfigRolesMultijugadorView extends StatefulWidget {
   final String modoTitulo;
@@ -32,6 +35,10 @@ class _ConfigRolesMultijugadorViewState
 
   @override
   Widget build(BuildContext context) {
+    // 1. Inyectamos el ViewModel de la partida real para escuchar los cambios
+    final partidaVm = context.watch<PartidaActualViewModel>();
+    final codigoReal = partidaVm.partidaActual?.code ?? 'Cargando...';
+
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const inner = Color(0xFF2A316B);
@@ -98,7 +105,8 @@ class _ConfigRolesMultijugadorViewState
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        'Código: ${vm.codigoPartida}',
+                                        // 2. Mostramos el código que viene desde el backend
+                                        'Código: $codigoReal',
                                         style: const TextStyle(
                                           color: Color(0xFF53D86A),
                                           fontSize: 12,
@@ -170,7 +178,8 @@ class _ConfigRolesMultijugadorViewState
                                 const SizedBox(height: 20),
                                 _AnimatedGreenButton(
                                   label: 'Comenzar partida',
-                                  onTap: () => vm.comenzarPartida(context),
+                                  // 3. Pasamos el cerebro de la partida al ViewModel para que ejecute el Socket
+                                  onTap: () => vm.comenzarPartida(context, partidaVm),
                                 ),
                                 const SizedBox(height: 16),
                                 _RulesSection(
@@ -359,9 +368,6 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
   }
 }
 
-// ---------------------------------------------------------
-// SECCIÓN DE REGLAS (MANTENEMOS LÓGICA ORIGINAL)
-// ---------------------------------------------------------
 
 class _RulesSection extends StatelessWidget {
   final bool open;

@@ -9,7 +9,7 @@ class PerfilViewModel extends ChangeNotifier {
         _avatarSeleccionadoId = jugadorInicial?.avatarId ?? 'a0',
         _skinSeleccionadoId = jugadorInicial?.skinId ?? 's1' {
 
-    _initLists(); // Extraemos la inicialización para limpiar el constructor
+    _initLists();
     _validateSelection();
   }
 

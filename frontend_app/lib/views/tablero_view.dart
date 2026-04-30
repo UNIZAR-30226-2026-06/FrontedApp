@@ -1,128 +1,151 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../viewmodels/tablero_viewmodel.dart';
-import '../models/jugador_model.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
+import '../models/carta_model.dart';
+import '../models/jugador_partida_model.dart';
+
 import 'package:frontend_app/views/ajustes_overlay.dart';
 import 'package:frontend_app/views/widgets/avatar_jugador_widget.dart';
 import 'package:frontend_app/views/widgets/carta_widget.dart';
 import 'package:frontend_app/views/widgets/mazo_central_widget.dart';
 
-class TableroView extends StatefulWidget {
-  final Jugador miPerfil;
-  const TableroView({super.key, required this.miPerfil});
-
-  @override
-  State<TableroView> createState() => _TableroViewState();
-}
-
-class _TableroViewState extends State<TableroView> {
-  late final TableroViewModel vm;
-
-  @override
-  void initState() {
-    super.initState();
-    vm = TableroViewModel();
-    vm.prepararPartida(widget.miPerfil);
-  }
+class TableroView extends StatelessWidget {
+  const TableroView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListenableBuilder(
-        listenable: vm,
-        builder: (context, _) {
-          return Stack(
-            children: [
-              _buildFondo(),
+    final vm = context.watch<TableroViewModel>();
+    final partidaVm = context.watch<PartidaActualViewModel>();
+    final partida = partidaVm.partidaActual;
 
-              // Bots con indicadores de turno
-              if (vm.bots.length >= 3) ...[
-                Positioned(
-                  top: 150, left: 40,
-                  child: AvatarJugadorWidget(
-                    participante: vm.bots[0],
-                    esSuTurno: vm.turnoIndex == 1,
-                  ),
+    if (partida == null || partida.jugadores.isEmpty) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF00FFFF)),
+        ),
+      );
+    }
+
+    // Identificar al jugador local y a los rivales
+    final String miId = partida.jugadorLocal ?? '';
+    final JugadorPartidaModel? miJugador = partida.jugadores
+        .where((p) => p.id == miId)
+        .firstOrNull;
+
+    final List<JugadorPartidaModel> rivales = partida.jugadores
+        .where((p) => p.id != miId)
+        .toList();
+
+    final bool esMiTurno = partida.esMiTurno(miId);
+
+    // Función auxiliar para saber el turno de un rival
+    bool esTurnoDeRival(String rivalId) {
+      if (partida.jugadores.isEmpty) return false;
+      return partida.jugadores[partida.currentTurn % partida.jugadores.length].id == rivalId;
+    }
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          _buildFondo(),
+
+          if (rivales.isNotEmpty)
+            Positioned(
+              top: 150, left: 40,
+              child: AvatarJugadorWidget(
+                participante: rivales[0],
+                esSuTurno: esTurnoDeRival(rivales[0].id),
+              ),
+            ),
+
+          if (rivales.length > 1)
+            Positioned(
+              top: 80, left: 0, right: 0,
+              child: Center(
+                child: AvatarJugadorWidget(
+                  participante: rivales[1],
+                  esSuTurno: esTurnoDeRival(rivales[1].id),
                 ),
-                Positioned(
-                  top: 80, left: 0, right: 0,
-                  child: Center(
-                    child: AvatarJugadorWidget(
-                      participante: vm.bots[1],
-                      esSuTurno: vm.turnoIndex == 2,
+              ),
+            ),
+
+          if (rivales.length > 2)
+            Positioned(
+              top: 150, right: 40,
+              child: AvatarJugadorWidget(
+                participante: rivales[2],
+                esSuTurno: esTurnoDeRival(rivales[2].id),
+              ),
+            ),
+
+          // Mazo central
+          Center(
+            child: MazoCentralWidget(
+              // Si el backend envía la carta como JSON, mapearla a CartaModel
+              cartaEnMesa: partida.currentCard != null
+                  ? Carta.fromJson(partida.currentCard)
+                  : null,
+              onRobar: esMiTurno ? () => vm.robarCarta() : () {},
+            ),
+          ),
+
+          _buildTopBar(vm),
+
+          // Mano del jugador local
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (esMiTurno)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      "¡TU TURNO!",
+                      style: TextStyle(
+                        color: Colors.yellowAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 150, right: 40,
-                  child: AvatarJugadorWidget(
-                    participante: vm.bots[2],
-                    esSuTurno: vm.turnoIndex == 3,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: (miJugador?.hand ?? []).map((cartaData) {
+                        final carta = Carta.fromJson(cartaData);
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: CartaWidget(
+                            carta: carta,
+                            onTap: esMiTurno
+                                ? () => vm.intentarTirarCarta(carta.id)
+                                : null,
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               ],
+            ),
+          ),
 
-              Center(
-                child: MazoCentralWidget(
-                  cartaEnMesa: vm.cartaActual,
-                  onRobar: () => vm.robarCarta(),
-                ),
+          if (vm.mostrandoAjustes)
+            Positioned.fill(
+              child: AjustesOverlay(
+                onClose: () => vm.cerrarAjustes(),
               ),
-
-              _buildTopBar(),
-
-              // Mano del jugador humano
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (vm.turnoIndex == 0)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8.0),
-                        child: Text(
-                          "¡TU TURNO!",
-                          style: TextStyle(
-                            color: Colors.yellowAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            shadows: [Shadow(color: Colors.black, blurRadius: 4)],
-                          ),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 30),
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: vm.jugadorHumano?.mano.map((carta) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: CartaWidget(
-                                carta: carta,
-                                onTap: vm.turnoIndex == 0 
-                                    ? () => vm.intentarTirarCarta(carta)
-                                    : null,
-                              ),
-                            );
-                          }).toList() ?? [],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              if (vm.mostrandoAjustes)
-                Positioned.fill(
-                  child: AjustesOverlay(
-                    onClose: () => vm.cerrarAjustes(),
-                  ),
-                ),
-            ],
-          );
-        },
+            ),
+        ],
       ),
     );
   }
@@ -138,7 +161,7 @@ class _TableroViewState extends State<TableroView> {
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(TableroViewModel vm) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -153,7 +176,8 @@ class _TableroViewState extends State<TableroView> {
 
             _AnimatedPauseButton(
               onTap: () {
-                // Lógica de pausa aquí
+                debugPrint("Solicitar pausa al backend");
+                // vm.solicitarPausa(); // Método a implementar en el futuro
               },
             ),
 
@@ -166,6 +190,8 @@ class _TableroViewState extends State<TableroView> {
     );
   }
 }
+
+// (Los widgets _AnimatedSettingsButton y _AnimatedPauseButton se mantienen exactamente iguales)
 
 class _AnimatedSettingsButton extends StatefulWidget {
   final VoidCallback onTap;
@@ -191,7 +217,7 @@ class _AnimatedSettingsButtonState extends State<_AnimatedSettingsButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
         duration: Duration.zero,
-        scale: _isPressed ? 1.2 : 1.0, 
+        scale: _isPressed ? 1.2 : 1.0,
         child: AnimatedContainer(
           duration: Duration.zero,
           padding: const EdgeInsets.all(8),

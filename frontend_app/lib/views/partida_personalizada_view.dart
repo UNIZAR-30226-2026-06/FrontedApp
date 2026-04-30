@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../viewmodels/partida_personalizada_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
+import 'tablero_view.dart';
 
 class PartidaPersonalizadaView extends StatefulWidget {
   const PartidaPersonalizadaView({super.key});
@@ -204,7 +208,11 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
 
                                       _AnimatedGreenButton(
                                         label: 'CREAR PARTIDA',
-                                        onTap: () => vm.crearPartida(context),
+                                        onTap: () {
+                                          // INYECTAMOS EL VIEWMODEL GLOBAL AQUÍ
+                                          final partidaVm = context.read<PartidaActualViewModel>();
+                                          vm.crearPartida(context, partidaVm);
+                                        },
                                       ),
                                     ],
                                   ),
@@ -219,7 +227,6 @@ class _PartidaPersonalizadaViewState extends State<PartidaPersonalizadaView> {
                   },
                 ),
 
-                // 2. BOTÓN VOLVER UNIFORMADO (Capa superior)
                 Positioned(
                   top: 14,
                   right: 14,
@@ -379,7 +386,7 @@ class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
-        setState(() => _isPressed = false); // <--- ERROR CORREGIDO AQUÍ
+        setState(() => _isPressed = false);
         widget.onTap();
       },
       onTapCancel: () => setState(() => _isPressed = false),

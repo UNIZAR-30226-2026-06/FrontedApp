@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../viewmodels/partida_actual_viewmodel.dart';
 import '../viewmodels/unirse_partida_viewmodel.dart';
-import 'package:provider/provider.dart';
+import 'tablero_view.dart';
 
 class UnirsePartidaView extends StatefulWidget {
   final String modoTitulo;
@@ -20,7 +22,6 @@ class UnirsePartidaView extends StatefulWidget {
 class _UnirsePartidaViewState extends State<UnirsePartidaView> {
   late final UnirsePartidaViewModel vm;
   late final TextEditingController _controller;
-
 
   @override
   void initState() {
@@ -59,7 +60,6 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
             ),
             child: Stack(
               children: [
-                // 1. CONTENIDO (Capa inferior)
                 Center(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -80,7 +80,6 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                               ),
                             ),
                             const SizedBox(height: 14),
-
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -96,7 +95,6 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 6),
                             Text(
                               vm.modoSubtitulo,
@@ -106,9 +104,7 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-
                             const SizedBox(height: 22),
-
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -146,13 +142,52 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 24),
-
-                            // BOTÓN UNIRSE INSTANTÁNEO
                             _AnimatedGreenButton(
                               label: 'Unirse partida',
-                              onTap: () => vm.unirse(context),
+                              onTap: () async {
+                                try {
+                                  await vm.unirse();
+                                  if (context.mounted) {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => const TableroView()),
+                                    );
+                                  }
+                                } catch (_) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.error_outline,
+                                                color: Colors.white),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                vm.mensajeError ?? 'Error al unirse',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.redAccent.shade700,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        margin: const EdgeInsets.all(16),
+                                        elevation: 6,
+                                        duration: const Duration(seconds: 4),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
                             ),
                           ],
                         );
@@ -160,8 +195,6 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                     ),
                   ),
                 ),
-
-                // 2. BOTÓN VOLVER (Capa superior)
                 Positioned(
                   top: 14,
                   right: 14,
@@ -177,10 +210,6 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
     );
   }
 }
-
-// ---------------------------------------------------------
-// COMPONENTES CON RESPUESTA 0ms Y BRILLO 0.7
-// ---------------------------------------------------------
 
 class _AnimatedGreenButton extends StatefulWidget {
   final String label;
@@ -216,12 +245,17 @@ class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
             color: greenBase,
             borderRadius: BorderRadius.circular(14),
             boxShadow: _isPressed
-                ? [BoxShadow(
-              color: greenBase.withOpacity(0.7),
-              blurRadius: 15,
-              spreadRadius: 4,
-            )]
-                : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+                ? [
+              BoxShadow(
+                color: greenBase.withOpacity(0.7),
+                blurRadius: 15,
+                spreadRadius: 4,
+              )
+            ]
+                : [
+              const BoxShadow(
+                  color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+            ],
           ),
           child: Center(
             child: Text(
@@ -271,11 +305,13 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
             color: _isPressed ? activeBlue : const Color(0xFF2A316B),
             borderRadius: BorderRadius.circular(15),
             boxShadow: _isPressed
-                ? [BoxShadow(
-              color: activeBlue.withOpacity(0.7),
-              blurRadius: 15,
-              spreadRadius: 4,
-            )]
+                ? [
+              BoxShadow(
+                color: activeBlue.withOpacity(0.7),
+                blurRadius: 15,
+                spreadRadius: 4,
+              )
+            ]
                 : [],
           ),
           child: const Row(

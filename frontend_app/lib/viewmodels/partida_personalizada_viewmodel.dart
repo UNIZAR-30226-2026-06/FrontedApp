@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'partida_actual_viewmodel.dart';
+import '../views/tablero_view.dart';
 
 enum ReglaPersonalizada { normal, roles, cartasEspeciales }
 
 class PartidaPersonalizadaViewModel extends ChangeNotifier {
-  // Selección de reglas
   ReglaPersonalizada _regla = ReglaPersonalizada.normal;
   ReglaPersonalizada get regla => _regla;
 
@@ -12,7 +13,6 @@ class PartidaPersonalizadaViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Número de cartas
   int _numCartas = 7;
   int get numCartas => _numCartas;
 
@@ -55,21 +55,29 @@ class PartidaPersonalizadaViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Acción abierta
-  void crearPartida(BuildContext context) {
-    final reglaTxt = switch (_regla) {
-      ReglaPersonalizada.normal => 'Normal',
-      ReglaPersonalizada.roles => 'Roles',
-      ReglaPersonalizada.cartasEspeciales => 'Cartas esp.',
-    };
+  Future<void> crearPartida(BuildContext context, PartidaActualViewModel partidaVm) async {
+    try {
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Crear partida (pendiente) | Regla: $reglaTxt | Cartas: $_numCartas | '
-              'Música: ${_musica ? "ON" : "OFF"} | Sonido: ${_sonido ? "ON" : "OFF"} | Vibración: ${_vibracion ? "ON" : "OFF"}',
+      await partidaVm.crearPartida(isPrivate: true);
+
+      partidaVm.iniciarPartida();
+
+      if (!context.mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const TableroView(),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al crear la partida personalizada: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 }

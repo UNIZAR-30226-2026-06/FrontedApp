@@ -153,11 +153,6 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
   }
 }
 
-// ... (Incluye aquí los componentes animados: _AnimatedSquareBtn, _AnimatedGreenButton, _AnimatedBackPill y _RulesSection que ya tenemos refactorizados)
-
-// ---------------------------------------------------------
-// COMPONENTES REFACTORIZADOS (0ms / Brillo 0.7)
-// ---------------------------------------------------------
 
 class _AnimatedSquareBtn extends StatefulWidget {
   final String label;
@@ -308,9 +303,6 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
   }
 }
 
-// ---------------------------------------------------------
-// SECCIÓN DE REGLAS (MANTIENE LÓGICA DE ANIMATEDCROSSFADE)
-// ---------------------------------------------------------
 
 class _RulesSection extends StatelessWidget {
   final bool open;

@@ -10,7 +10,7 @@ class PartidaRepository {
   Future<PartidaModel> crearPartida({
     required bool isPrivate,
   }) async {
-    final response = await _api.post('/departures', {
+    final response = await _api.post('/partidas', {
       'isPrivate': isPrivate,
     });
 
@@ -23,7 +23,8 @@ class PartidaRepository {
   }
 
   Future<PartidaModel> unirsePartidaPublica() async {
-    final response = await _api.post('/departures/join', {});
+    // Cambiado de /departures/join a /partidas/join
+    final response = await _api.post('/partidas/join', {});
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
@@ -34,7 +35,8 @@ class PartidaRepository {
   }
 
   Future<PartidaModel> unirsePorCodigo(String code) async {
-    final response = await _api.post('/matches/join-by-code', {
+    // Limpiado el error de sintaxis y usando _api.post de forma consistente
+    final response = await _api.post('/partidas/join-by-code', {
       'code': code,
     });
 
@@ -47,7 +49,7 @@ class PartidaRepository {
   }
 
   Future<PartidaModel> obtenerPartida(String gameId) async {
-    final response = await _api.get('/matches/$gameId');
+    final response = await _api.get('/partidas/$gameId');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -58,7 +60,7 @@ class PartidaRepository {
   }
 
   Future<void> finalizarPartida(String gameId) async {
-    final response = await _api.post('/matches/$gameId/end', {});
+    final response = await _api.post('/partidas/$gameId/end', {});
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Error al finalizar partida: ${response.body}');

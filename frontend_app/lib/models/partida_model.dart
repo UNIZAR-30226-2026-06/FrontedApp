@@ -1,16 +1,31 @@
+import '../models/jugador_partida_model.dart';
+
 class PartidaModel {
   final String gameId;
   final String? code;
   final bool isPrivate;
-  final String? status;
   final String? jugadorLocal;
+
+  final String phase;
+  final List<JugadorPartidaModel> jugadores;
+  final int currentTurn;
+  final int direction;
+  final dynamic currentCard;
+  final bool rolesMode;
+  final bool specialCardsMode;
 
   PartidaModel({
     required this.gameId,
     this.code,
     required this.isPrivate,
-    this.status,
     this.jugadorLocal,
+    this.phase = 'waiting',
+    this.jugadores = const [],
+    this.currentTurn = 0,
+    this.direction = 1,
+    this.currentCard,
+    this.rolesMode = false,
+    this.specialCardsMode = false,
   });
 
   factory PartidaModel.fromJson(Map<String, dynamic> json) {
@@ -20,8 +35,18 @@ class PartidaModel {
       isPrivate: json['isPrivate'] == true ||
           json['private'] == true ||
           json['visibility'] == 'private',
-      status: json['status']?.toString(),
       jugadorLocal: json['jugadorLocal']?.toString(),
+
+      phase: json['phase']?.toString() ?? json['status']?.toString() ?? 'waiting',
+      jugadores: (json['players'] as List?)
+          ?.map((p) => JugadorPartidaModel.fromJson(p))
+          .toList() ??
+          [],
+      currentTurn: json['currentTurn'] ?? 0,
+      direction: json['direction'] ?? 1,
+      currentCard: json['currentCard'],
+      rolesMode: json['rolesMode'] ?? false,
+      specialCardsMode: json['specialCardsMode'] ?? false,
     );
   }
 
@@ -29,15 +54,33 @@ class PartidaModel {
     String? gameId,
     String? code,
     bool? isPrivate,
-    String? status,
     String? jugadorLocal,
+    String? phase,
+    List<JugadorPartidaModel>? jugadores,
+    int? currentTurn,
+    int? direction,
+    dynamic currentCard,
+    bool? rolesMode,
+    bool? specialCardsMode,
   }) {
     return PartidaModel(
       gameId: gameId ?? this.gameId,
       code: code ?? this.code,
       isPrivate: isPrivate ?? this.isPrivate,
-      status: status ?? this.status,
       jugadorLocal: jugadorLocal ?? this.jugadorLocal,
+      phase: phase ?? this.phase,
+      jugadores: jugadores ?? this.jugadores,
+      currentTurn: currentTurn ?? this.currentTurn,
+      direction: direction ?? this.direction,
+      currentCard: currentCard ?? this.currentCard,
+      rolesMode: rolesMode ?? this.rolesMode,
+      specialCardsMode: specialCardsMode ?? this.specialCardsMode,
     );
+  }
+
+  bool esMiTurno(String miIdUsuario) {
+    if (jugadores.isEmpty) return false;
+    final jugadorActual = jugadores[currentTurn % jugadores.length];
+    return jugadorActual.id == miIdUsuario;
   }
 }

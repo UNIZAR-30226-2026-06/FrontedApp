@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../models/participante_model.dart';
+import '../../models/jugador_partida_model.dart';
 
 class AvatarJugadorWidget extends StatefulWidget {
-  final Participante participante;
+  final JugadorPartidaModel participante;
   final bool esSuTurno;
 
   const AvatarJugadorWidget({
@@ -67,8 +67,8 @@ class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget> with SingleTi
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: widget.esSuTurno 
-                      ? Colors.yellowAccent.withOpacity(0.8) 
+                  color: widget.esSuTurno
+                      ? Colors.yellowAccent.withOpacity(0.8)
                       : Colors.cyanAccent.withOpacity(0.4),
                   blurRadius: widget.esSuTurno ? 20 : 10,
                   spreadRadius: widget.esSuTurno ? 4 : 2,
@@ -78,14 +78,14 @@ class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget> with SingleTi
             child: CircleAvatar(
               radius: 28,
               backgroundColor: const Color(0xFF1E244D),
-              backgroundImage: AssetImage('assets/images/avatares/${widget.participante.perfil.avatarId}.png'),
-              onBackgroundImageError: (_, __) => const Icon(Icons.smart_toy, color: Colors.cyanAccent),
+              child: widget.participante.isBot
+                  ? const Icon(Icons.smart_toy, color: Colors.cyanAccent)
+                  : const Icon(Icons.person, color: Colors.white),
             ),
           ),
           const SizedBox(height: 6),
-          // Nombre del Bot con estilo futurista
           Text(
-            widget.participante.perfil.nombre,
+            widget.participante.id, // <-- Usamos el ID como nombre de momento
             style: TextStyle(
               color: widget.esSuTurno ? Colors.yellowAccent : Colors.white,
               fontSize: 12,
@@ -97,7 +97,7 @@ class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget> with SingleTi
             ),
           ),
           // Indicador de cartas restantes
-          _buildCardsIndicator(widget.participante.mano.length),
+          _buildCardsIndicator(widget.participante.hand.length),
         ],
       ),
     );

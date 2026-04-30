@@ -9,7 +9,6 @@ class SeleccionRolesViewModel extends ChangeNotifier {
     required this.modoSubtitulo,
   });
 
-  // Acciones “abiertas” para futuro:
   void jugarVsIA(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Jugar vs IA (pendiente)')),
