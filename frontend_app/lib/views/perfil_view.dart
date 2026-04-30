@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/jugador_model.dart';
+import '../models/perfil_models.dart';
+import '../providers/auth_provider.dart';
+import '../repositories/user_repository.dart';
+import '../services/api_service.dart';
 import '../viewmodels/perfil_viewmodel.dart';
 
 class PerfilView extends StatefulWidget {
@@ -14,7 +20,25 @@ class _PerfilViewState extends State<PerfilView> {
   @override
   void initState() {
     super.initState();
-    vm = PerfilViewModel();
+    final auth = context.read<AuthProvider>();
+    final apiService = ApiService();
+    if (auth.token != null) {
+      apiService.setToken(auth.token!);
+    }
+
+    final usuario = auth.usuario;
+    vm = PerfilViewModel(
+      jugadorInicial: usuario == null
+          ? null
+          : Jugador(
+              nombre: usuario.nombreUsuario,
+              correo: usuario.correo,
+              coins: usuario.monedas,
+              avatarId: usuario.idAvatarSeleccionado?.toString() ?? '0',
+              skinId: usuario.idEstiloSeleccionado?.toString() ?? '1',
+            ),
+      repo: UserRepository(apiService),
+    );
   }
 
   @override
@@ -59,6 +83,38 @@ class _PerfilViewState extends State<PerfilView> {
     if (nuevo != null) vm.setNombre(nuevo);
   }
 
+  Future<void> _seleccionarAvatar(AvatarItem avatar) async {
+    try {
+      await vm.seleccionarAvatar(avatar.id);
+      if (!mounted) return;
+      context.read<AuthProvider>().actualizarAvatarSeleccionado(
+            int.tryParse(avatar.id) ?? 0,
+            image: avatar.assetPath,
+          );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo cambiar el avatar')),
+      );
+    }
+  }
+
+  Future<void> _seleccionarSkin(CardSkinItem skin) async {
+    try {
+      await vm.seleccionarSkin(skin.id);
+      if (!mounted) return;
+      context.read<AuthProvider>().actualizarEstiloSeleccionado(
+            int.tryParse(skin.id) ?? 0,
+            image: skin.assetPath,
+          );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo cambiar el diseño')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const bg = Color(0xFF2D3473);
@@ -80,7 +136,7 @@ class _PerfilViewState extends State<PerfilView> {
                     // HEADER
                     Row(
                       children: [
-                        _AvatarCircle(emoji: vm.avatarSeleccionado.emoji),
+                        _AvatarCircle(item: vm.avatarSeleccionado),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Row(
@@ -142,6 +198,11 @@ class _PerfilViewState extends State<PerfilView> {
 
                             _sectionTitle('Avatares'),
                             const SizedBox(height: 10),
+                            if (vm.isLoading)
+                              const Padding(
+                                padding: EdgeInsets.only(bottom: 10),
+                                child: LinearProgressIndicator(color: Color(0xFFF4C542)),
+                              ),
                             SizedBox(
                               height: 56,
                               child: ListView.separated(
@@ -152,8 +213,10 @@ class _PerfilViewState extends State<PerfilView> {
                                   final a = vm.avatars[i];
                                   return _AnimatedSelectTile(
                                     selected: a.id == vm.avatarSeleccionadoId,
-                                    onTap: () => vm.seleccionarAvatar(a.id),
-                                    child: Text(a.emoji, style: const TextStyle(fontSize: 24)),
+                                    onTap: () {
+                                      _seleccionarAvatar(a);
+                                    },
+                                    child: _AssetOrEmoji(assetPath: a.assetPath, emoji: a.emoji, size: 34),
                                   );
                                 },
                               ),
@@ -174,12 +237,14 @@ class _PerfilViewState extends State<PerfilView> {
                                       padding: const EdgeInsets.symmetric(horizontal: 12),
                                       child: _AnimatedSelectTile(
                                         selected: s.id == vm.skinSeleccionadoId,
-                                        onTap: () => vm.seleccionarSkin(s.id),
+                                        onTap: () {
+                                          _seleccionarSkin(s);
+                                        },
                                         height: 42, // Ligeramente más bajos
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Text(s.emoji, style: const TextStyle(fontSize: 16)),
+                                            _AssetOrEmoji(assetPath: s.assetPath, emoji: s.emoji, size: 22, baseFolder: 'shop'),
                                             const SizedBox(width: 6),
                                             Flexible(
                                               child: Text(
@@ -386,13 +451,65 @@ class _HoverIconButtonState extends State<_HoverIconButton> {
 }
 
 class _AvatarCircle extends StatelessWidget {
-  final String emoji; const _AvatarCircle({required this.emoji});
+  final AvatarItem item; const _AvatarCircle({required this.item});
   @override
-  Widget build(BuildContext context) => Container(width: 42, height: 42, decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle), child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))));
+  Widget build(BuildContext context) => Container(
+    width: 42,
+    height: 42,
+    decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle),
+    clipBehavior: Clip.antiAlias,
+    child: Center(child: _AssetOrEmoji(assetPath: item.assetPath, emoji: item.emoji, size: 32)),
+  );
 }
 
 class _StaticPill extends StatelessWidget {
   final Widget child; final Color color; const _StaticPill({required this.child, required this.color});
   @override
   Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)), child: child);
+}
+
+class _AssetOrEmoji extends StatelessWidget {
+  final String? assetPath;
+  final String emoji;
+  final double size;
+  final String baseFolder;
+
+  const _AssetOrEmoji({
+    required this.assetPath,
+    required this.emoji,
+    required this.size,
+    this.baseFolder = 'avatares',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final path = assetPath;
+    if (path == null || path.isEmpty) {
+      return Text(emoji, style: TextStyle(fontSize: size * 0.75));
+    }
+
+    final image = path.startsWith('http')
+        ? Image.network(
+            path,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Text(emoji, style: TextStyle(fontSize: size * 0.75)),
+          )
+        : null;
+
+    if (image != null) return image;
+
+    final normalized = path.startsWith('assets/')
+        ? path
+        : 'assets/images/$baseFolder/$path';
+
+    return Image.asset(
+      normalized,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Text(emoji, style: TextStyle(fontSize: size * 0.75)),
+    );
+  }
 }

@@ -1,5 +1,6 @@
 class Jugador {
   final String nombre;
+  final String correo;
   final int coins;
 
   final String avatarId;
@@ -11,6 +12,7 @@ class Jugador {
 
   const Jugador({
     required this.nombre,
+    this.correo = '',
     required this.coins,
     this.avatarId = 'a0',
     this.skinId = 's1',
@@ -20,6 +22,7 @@ class Jugador {
 
   Jugador copyWith({
     String? nombre,
+    String? correo,
     int? coins,
     String? avatarId,
     String? skinId,
@@ -28,6 +31,7 @@ class Jugador {
   }) {
     return Jugador(
       nombre: nombre ?? this.nombre,
+      correo: correo ?? this.correo,
       coins: coins ?? this.coins,
       avatarId: avatarId ?? this.avatarId,
       skinId: skinId ?? this.skinId,
@@ -39,9 +43,13 @@ class Jugador {
   // Convierte un JSON del servidor a un objeto Dart
   factory Jugador.fromJson(Map<String, dynamic> json) {
     return Jugador(
-      nombre: json['nombre'],
-      coins: json['coins'],
-      avatarId: json['avatarId'],
+      nombre: json['nombre_usuario'] ?? json['nombre'] ?? '',
+      correo: json['correo'] ?? '',
+      coins: json['monedas'] ?? json['coins'] ?? 0,
+      avatarId: (json['id_avatar_seleccionado'] ?? json['avatar'] ?? json['avatarId'])?.toString() ?? 'a0',
+      skinId: (json['id_estilo_seleccionado'] ?? json['estilo'] ?? json['skinId'])?.toString() ?? 's1',
+      friendIds: (json['friendIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      requestIds: (json['requestIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 
@@ -49,8 +57,10 @@ class Jugador {
   Map<String, dynamic> toJson() {
     return {
       'nombre': nombre,
+      'correo': correo,
       'coins': coins,
       'avatarId': avatarId,
+      'skinId': skinId,
     };
   }
 }

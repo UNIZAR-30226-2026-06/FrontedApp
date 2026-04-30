@@ -1,16 +1,16 @@
 import 'dart:convert';
 import '../models/jugador_model.dart';
 import '../services/api_service.dart';
+import '../models/tienda_item_model.dart';
 
 class UserRepository {
   final ApiService _api;
 
   UserRepository(this._api);
 
-
   /// Obtiene los datos actualizados del perfil del usuario logueado
   Future<Jugador> getProfile() async {
-    final response = await _api.get('/profile'); // ajustar segun endpoint
+    final response = await _api.get('/usuarios/me');
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -20,32 +20,77 @@ class UserRepository {
     }
   }
 
-  Future<bool> updateSelectedAvatar(int avatarId) async {
-    final response = await _api.post(
-      '/auth/update-avatar',
-     {'id_avatar' : avatarId}
-    );
+  /// Cambiar el avatar activo (PUT /usuarios/me/avatar)
+  Future<void> updateAvatar(String avatarId) async {
+    final response = await _api.put('/usuarios/me/avatar', {
+      'avatar_id': int.tryParse(avatarId) ?? avatarId,
+    });
 
-    if(response.statusCode == 200){
-      return true;
-    }else{
-      throw Exception('No se pudo cambiar el avatar');
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['error'] ?? 'No se pudo cambiar el avatar');
     }
   }
 
-  /// Actualiza los datos del usuario en el backend (monedas, avatar, etc.)
-  Future<void> updateProfile(Jugador jugador) async {
-    // Adaptamos el objeto Jugador al formato que espera tu backend
-    final body = {
-      'monedas': jugador.coins,
-      'avatar': jugador.avatarId,
-      'estilo': jugador.skinId,
-    };
-
-    final response = await _api.put('/profile', body); // Ajusta segun tu endpoint real
+  /// Cambiar el estilo activo (PUT /usuarios/me/estilo)
+  Future<void> updateStyle(String estiloId) async {
+    final response = await _api.put('/usuarios/me/estilo', {
+      'estilo_id': int.tryParse(estiloId) ?? estiloId,
+    });
 
     if (response.statusCode != 200) {
-      throw Exception('Error al actualizar perfil en el servidor');
+      final error = json.decode(response.body);
+      throw Exception(error['error'] ?? 'No se pudo cambiar el estilo');
+    }
+  }
+
+  /// Obtener los avatares comprados del usuario (GET /usuarios/me/avatares)
+  Future<List<TiendaItem>> getPurchasedAvatars() async {
+    final response = await _api.get('/usuarios/me/avatares');
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((item) => TiendaItem(
+        id: (item['id_avatar'] ?? item['id'] ?? item['avatar_id']).toString(),
+        titulo: item['nombre'] ?? '',
+        precio: item['precioavatar'] ?? item['precio'] ?? 0,
+        tipo: TiendaItemTipo.avatar,
+        assetPath: item['image'] ?? item['assetPath'],
+      )).toList();
+    } else {
+      throw Exception('Error al obtener avatares comprados');
+    }
+  }
+
+  /// Obtener los estilos comprados del usuario (GET /usuarios/me/estilos)
+  Future<List<TiendaItem>> getPurchasedStyles() async {
+    final response = await _api.get('/usuarios/me/estilos');
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((item) => TiendaItem(
+        id: (item['id_estilo'] ?? item['id'] ?? item['estilo_id']).toString(),
+        titulo: item['nombre'] ?? '',
+        precio: item['precioestilo'] ?? item['precio'] ?? 0,
+        tipo: TiendaItemTipo.diseno,
+        assetPath: item['image'] ?? item['assetPath'],
+      )).toList();
+    } else {
+      throw Exception('Error al obtener estilos comprados');
+    }
+  }
+
+  /// Actualiza los datos del usuario en el backend (genérico)
+  Future<void> updateProfile(Jugador jugador) async {
+    final body = {
+      'nombre': jugador.nombre,
+      'correo': jugador.correo,
+    };
+
+    final response = await _api.put('/usuarios/me', body);
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar datos básicos del perfil');
     }
   }
 }

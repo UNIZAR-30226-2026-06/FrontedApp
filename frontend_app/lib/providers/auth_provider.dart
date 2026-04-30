@@ -103,4 +103,22 @@ class AuthProvider with ChangeNotifier {
         : _usuario!.copyWith(estilosComprados: nuevaLista);
     actualizarMonedas(nuevoSaldo);
   }
+
+  void actualizarAvatarSeleccionado(int avatarId, {String? image}) {
+    if (_usuario == null) return;
+    _usuario = _usuario!.copyWith(
+      idAvatarSeleccionado: avatarId,
+      avatarImage: image,
+    );
+    notifyListeners();
+  }
+
+  void actualizarEstiloSeleccionado(int estiloId, {String? image}) {
+    if (_usuario == null) return;
+    _usuario = _usuario!.copyWith(
+      idEstiloSeleccionado: estiloId,
+      estiloImage: image,
+    );
+    notifyListeners();
+  }
 }

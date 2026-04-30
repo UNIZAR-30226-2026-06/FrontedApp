@@ -115,7 +115,10 @@ class _HomeViewState extends State<HomeView> {
                   // --- TOP BAR CON DATOS REALES ---
                   Row(
                     children: [
-                      _AvatarBubble(emoji: _avatarEmoji(usuario?.idAvatarSeleccionado?.toString())),
+                      _AvatarBubble(
+                        emoji: _avatarEmoji(usuario?.idAvatarSeleccionado?.toString()),
+                        assetPath: usuario?.avatarImage,
+                      ),
                       const Spacer(),
                       _Pill(
                           background: const Color(0xFFF4C542),
@@ -202,9 +205,38 @@ class _HomeViewState extends State<HomeView> {
 
 class _AvatarBubble extends StatelessWidget {
   final String emoji;
-  const _AvatarBubble({required this.emoji});
+  final String? assetPath;
+  const _AvatarBubble({required this.emoji, this.assetPath});
   @override
-  Widget build(BuildContext context) => Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle), child: Center(child: Text(emoji, style: const TextStyle(fontSize: 22))));
+  Widget build(BuildContext context) {
+    final path = assetPath;
+    Widget child = Text(emoji, style: const TextStyle(fontSize: 22));
+    if (path != null && path.isNotEmpty) {
+      child = path.startsWith('http')
+          ? Image.network(
+              path,
+              width: 32,
+              height: 32,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Text(emoji, style: const TextStyle(fontSize: 22)),
+            )
+          : Image.asset(
+              path.startsWith('assets/') ? path : 'assets/images/avatares/$path',
+              width: 32,
+              height: 32,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Text(emoji, style: const TextStyle(fontSize: 22)),
+            );
+    }
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle),
+      clipBehavior: Clip.antiAlias,
+      child: Center(child: child),
+    );
+  }
 }
 
 class _Pill extends StatelessWidget {
