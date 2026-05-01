@@ -31,12 +31,12 @@ class _PerfilViewState extends State<PerfilView> {
       jugadorInicial: usuario == null
           ? null
           : Jugador(
-              nombre: usuario.nombreUsuario,
-              correo: usuario.correo,
-              coins: usuario.monedas,
-              avatarId: usuario.idAvatarSeleccionado?.toString() ?? '0',
-              skinId: usuario.idEstiloSeleccionado?.toString() ?? '1',
-            ),
+        nombre: usuario.nombreUsuario,
+        correo: usuario.correo,
+        coins: usuario.monedas,
+        avatarId: usuario.idAvatarSeleccionado?.toString() ?? '0',
+        skinId: usuario.idEstiloSeleccionado?.toString() ?? '1',
+      ),
       repo: UserRepository(apiService),
     );
   }
@@ -88,9 +88,9 @@ class _PerfilViewState extends State<PerfilView> {
       await vm.seleccionarAvatar(avatar.id);
       if (!mounted) return;
       context.read<AuthProvider>().actualizarAvatarSeleccionado(
-            int.tryParse(avatar.id) ?? 0,
-            image: avatar.assetPath,
-          );
+        int.tryParse(avatar.id) ?? 0,
+        image: avatar.assetPath,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,9 +104,9 @@ class _PerfilViewState extends State<PerfilView> {
       await vm.seleccionarSkin(skin.id);
       if (!mounted) return;
       context.read<AuthProvider>().actualizarEstiloSeleccionado(
-            int.tryParse(skin.id) ?? 0,
-            image: skin.assetPath,
-          );
+        int.tryParse(skin.id) ?? 0,
+        image: skin.assetPath,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -203,6 +203,8 @@ class _PerfilViewState extends State<PerfilView> {
                                 padding: EdgeInsets.only(bottom: 10),
                                 child: LinearProgressIndicator(color: Color(0xFFF4C542)),
                               ),
+                            if (!vm.isLoading && vm.avatars.isEmpty)
+                              const Text('No tienes avatares.', style: TextStyle(color: Colors.white54)),
                             SizedBox(
                               height: 56,
                               child: ListView.separated(
@@ -226,21 +228,24 @@ class _PerfilViewState extends State<PerfilView> {
 
                             _sectionTitle('Diseño de cartas'),
                             const SizedBox(height: 10),
-                            // REDUCCIÓN DE TAMAÑO: Padding lateral para que los botones no se estiren tanto
+                            if (vm.isLoading)
+                              const Padding(
+                                padding: EdgeInsets.only(bottom: 10),
+                                child: LinearProgressIndicator(color: Color(0xFFF4C542)),
+                              ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 60),
                               child: Row(
                                 children: vm.skins.map((s) {
                                   return Expanded(
                                     child: Padding(
-                                      // Aumento de margen entre botones para evitar solapamiento de glow
                                       padding: const EdgeInsets.symmetric(horizontal: 12),
                                       child: _AnimatedSelectTile(
                                         selected: s.id == vm.skinSeleccionadoId,
                                         onTap: () {
                                           _seleccionarSkin(s);
                                         },
-                                        height: 42, // Ligeramente más bajos
+                                        height: 42,
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
@@ -490,12 +495,12 @@ class _AssetOrEmoji extends StatelessWidget {
 
     final image = path.startsWith('http')
         ? Image.network(
-            path,
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Text(emoji, style: TextStyle(fontSize: size * 0.75)),
-          )
+      path,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Text(emoji, style: TextStyle(fontSize: size * 0.75)),
+    )
         : null;
 
     if (image != null) return image;

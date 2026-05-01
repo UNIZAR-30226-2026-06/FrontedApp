@@ -24,7 +24,7 @@ class AmigosRepository {
           return Jugador(
               nombre: nombre,
               coins: monedas,
-              avatarId: '😎'
+              avatarId: ''
           );
         }).toList();
       }
@@ -80,7 +80,23 @@ class AmigosRepository {
     final resp = await _api.get('/friends/search/$query');
     if (resp.statusCode == 200) {
       final List<dynamic> data = jsonDecode(resp.body);
-      return data.map((nombre) => Jugador(nombre: nombre.toString(), coins: 0, avatarId: '😎')).toList();
+
+      return data.map((item) {
+        // Comprobamos si el backend devuelve un objeto (Map) o un simple String
+        if (item is Map<String, dynamic>) {
+          return Jugador(
+              nombre: item['nombre_usuario']?.toString() ?? 'Desconocido',
+              coins: item['monedas'] != null ? int.tryParse(item['monedas'].toString()) ?? 0 : 0,
+              avatarId : ''
+          );
+        } else {
+          return Jugador(
+              nombre: item.toString(),
+              coins : 0,
+              avatarId : ''
+          );
+        }
+      }).toList();
     }
     return [];
   }

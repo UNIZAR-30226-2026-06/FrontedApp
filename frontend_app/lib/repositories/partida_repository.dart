@@ -41,12 +41,13 @@ class PartidaRepository {
 
   Future<PartidaModel> unirsePorCodigo(String code) async {
     final response = await _api.post('/partidas/join-by-code', {
-      'code': code,
+      'codigo': code.trim(),
     });
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      return PartidaModel.fromJson(data);
+      final String gameId = data['gameId'];
+      return await obtenerPartida(gameId);
     }
 
     throw Exception('Error al unirse por código: ${response.body}');

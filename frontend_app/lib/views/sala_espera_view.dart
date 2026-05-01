@@ -8,9 +8,45 @@ class SalaEsperaView extends StatelessWidget {
 
   const SalaEsperaView({super.key, required this.modoJuego});
 
+  // 🔥 NUEVA FUNCIÓN: Muestra el popup de confirmación
+  Future<bool> _pedirConfirmacionSalir(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // Obliga a elegir una opción
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF3A4288),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+            SizedBox(width: 10),
+            Text('¿Abandonar sala?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Si sales ahora, la sala se cerrará y la partida se cancelará para todos. ¿Estás seguro?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), // Devuelve false
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935), // Rojo peligro
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(context, true), // Devuelve true
+            child: const Text('Sí, salir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    ) ?? false; // Si tocan fuera por algún motivo, devuelve false
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Escuchamos los cambios generales
     final partidaVm = context.watch<PartidaActualViewModel>();
     final partida = partidaVm.partidaActual;
 
@@ -22,23 +58,24 @@ class SalaEsperaView extends StatelessWidget {
         ? (jugadores.length / maxJugadores).clamp(0.0, 1.0)
         : 0.0;
 
-    // 1. PopScope envuelve todo para interceptar el botón atrás físico o gestos
     return PopScope(
-      canPop: false, // Bloqueamos el retroceso automático
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        // Ejecutamos la lógica de abandono y borrado
-        await partidaVm.abandonarYBorrarPartida();
-
-        if (context.mounted) {
-          Navigator.pop(context);
+        // 🔥 Al darle al botón físico de "Atrás", pedimos confirmación
+        final salir = await _pedirConfirmacionSalir(context);
+        if (salir) {
+          await partidaVm.abandonarYBorrarPartida();
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
         }
       },
       child: Selector<PartidaActualViewModel, String>(
         selector: (context, vm) => vm.partidaActual?.phase ?? 'waiting',
         builder: (context, phase, child) {
-          // Si el Socket avisa que la partida empezó, vamos al Tablero
+
           if (phase == 'playing') {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               Navigator.pushReplacement(
@@ -63,13 +100,23 @@ class SalaEsperaView extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      // Header: Botón Salir y Código
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildBotonSalir(context, partidaVm),
+                            _AnimatedExitPill(
+                              onTap: () async {
+                                // 🔥 Al darle al botón "Salir" de la UI, pedimos confirmación
+                                final salir = await _pedirConfirmacionSalir(context);
+                                if (salir) {
+                                  await partidaVm.abandonarYBorrarPartida();
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                            ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
@@ -85,7 +132,6 @@ class SalaEsperaView extends StatelessWidget {
 
                       const SizedBox(height: 20),
 
-                      // Título y Modo
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 25),
                         child: Row(
@@ -107,7 +153,6 @@ class SalaEsperaView extends StatelessWidget {
 
                       const SizedBox(height: 24),
 
-                      // Barra de Progreso
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 25),
                         child: Column(
@@ -137,7 +182,6 @@ class SalaEsperaView extends StatelessWidget {
 
                       const SizedBox(height: 30),
 
-                      // Lista de Jugadores
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -167,7 +211,6 @@ class SalaEsperaView extends StatelessWidget {
                         ),
                       ),
 
-                      // Botón Comenzar
                       Padding(
                         padding: const EdgeInsets.all(25.0),
                         child: _buildBotonComenzar(context, partidaVm),
@@ -183,51 +226,14 @@ class SalaEsperaView extends StatelessWidget {
     );
   }
 
-  // 2. Botón Salir actualizado con lógica asíncrona de borrado
-  Widget _buildBotonSalir(BuildContext context, PartidaActualViewModel vm) {
-    return GestureDetector(
-      onTap: () async {
-        // Ejecutamos la limpieza antes de salir
-        await vm.abandonarYBorrarPartida();
-
-        if (context.mounted) {
-          Navigator.pop(context);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-            color: const Color(0xFF1E244D),
-            borderRadius: BorderRadius.circular(12)),
-        child: const Row(
-          children: [
-            Icon(Icons.keyboard_return, color: Colors.white, size: 16),
-            SizedBox(width: 6),
-            Text("Salir",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlayerCard(
-      {required String nombre,
-        required String status,
-        bool esHost = false,
-        required String letra}) {
+  Widget _buildPlayerCard({required String nombre, required String status, bool esHost = false, required String letra}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: const Color(0xFF2A316B),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: esHost
-                ? const Color(0xFF53D86A).withOpacity(0.5)
-                : Colors.white10,
+            color: esHost ? const Color(0xFF53D86A).withOpacity(0.5) : Colors.white10,
             width: 1.5),
       ),
       child: Row(
@@ -235,11 +241,7 @@ class SalaEsperaView extends StatelessWidget {
           CircleAvatar(
               radius: 18,
               backgroundColor: const Color(0xFF3A4288),
-              child: Text(letra,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14))),
+              child: Text(letra, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -249,25 +251,13 @@ class SalaEsperaView extends StatelessWidget {
                 Row(
                   children: [
                     Flexible(
-                      child: Text(nombre,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13)),
+                      child: Text(nombre, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
                     ),
                     if (esHost)
-                      const Padding(
-                          padding: EdgeInsets.only(left: 4),
-                          child:
-                          Icon(Icons.emoji_events, color: Colors.orange, size: 12)),
+                      const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.emoji_events, color: Colors.orange, size: 12)),
                   ],
                 ),
-                Text(status,
-                    style: const TextStyle(
-                        color: Color(0xFF53D86A),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900)),
+                Text(status, style: const TextStyle(color: Color(0xFF53D86A), fontSize: 10, fontWeight: FontWeight.w900)),
               ],
             ),
           )
@@ -285,10 +275,7 @@ class SalaEsperaView extends StatelessWidget {
       ),
       child: const Center(
           child: Text("Esperando jugador...",
-              style: TextStyle(
-                  color: Colors.white24,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600))),
+              style: TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.w600))),
     );
   }
 
@@ -300,8 +287,7 @@ class SalaEsperaView extends StatelessWidget {
           ? () {
         vm.iniciarPartida(vsIA: false, cantidadBots: 0);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Iniciando partida, esperando al servidor...')),
+          const SnackBar(content: Text('Iniciando partida, esperando al servidor...')),
         );
       }
           : null,
@@ -315,17 +301,61 @@ class SalaEsperaView extends StatelessWidget {
               color: const Color(0xFF53D86A),
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
-                BoxShadow(
-                    color: const Color(0xFF53D86A).withOpacity(0.3),
-                    blurRadius: 10,
-                    spreadRadius: 2)
+                BoxShadow(color: const Color(0xFF53D86A).withOpacity(0.3), blurRadius: 10, spreadRadius: 2)
               ]),
           child: const Center(
               child: Text("Comenzar partida",
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900))),
+                  style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w900))),
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedExitPill extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AnimatedExitPill({required this.onTap});
+
+  @override
+  State<_AnimatedExitPill> createState() => _AnimatedExitPillState();
+}
+
+class _AnimatedExitPillState extends State<_AnimatedExitPill> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const activeBlue = Color(0xFF3A6BFF);
+    const idleColor = Color(0xFF1E244D);
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.08 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isPressed ? activeBlue : idleColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: _isPressed
+                ? [BoxShadow(color: activeBlue.withOpacity(0.7), blurRadius: 15, spreadRadius: 4)]
+                : [],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_back, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Salir', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+            ],
+          ),
         ),
       ),
     );

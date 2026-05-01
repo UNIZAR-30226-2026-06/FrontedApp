@@ -13,36 +13,11 @@ class PerfilViewModel extends ChangeNotifier {
         _skinSeleccionadoId = jugadorInicial?.skinId ?? '1',
         _repo = repo {
 
-    _initLists();
-    _validateSelection();
     cargarPersonalizacion();
   }
 
   final UserRepository? _repo;
 
-  void _initLists() {
-    _avatars = const [
-      AvatarItem(id: '0', emoji: '👤', nombre: 'Default'),
-      AvatarItem(id: '1', emoji: '🤖', nombre: 'Robot'),
-      AvatarItem(id: '2', emoji: '🤠', nombre: 'Cowboy'),
-      AvatarItem(id: '3', emoji: '😈', nombre: 'Diablillo'),
-    ];
-    _skins = const [
-      CardSkinItem(id: '1', nombre: 'Classic', emoji: '🃏'),
-      CardSkinItem(id: '2', nombre: 'Neón', emoji: '✨'),
-    ];
-  }
-
-  void _validateSelection() {
-    if (!_avatars.any((a) => a.id == _avatarSeleccionadoId)) {
-      _avatarSeleccionadoId = _avatars.first.id;
-    }
-    if (!_skins.any((s) => s.id == _skinSeleccionadoId)) {
-      _skinSeleccionadoId = _skins.first.id;
-    }
-  }
-
-  // Estado principal del jugador
   String _nombre;
   String _correo;
   int _coins;
@@ -50,8 +25,8 @@ class PerfilViewModel extends ChangeNotifier {
   String get nombre => _nombre;
   int get coins => _coins;
 
-  List<AvatarItem> _avatars = const [];
-  List<CardSkinItem> _skins = const [];
+  List<AvatarItem> _avatars = [];
+  List<CardSkinItem> _skins = [];
 
   List<AvatarItem> get avatars => _avatars;
   List<CardSkinItem> get skins => _skins;
@@ -62,18 +37,22 @@ class PerfilViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // ✅ Selecciones persistentes
   String _avatarSeleccionadoId;
   String _skinSeleccionadoId;
 
   String get avatarSeleccionadoId => _avatarSeleccionadoId;
   String get skinSeleccionadoId => _skinSeleccionadoId;
 
-  AvatarItem get avatarSeleccionado =>
-      _avatars.firstWhere((a) => a.id == _avatarSeleccionadoId);
+  // Protegemos el getter para que no crashee si la lista está vacía mientras carga
+  AvatarItem get avatarSeleccionado {
+    if (_avatars.isEmpty) return const AvatarItem(id: '0', emoji: '👤', nombre: 'Cargando...');
+    return _avatars.firstWhere((a) => a.id == _avatarSeleccionadoId, orElse: () => _avatars.first);
+  }
 
-  CardSkinItem get skinSeleccionado =>
-      _skins.firstWhere((s) => s.id == _skinSeleccionadoId);
+  CardSkinItem get skinSeleccionado {
+    if (_skins.isEmpty) return const CardSkinItem(id: '1', nombre: 'Cargando...', emoji: '🃏');
+    return _skins.firstWhere((s) => s.id == _skinSeleccionadoId, orElse: () => _skins.first);
+  }
 
   Future<void> cargarPersonalizacion() async {
     if (_repo == null) return;
@@ -99,29 +78,14 @@ class PerfilViewModel extends ChangeNotifier {
       _avatarSeleccionadoId = perfil.avatarId;
       _skinSeleccionadoId = perfil.skinId;
 
-      if (avatares.isNotEmpty) {
-        _avatars = avatares.map((item) {
-          return AvatarItem(
-            id: item.id,
-            emoji: '👤',
-            nombre: item.titulo,
-            assetPath: item.assetPath,
-          );
-        }).toList();
-      }
+      _avatars = avatares.isNotEmpty
+          ? avatares.map((item) => AvatarItem(id: item.id, emoji: '👤', nombre: item.titulo, assetPath: item.assetPath)).toList()
+          : [const AvatarItem(id: '0', emoji: '👤', nombre: 'Default')];
 
-      if (estilos.isNotEmpty) {
-        _skins = estilos.map((item) {
-          return CardSkinItem(
-            id: item.id,
-            nombre: item.titulo,
-            emoji: '🃏',
-            assetPath: item.assetPath,
-          );
-        }).toList();
-      }
+      _skins = estilos.isNotEmpty
+          ? estilos.map((item) => CardSkinItem(id: item.id, nombre: item.titulo, emoji: '🃏', assetPath: item.assetPath)).toList()
+          : [const CardSkinItem(id: '1', nombre: 'Classic', emoji: '🃏')];
 
-      _validateSelection();
     } catch (e) {
       _error = 'No se pudo cargar la personalización';
       debugPrint('Error cargando personalización: $e');
@@ -166,7 +130,6 @@ class PerfilViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ✅ Devuelve el Jugador actualizado al Home
   Jugador buildJugadorActualizado() {
     return Jugador(
       nombre: _nombre,

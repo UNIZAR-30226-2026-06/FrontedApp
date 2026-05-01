@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../viewmodels/partida_actual_viewmodel.dart';
 import '../viewmodels/unirse_partida_viewmodel.dart';
-import 'tablero_view.dart';
+import 'sala_espera_view.dart';
 
 class UnirsePartidaView extends StatefulWidget {
   final String modoTitulo;
@@ -152,8 +152,8 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                     Navigator.pushReplacement(
                                       context,
                                       MaterialPageRoute(
-                                          builder: (context) => const TableroView()),
-                                    );
+                                        builder: (context) => SalaEsperaView(modoJuego: widget.modoTitulo),
+                                    ));
                                   }
                                 } catch (_) {
                                   if (context.mounted) {

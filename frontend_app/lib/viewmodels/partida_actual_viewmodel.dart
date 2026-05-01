@@ -190,18 +190,14 @@ class PartidaActualViewModel extends ChangeNotifier {
   }
 
   Future<void> abandonarYBorrarPartida() async {
-    if (_partidaActual == null) return;
-
-    _cargando = true;
-    notifyListeners();
-
     try {
-      await _repository.borrarPartida(_partidaActual!.gameId);
+      if (partidaActual != null) {
+        await _repository.borrarPartida(partidaActual!.gameId);
+      }
     } catch (e) {
-      // Manejo silencioso de errores al intentar borrar
+      debugPrint("Error borrando partida zombie: $e");
     } finally {
-      limpiarPartida();
-      _cargando = false;
+      _partidaActual = null;
       notifyListeners();
     }
   }
