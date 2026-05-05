@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import '../models/partida_model.dart';
 import '../services/api_service.dart';
 
@@ -6,6 +7,26 @@ class PartidaRepository {
   final ApiService _api;
 
   PartidaRepository(this._api);
+
+  /// Obtiene la lista de partidas pausadas del usuario
+  Future<List<PartidaModel>> obtenerPartidasPausadas() async {
+    developer.log('Solicitando partidas pausadas', name: 'PartidaRepository');
+    try {
+      final response = await _api.get('/partidas/pausadas'); // Ajusta según tu endpoint real
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        developer.log('Se encontraron ${data.length} partidas pausadas', name: 'PartidaRepository');
+        return data.map((json) => PartidaModel.fromJson(json)).toList();
+      } else {
+        developer.log('Error al obtener partidas pausadas: ${response.statusCode}', name: 'PartidaRepository');
+        throw Exception('Error al obtener partidas pausadas');
+      }
+    } catch (e) {
+      developer.log('Excepción en obtenerPartidasPausadas: $e', name: 'PartidaRepository', error: e);
+      rethrow;
+    }
+  }
 
   Future<PartidaModel> crearPartida({
     required bool isPrivate,
@@ -78,5 +99,18 @@ class PartidaRepository {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Error al borrar la partida: ${response.body}');
     }
+  }
+
+  /// Reanudar una partida pausada
+  Future<PartidaModel> reanudarPartida(String gameId) async {
+    developer.log('Reanudando partida: $gameId', name: 'PartidaRepository');
+    final response = await _api.post('/partidas/$gameId/resume', {});
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return PartidaModel.fromJson(data);
+    }
+
+    throw Exception('Error al reanudar partida: ${response.body}');
   }
 }

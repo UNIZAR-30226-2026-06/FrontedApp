@@ -7,6 +7,7 @@ import '../views/amigos_view.dart';
 import '../views/partida_personalizada_view.dart';
 import '../views/seleccion_roles_view.dart';
 import '../views/seleccion_cartas_view.dart';
+import '../views/partidas_pausadas_view.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final UserRepository? _userRepo;
@@ -84,6 +85,10 @@ class HomeViewModel extends ChangeNotifier {
     }
     if (destino == 'cartas_privada') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const SeleccionCartasView(modoTitulo: 'Modo cartas', modoSubtitulo: 'Partida Privada')));
+      return;
+    }
+    if (destino == 'pausadas_abrir') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PartidasPausadasView()));
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ir a: $destino (pendiente)')));
