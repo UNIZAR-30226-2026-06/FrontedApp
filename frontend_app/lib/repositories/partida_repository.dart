@@ -12,7 +12,7 @@ class PartidaRepository {
   Future<List<PartidaModel>> obtenerPartidasPausadas() async {
     developer.log('Solicitando partidas pausadas', name: 'PartidaRepository');
     try {
-      final response = await _api.get('/partidas/pausadas'); // Ajusta según tu endpoint real
+      final response = await _api.get('/partidas/pausadas');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -113,4 +113,23 @@ class PartidaRepository {
 
     throw Exception('Error al reanudar partida: ${response.body}');
   }
+
+  Future<void> solicitarPausa(String gameId) async {
+    final response = await _api.post('/partidas/$gameId/pause', {});
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Error al solicitar la pausa: ${response.body}');
+    }
+  }
+
+
+  Future<PartidaModel> anyadirBot(String gameId) async {
+    final response = await _api.post('/partidas/$gameId/add-bot', {});
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return PartidaModel.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Fallo al añadir bot a la partida');
+  }
+
 }

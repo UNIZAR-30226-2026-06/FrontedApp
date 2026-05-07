@@ -40,7 +40,6 @@ class TableroView extends StatelessWidget {
 
     final bool esMiTurno = partida.esMiTurno(miId);
 
-    // Función auxiliar para saber el turno de un rival
     bool esTurnoDeRival(String rivalId) {
       if (partida.jugadores.isEmpty) return false;
       return partida.jugadores[partida.currentTurn % partida.jugadores.length].id == rivalId;
@@ -49,6 +48,7 @@ class TableroView extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
+          // 1. EL FONDO INTACTO
           _buildFondo(),
 
           if (rivales.isNotEmpty)
@@ -83,7 +83,6 @@ class TableroView extends StatelessWidget {
           // Mazo central
           Center(
             child: MazoCentralWidget(
-              // Si el backend envía la carta como JSON, mapearla a CartaModel
               cartaEnMesa: partida.currentCard != null
                   ? Carta.fromJson(partida.currentCard)
                   : null,
@@ -91,7 +90,8 @@ class TableroView extends StatelessWidget {
             ),
           ),
 
-          _buildTopBar(vm),
+          // 2. TOP BAR ACTUALIZADA (Ahora recibe el ViewModel de la partida)
+          _buildTopBar(context, vm, partidaVm),
 
           // Mano del jugador local
           Align(
@@ -139,12 +139,16 @@ class TableroView extends StatelessWidget {
             ),
           ),
 
+          // 3. OVERLAY DE AJUSTES
           if (vm.mostrandoAjustes)
             Positioned.fill(
               child: AjustesOverlay(
                 onClose: () => vm.cerrarAjustes(),
               ),
             ),
+
+          if (partidaVm.partidaEstaPausada)
+            _buildOverlayPartidaPausada(context, partidaVm),
         ],
       ),
     );
@@ -161,7 +165,13 @@ class TableroView extends StatelessWidget {
     );
   }
 
-  Widget _buildTopBar(TableroViewModel vm) {
+  // --- TOP BAR REFATORIZADA ---
+  Widget _buildTopBar(BuildContext context, TableroViewModel vm, PartidaActualViewModel partidaVm) {
+    final totalJugadores = partidaVm.partidaActual?.jugadores.length ?? 0;
+
+    // Ocultamos el botón de la barra superior si la partida ya está pausada
+    final bool mostrarBotonPausa = !partidaVm.partidaEstaPausada;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -174,12 +184,20 @@ class TableroView extends StatelessWidget {
                 style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)
             ),
 
-            _AnimatedPauseButton(
-              onTap: () {
-                debugPrint("Solicitar pausa al backend");
-                // vm.solicitarPausa(); // Método a implementar en el futuro
-              },
-            ),
+            if (mostrarBotonPausa)
+              _AnimatedPauseButton(
+                votosActuales: partidaVm.votosPausa,
+                totalJugadores: totalJugadores,
+                haVotado: partidaVm.yoHeVotadoPausa,
+                onTap: () {
+                  // Si no ha votado todavía, disparamos la función del ViewModel
+                  if (!partidaVm.yoHeVotadoPausa) {
+                    // TODO: Descomentar cuando actualicemos el ViewModel
+                    // partidaVm.emitirVotoPausa();
+                    debugPrint("Votando para pausar...");
+                  }
+                },
+              ),
 
             _AnimatedSettingsButton(
               onTap: () => vm.abrirAjustes(),
@@ -189,10 +207,108 @@ class TableroView extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildOverlayPartidaPausada(BuildContext context, PartidaActualViewModel partidaVm) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.75), // Fondo oscurecido
+        child: Center(
+          child: Container(
+            width: 340,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F1535), // Color azul oscuro similar al diseño web
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 20, spreadRadius: 5)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6482E4).withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.pause, color: Color(0xFF6482E4), size: 36),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Partida Pausada",
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "La partida ha sido pausada por consenso",
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                // BOTÓN REANUDAR DINÁMICO
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      // Si ya he votado, lo ponemos gris. Si no, verde.
+                      backgroundColor: partidaVm.yoHeVotadoReanudar
+                          ? Colors.grey.withOpacity(0.5)
+                          : const Color(0xFF81C784),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: Icon(partidaVm.yoHeVotadoReanudar ? Icons.hourglass_top : Icons.play_arrow, size: 20),
+                    label: Text(
+                        partidaVm.yoHeVotadoReanudar
+                            ? "ESPERANDO (${partidaVm.votosReanudar}/${partidaVm.partidaActual?.jugadores.length ?? 4})"
+                            : "Votar para reanudar",
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)
+                    ),
+                    onPressed: () {
+                      if (!partidaVm.yoHeVotadoReanudar) {
+                        partidaVm.emitirVotoReanudar();
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // BOTÓN VOLVER AL INICIO
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white24),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.home, size: 18),
+                    label: const Text("Volver al inicio", style: TextStyle(fontWeight: FontWeight.w600)),
+                    onPressed: () {
+                      partidaVm.limpiarPartida();
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Puedes retomar la partida desde Partidas Pausadas en el menú principal",
+                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                  textAlign: TextAlign.center,
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-// (Los widgets _AnimatedSettingsButton y _AnimatedPauseButton se mantienen exactamente iguales)
-
+// ... (El _AnimatedSettingsButton sigue exactamente igual) ...
 class _AnimatedSettingsButton extends StatefulWidget {
   final VoidCallback onTap;
   const _AnimatedSettingsButton({required this.onTap});
@@ -225,27 +341,29 @@ class _AnimatedSettingsButtonState extends State<_AnimatedSettingsButton> {
             color: _isPressed ? neonCyan.withOpacity(0.1) : Colors.transparent,
             shape: BoxShape.circle,
             boxShadow: _isPressed
-                ? [BoxShadow(
-                color: neonCyan.withOpacity(0.7),
-                blurRadius: 15,
-                spreadRadius: 2
-            )]
+                ? [BoxShadow(color: neonCyan.withOpacity(0.7), blurRadius: 15, spreadRadius: 2)]
                 : [],
           ),
-          child: const Icon(
-              Icons.menu,
-              color: neonCyan,
-              size: 36
-          ),
+          child: const Icon(Icons.menu, color: neonCyan, size: 36),
         ),
       ),
     );
   }
 }
 
+// --- BOTÓN DE PAUSA DINÁMICO ---
 class _AnimatedPauseButton extends StatefulWidget {
+  final int votosActuales;
+  final int totalJugadores;
+  final bool haVotado;
   final VoidCallback onTap;
-  const _AnimatedPauseButton({required this.onTap});
+
+  const _AnimatedPauseButton({
+    required this.votosActuales,
+    required this.totalJugadores,
+    required this.haVotado,
+    required this.onTap,
+  });
 
   @override
   State<_AnimatedPauseButton> createState() => _AnimatedPauseButtonState();
@@ -256,15 +374,21 @@ class _AnimatedPauseButtonState extends State<_AnimatedPauseButton> {
 
   @override
   Widget build(BuildContext context) {
-    const errorRed = Color(0xFFD65B5B);
+    // Si ya ha votado, el botón se pone grisáceo transparente. Si no, mantiene tu rojo original.
+    final colorFondo = widget.haVotado ? Colors.grey.withOpacity(0.4) : const Color(0xFFD65B5B);
+    final textBtn = widget.haVotado
+        ? "ESPERANDO (${widget.votosActuales}/${widget.totalJugadores})"
+        : "PAUSAR (${widget.votosActuales}/${widget.totalJugadores})";
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapDown: (_) { if (!widget.haVotado) setState(() => _isPressed = true); },
       onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onTap();
+        if (!widget.haVotado) {
+          setState(() => _isPressed = false);
+          widget.onTap();
+        }
       },
-      onTapCancel: () => setState(() => _isPressed = false),
+      onTapCancel: () { if (!widget.haVotado) setState(() => _isPressed = false); },
       child: AnimatedScale(
         duration: Duration.zero,
         scale: _isPressed ? 1.08 : 1.0,
@@ -272,24 +396,23 @@ class _AnimatedPauseButtonState extends State<_AnimatedPauseButton> {
           duration: Duration.zero,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: errorRed,
+            color: colorFondo,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: _isPressed
-                ? [BoxShadow(
-                color: errorRed.withOpacity(0.7),
-                blurRadius: 15,
-                spreadRadius: 4
-            )]
-                : [const BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))],
+            border: widget.haVotado ? Border.all(color: Colors.white30) : null,
+            boxShadow: _isPressed && !widget.haVotado
+                ? [BoxShadow(color: const Color(0xFFD65B5B).withOpacity(0.7), blurRadius: 15, spreadRadius: 4)]
+                : !widget.haVotado
+                ? [const BoxShadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))]
+                : [],
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.pause, color: Colors.white, size: 16),
-              SizedBox(width: 6),
+              Icon(widget.haVotado ? Icons.hourglass_empty : Icons.pause, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
               Text(
-                  "PAUSAR (1/4)",
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)
+                  textBtn,
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)
               ),
             ],
           ),

@@ -16,12 +16,25 @@ class PartidaActualViewModel extends ChangeNotifier {
   bool _isVsIA = false;
   int _maxJugadores = 4;
 
+  // Variables de estado para "PAUSAR"
+  int _votosPausa = 0;
+  bool _yoHeVotadoPausa = false;
+  bool _partidaEstaPausada = false;
+
+  int _votosReanudar = 0;
+  bool _yoHeVotadoReanudar = false;
+
   String? get error => _error;
   PartidaModel? get partidaActual => _partidaActual;
   bool get cargando => _cargando;
   bool get hayPartidaActiva => _partidaActual != null;
   bool get isVsIA => _isVsIA;
   int get maxJugadores => _maxJugadores;
+  int get votosPausa => _votosPausa;
+  bool get yoHeVotadoPausa => _yoHeVotadoPausa;
+  bool get partidaEstaPausada => _partidaEstaPausada;
+  int get votosReanudar => _votosReanudar;
+  bool get yoHeVotadoReanudar => _yoHeVotadoReanudar;
 
   void iniciarPartida({bool vsIA = false, int cantidadBots = 0}) {
     if (_partidaActual == null) return;
@@ -41,10 +54,15 @@ class PartidaActualViewModel extends ChangeNotifier {
 
     final String gameId = _partidaActual!.gameId;
 
+    // Limpieza de listeners
     _socketService.socket!.off('partida_iniciada');
     _socketService.socket!.off('nuevo_jugador');
     _socketService.socket!.off('error_partida');
     _socketService.socket!.off('turno_siguiente');
+    _socketService.socket!.off('voto_pausa_registrado');
+    _socketService.socket!.off('voto_reanudar_registrado'); // 🔥 Nuevo off
+    _socketService.socket!.off('partida_pausada');
+    _socketService.socket!.off('partida_reanudada');
 
     _socketService.emitir('unirse_partida', {'partidaID': gameId});
 
@@ -53,16 +71,13 @@ class PartidaActualViewModel extends ChangeNotifier {
         final misCartas = data['manoInicial'] ?? [];
         final miId = _partidaActual!.jugadorLocal ?? 'yo';
 
-        // Mapeamos la lista actual para no borrar a los bots ni a otros humanos
         List<JugadorPartidaModel> jugadoresActualizados = _partidaActual!.jugadores.map((j) {
           if (j.id == miId) {
-            // Actualizamos solo al jugador local con sus cartas
             return JugadorPartidaModel(id: j.id, hand: misCartas);
           }
           return j;
         }).toList();
 
-        // Por si acaso la lista estaba vacía, nos añadimos
         if (jugadoresActualizados.isEmpty) {
           jugadoresActualizados.add(JugadorPartidaModel(id: miId, hand: misCartas));
         }
@@ -76,6 +91,48 @@ class PartidaActualViewModel extends ChangeNotifier {
         notifyListeners();
       }
     });
+
+
+    _socketService.socket!.on('voto_pausa_registrado', (data) {
+      _votosPausa = data['votosFavor'] ?? 0;
+      final String? jugadorQueVoto = data['jugador'];
+
+      notifyListeners();
+
+      if (jugadorQueVoto != null) {
+        debugPrint("El jugador $jugadorQueVoto acaba de votar para pausar.");
+      }
+    });
+
+    _socketService.socket!.on('voto_reanudar_registrado', (data) {
+      _votosReanudar = data['votosFavor'] ?? 0;
+      final String? jugadorQueVoto = data['jugador'];
+
+      notifyListeners();
+
+      if (jugadorQueVoto != null) {
+        debugPrint("El jugador $jugadorQueVoto acaba de votar para reanudar.");
+      }
+    });
+
+    _socketService.socket!.on('partida_pausada', (_) {
+      _partidaEstaPausada = true;
+      _votosPausa = 0;
+      _yoHeVotadoPausa = false;
+      _votosReanudar = 0;
+      _yoHeVotadoReanudar = false;
+      notifyListeners();
+    });
+
+    _socketService.socket!.on('partida_reanudada', (_) {
+      _partidaEstaPausada = false;
+      _votosPausa = 0;
+      _yoHeVotadoPausa = false;
+      _votosReanudar = 0;
+      _yoHeVotadoReanudar = false;
+      notifyListeners();
+    });
+
 
     _socketService.socket!.on('nuevo_jugador', (data) {
       if (_partidaActual != null) {
@@ -106,18 +163,14 @@ class PartidaActualViewModel extends ChangeNotifier {
 
     try {
       final partida = await _repository.crearPartida(isPrivate: isPrivate);
-
-      // FIX: Si el backend devuelve la lista vacía, nos añadimos nosotros
       List<JugadorPartidaModel> listaInicial = partida.jugadores;
       if (listaInicial.isEmpty) {
         listaInicial = [JugadorPartidaModel(id: jugadorLocal ?? 'Yo')];
       }
-
       _partidaActual = partida.copyWith(
         jugadorLocal: jugadorLocal,
         jugadores: listaInicial,
       );
-
       _activarTiempoReal();
     } catch (e) {
       _error = e.toString();
@@ -183,9 +236,20 @@ class PartidaActualViewModel extends ChangeNotifier {
       _socketService.socket!.off('nuevo_jugador');
       _socketService.socket!.off('error_partida');
       _socketService.socket!.off('turno_siguiente');
+      _socketService.socket!.off('voto_pausa_registrado');
+      _socketService.socket!.off('voto_reanudar_registrado'); // Limpieza
+      _socketService.socket!.off('partida_pausada');
+      _socketService.socket!.off('partida_reanudada');
     }
     _partidaActual = null;
     _error = null;
+
+    _partidaEstaPausada = false;
+    _votosPausa = 0;
+    _yoHeVotadoPausa = false;
+    _votosReanudar = 0;
+    _yoHeVotadoReanudar = false;
+
     notifyListeners();
   }
 
@@ -198,6 +262,50 @@ class PartidaActualViewModel extends ChangeNotifier {
       debugPrint("Error borrando partida zombie: $e");
     } finally {
       _partidaActual = null;
+      notifyListeners();
+    }
+  }
+
+  void setPartidaActual(PartidaModel partida, {String? jugadorLocal}){
+    _partidaActual = partida;
+
+    if(jugadorLocal != null){
+      _partidaActual =_partidaActual!.copyWith(jugadorLocal: jugadorLocal);
+    }
+    // Comprueba si la partida esta en pausa
+    if (partida.phase == 'paused') {
+      _partidaEstaPausada = true;
+    }
+
+    _activarTiempoReal();
+    notifyListeners();
+  }
+
+
+  Future<void> emitirVotoPausa() async {
+    if (_partidaActual == null || _yoHeVotadoPausa) return;
+    _yoHeVotadoPausa = true;
+    notifyListeners();
+
+    try {
+      await _repository.solicitarPausa(_partidaActual!.gameId);
+    } catch (e) {
+      _yoHeVotadoPausa = false;
+      _error = "Error al votar pausa: $e";
+      notifyListeners();
+    }
+  }
+
+  Future<void> emitirVotoReanudar() async {
+    if (_partidaActual == null || _yoHeVotadoReanudar) return;
+    _yoHeVotadoReanudar = true;
+    notifyListeners();
+
+    try {
+      await _repository.reanudarPartida(_partidaActual!.gameId);
+    } catch (e) {
+      _yoHeVotadoReanudar = false;
+      _error = "Error al votar reanudar: $e";
       notifyListeners();
     }
   }
