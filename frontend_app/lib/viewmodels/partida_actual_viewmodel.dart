@@ -59,6 +59,10 @@ class PartidaActualViewModel extends ChangeNotifier {
     _socketService.socket!.off('nuevo_jugador');
     _socketService.socket!.off('error_partida');
     _socketService.socket!.off('turno_siguiente');
+    _socketService.socket!.off('game_state_updated');
+    _socketService.socket!.off('bot_action');
+    _socketService.socket!.off('carta_robada');
+    _socketService.socket!.off('game_finished');
     _socketService.socket!.off('voto_pausa_registrado');
     _socketService.socket!.off('voto_reanudar_registrado'); // 🔥 Nuevo off
     _socketService.socket!.off('partida_pausada');
@@ -71,27 +75,33 @@ class PartidaActualViewModel extends ChangeNotifier {
         final misCartas = data['manoInicial'] ?? [];
         final miId = _partidaActual!.jugadorLocal ?? 'yo';
 
-        List<JugadorPartidaModel> jugadoresActualizados = _partidaActual!.jugadores.map((j) {
-          if (j.id == miId) {
-            return JugadorPartidaModel(id: j.id, hand: misCartas);
-          }
-          return j;
-        }).toList();
+        List<JugadorPartidaModel> jugadoresActualizados = _partidaActual!
+            .jugadores
+            .map((j) {
+              if (j.id == miId) {
+                return JugadorPartidaModel(id: j.id, hand: misCartas);
+              }
+              return j;
+            })
+            .toList();
 
         if (jugadoresActualizados.isEmpty) {
-          jugadoresActualizados.add(JugadorPartidaModel(id: miId, hand: misCartas));
+          jugadoresActualizados.add(
+            JugadorPartidaModel(id: miId, hand: misCartas),
+          );
         }
 
         _partidaActual = _partidaActual!.copyWith(
           phase: 'playing',
-          rolesMode: data['modoJuego'] == 'roles',
-          specialCardsMode: data['modoJuego'] == 'cards',
+          rolesMode: data['modoJuego'] == 'roles' || data['mode'] == 'roles',
+          specialCardsMode:
+              data['modoJuego'] == 'cards' || data['mode'] == 'cards',
           jugadores: jugadoresActualizados,
         );
         notifyListeners();
+        _refrescarEstadoDesdeServidor();
       }
     });
-
 
     _socketService.socket!.on('voto_pausa_registrado', (data) {
       _votosPausa = data['votosFavor'] ?? 0;
@@ -133,12 +143,12 @@ class PartidaActualViewModel extends ChangeNotifier {
       notifyListeners();
     });
 
-
     _socketService.socket!.on('nuevo_jugador', (data) {
       if (_partidaActual != null) {
         final nuevoJugador = JugadorPartidaModel(id: data['jugador']);
-        final listaActualizada = List<JugadorPartidaModel>.from(_partidaActual!.jugadores)
-          ..add(nuevoJugador);
+        final listaActualizada = List<JugadorPartidaModel>.from(
+          _partidaActual!.jugadores,
+        )..add(nuevoJugador);
 
         _partidaActual = _partidaActual!.copyWith(jugadores: listaActualizada);
         notifyListeners();
@@ -153,9 +163,53 @@ class PartidaActualViewModel extends ChangeNotifier {
     _socketService.socket!.on('turno_siguiente', (data) {
       notifyListeners();
     });
+
+    _socketService.socket!.on(
+      'game_state_updated',
+      (_) => _refrescarEstadoDesdeServidor(),
+    );
+    _socketService.socket!.on(
+      'bot_action',
+      (_) => _refrescarEstadoDesdeServidor(),
+    );
+    _socketService.socket!.on(
+      'carta_robada',
+      (_) => _refrescarEstadoDesdeServidor(),
+    );
+    _socketService.socket!.on('game_finished', (data) {
+      if (_partidaActual != null) {
+        _partidaActual = _partidaActual!.copyWith(phase: 'finished');
+      }
+      _error = data is Map ? 'Ganador: ${data['winner']}' : null;
+      notifyListeners();
+    });
   }
 
-  Future<void> crearPartida({required bool isPrivate, String? jugadorLocal, int maxJugadores = 4}) async {
+  Future<void> _refrescarEstadoDesdeServidor() async {
+    if (_partidaActual == null) return;
+
+    try {
+      final estado = await _repository.obtenerEstadoPartida(
+        _partidaActual!.gameId,
+      );
+      _partidaActual = estado.copyWith(
+        code: _partidaActual!.code,
+        isPrivate: _partidaActual!.isPrivate,
+        jugadorLocal: _partidaActual!.jugadorLocal,
+        rolesMode: _partidaActual!.rolesMode,
+        specialCardsMode: _partidaActual!.specialCardsMode,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error refrescando estado de partida: $e");
+    }
+  }
+
+  Future<void> crearPartida({
+    required bool isPrivate,
+    String? jugadorLocal,
+    int maxJugadores = 4,
+  }) async {
     _cargando = true;
     _error = null;
     _maxJugadores = maxJugadores;
@@ -225,9 +279,7 @@ class PartidaActualViewModel extends ChangeNotifier {
 
   void robarCarta() {
     if (_partidaActual == null) return;
-    _socketService.emitir('robar_carta', {
-      'partidaID': _partidaActual!.gameId,
-    });
+    _socketService.emitir('robar_carta', {'partidaID': _partidaActual!.gameId});
   }
 
   void limpiarPartida() {
@@ -236,6 +288,10 @@ class PartidaActualViewModel extends ChangeNotifier {
       _socketService.socket!.off('nuevo_jugador');
       _socketService.socket!.off('error_partida');
       _socketService.socket!.off('turno_siguiente');
+      _socketService.socket!.off('game_state_updated');
+      _socketService.socket!.off('bot_action');
+      _socketService.socket!.off('carta_robada');
+      _socketService.socket!.off('game_finished');
       _socketService.socket!.off('voto_pausa_registrado');
       _socketService.socket!.off('voto_reanudar_registrado'); // Limpieza
       _socketService.socket!.off('partida_pausada');
@@ -261,16 +317,15 @@ class PartidaActualViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("Error borrando partida zombie: $e");
     } finally {
-      _partidaActual = null;
-      notifyListeners();
+      limpiarPartida();
     }
   }
 
-  void setPartidaActual(PartidaModel partida, {String? jugadorLocal}){
+  void setPartidaActual(PartidaModel partida, {String? jugadorLocal}) {
     _partidaActual = partida;
 
-    if(jugadorLocal != null){
-      _partidaActual =_partidaActual!.copyWith(jugadorLocal: jugadorLocal);
+    if (jugadorLocal != null) {
+      _partidaActual = _partidaActual!.copyWith(jugadorLocal: jugadorLocal);
     }
     // Comprueba si la partida esta en pausa
     if (partida.phase == 'paused') {
@@ -280,7 +335,6 @@ class PartidaActualViewModel extends ChangeNotifier {
     _activarTiempoReal();
     notifyListeners();
   }
-
 
   Future<void> emitirVotoPausa() async {
     if (_partidaActual == null) {
@@ -325,7 +379,7 @@ class PartidaActualViewModel extends ChangeNotifier {
   Future<void> anyadirBot() async {
     if (_partidaActual == null) return;
     try {
-      final partidaActualizada = await _repository.anyadirBot(_partidaActual!.gameId);
+      await _repository.anyadirBot(_partidaActual!.gameId);
     } catch (e) {
       _error = "Error al añadir bot: $e";
       rethrow;

@@ -16,14 +16,24 @@ class PartidaRepository {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        developer.log('Se encontraron ${data.length} partidas pausadas', name: 'PartidaRepository');
+        developer.log(
+          'Se encontraron ${data.length} partidas pausadas',
+          name: 'PartidaRepository',
+        );
         return data.map((json) => PartidaModel.fromJson(json)).toList();
       } else {
-        developer.log('Error al obtener partidas pausadas: ${response.statusCode}', name: 'PartidaRepository');
+        developer.log(
+          'Error al obtener partidas pausadas: ${response.statusCode}',
+          name: 'PartidaRepository',
+        );
         throw Exception('Error al obtener partidas pausadas');
       }
     } catch (e) {
-      developer.log('Excepción en obtenerPartidasPausadas: $e', name: 'PartidaRepository', error: e);
+      developer.log(
+        'Excepción en obtenerPartidasPausadas: $e',
+        name: 'PartidaRepository',
+        error: e,
+      );
       rethrow;
     }
   }
@@ -38,7 +48,7 @@ class PartidaRepository {
       'modoCartasEspeciales': true,
       'modoRoles': false,
       'numCartasInicio': 7,
-      'timeoutTurno': 30
+      'timeoutTurno': 30,
     });
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -85,6 +95,17 @@ class PartidaRepository {
     throw Exception('Error al obtener partida: ${response.body}');
   }
 
+  Future<PartidaModel> obtenerEstadoPartida(String gameId) async {
+    final response = await _api.get('/partidas/$gameId/state');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return PartidaModel.fromJson(data);
+    }
+
+    throw Exception('Error al obtener estado de partida: ${response.body}');
+  }
+
   Future<void> finalizarPartida(String gameId) async {
     final response = await _api.post('/partidas/$gameId/end', {});
 
@@ -122,22 +143,32 @@ class PartidaRepository {
     }
   }
 
-
   Future<void> anyadirBot(String gameId) async {
-    developer.log('Llamando a POST /partidas/$gameId/add-bot', name: 'PartidaRepository');
-    final response = await _api.post('/partidas/$gameId/add-bot', {})
+    developer.log(
+      'Llamando a POST /partidas/$gameId/add-bot',
+      name: 'PartidaRepository',
+    );
+    final response = await _api
+        .post('/partidas/$gameId/add-bot', {})
         .timeout(const Duration(seconds: 5));
-    developer.log('Respuesta add-bot: ${response.statusCode} - Body: ${response.body}', name: 'PartidaRepository');
+    developer.log(
+      'Respuesta add-bot: ${response.statusCode} - Body: ${response.body}',
+      name: 'PartidaRepository',
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
       if (data['success'] == true) {
-        developer.log('Bot añadido con éxito. ID del Bot: ${data['botId']}', name: 'PartidaRepository');
+        developer.log(
+          'Bot añadido con éxito. ID del Bot: ${data['botId']}',
+          name: 'PartidaRepository',
+        );
         return;
       }
     }
 
-    throw Exception('Fallo al añadir bot. Código: ${response.statusCode}, Error: ${response.body}');
+    throw Exception(
+      'Fallo al añadir bot. Código: ${response.statusCode}, Error: ${response.body}',
+    );
   }
-
 }

@@ -1,5 +1,6 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/material.dart';
+import '../app/api_config.dart';
 
 class SocketService with ChangeNotifier {
   IO.Socket? _socket;
@@ -8,14 +9,14 @@ class SocketService with ChangeNotifier {
   bool get isConnected => _isConnected;
   IO.Socket? get socket => _socket;
 
-
   void connect(String token) {
-    _socket = IO.io('https://backend-i797.onrender.com',
-        IO.OptionBuilder()
-            .setTransports(['websocket'])
-            .setAuth({'token': token})
-            .enableAutoConnect()
-            .build()
+    _socket = IO.io(
+      ApiConfig.socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .setAuth({'token': token})
+          .enableAutoConnect()
+          .build(),
     );
 
     _socket!.onConnect((_) {
@@ -30,7 +31,9 @@ class SocketService with ChangeNotifier {
       notifyListeners();
     });
 
-    _socket!.onConnectError((data) => debugPrint('Error en la conexión: $data'));
+    _socket!.onConnectError(
+      (data) => debugPrint('Error en la conexión: $data'),
+    );
   }
 
   void disconnect() {

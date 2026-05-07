@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/jugador_partida_model.dart';
+import 'carta_widget.dart';
 
 class AvatarJugadorWidget extends StatefulWidget {
   final JugadorPartidaModel participante;
@@ -15,7 +16,8 @@ class AvatarJugadorWidget extends StatefulWidget {
   State<AvatarJugadorWidget> createState() => _AvatarJugadorWidgetState();
 }
 
-class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget> with SingleTickerProviderStateMixin {
+class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -26,9 +28,10 @@ class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget> with SingleTi
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    _animation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 1.0,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     if (widget.esSuTurno) {
       _controller.repeat(reverse: true);
@@ -91,31 +94,60 @@ class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget> with SingleTi
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
-              shadows: widget.esSuTurno ? [
-                const Shadow(color: Colors.black, blurRadius: 2, offset: Offset(1, 1))
-              ] : [],
+              shadows: widget.esSuTurno
+                  ? [
+                      const Shadow(
+                        color: Colors.black,
+                        blurRadius: 2,
+                        offset: Offset(1, 1),
+                      ),
+                    ]
+                  : [],
             ),
           ),
-          // Indicador de cartas restantes
-          _buildCardsIndicator(widget.participante.hand.length),
+          const SizedBox(height: 8),
+          _buildCardsFan(widget.participante.hand.length),
         ],
       ),
     );
   }
 
-  Widget _buildCardsIndicator(int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black54,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildCardsFan(int count) {
+    final visible = count.clamp(0, 6);
+    return SizedBox(
+      width: 95,
+      height: 55,
+      child: Stack(
+        alignment: Alignment.topCenter,
         children: [
-          const Icon(Icons.style, color: Colors.yellow, size: 10),
-          const SizedBox(width: 4),
-          Text("$count", style: const TextStyle(color: Colors.white, fontSize: 10)),
+          for (int i = 0; i < visible; i++)
+            Transform.translate(
+              offset: Offset((i - (visible - 1) / 2) * 11, 0),
+              child: Transform.rotate(
+                angle: (i - (visible - 1) / 2) * 0.16,
+                alignment: Alignment.bottomCenter,
+                child: const CartaReversoWidget(width: 34),
+              ),
+            ),
+          Positioned(
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF00E5FF), width: 1),
+              ),
+              child: Text(
+                "$count",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

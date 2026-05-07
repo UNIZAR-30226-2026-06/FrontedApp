@@ -29,28 +29,49 @@ class PartidaModel {
   });
 
   factory PartidaModel.fromJson(Map<String, dynamic> json) {
+    final rawPlayers = json['players'] ?? json['jugadores'];
+    final players =
+        (rawPlayers as List?)
+            ?.map(
+              (p) => p is Map<String, dynamic>
+                  ? JugadorPartidaModel.fromJson(p)
+                  : JugadorPartidaModel(id: p.toString()),
+            )
+            .toList() ??
+        [];
+
+    final rawTurn = json['currentTurn'];
+    int currentTurnIndex = 0;
+    if (rawTurn is int) {
+      currentTurnIndex = rawTurn;
+    } else if (rawTurn != null) {
+      final idx = players.indexWhere((p) => p.id == rawTurn.toString());
+      currentTurnIndex = idx < 0 ? 0 : idx;
+    }
+
     return PartidaModel(
-      gameId: (json['id_partida'] ?? json['gameId'] ?? json['id'] ?? '').toString(),
+      gameId: (json['id_partida'] ?? json['gameId'] ?? json['id'] ?? '')
+          .toString(),
       code: (json['codigo'] ?? json['code'])?.toString(),
 
-      isPrivate: json['partida_publica'] == false ||
+      isPrivate:
+          json['partida_publica'] == false ||
           json['isPrivate'] == true ||
           json['private'] == true ||
           json['visibility'] == 'private',
 
       jugadorLocal: json['jugadorLocal']?.toString(),
 
-      phase: json['phase']?.toString() ?? json['estado']?.toString() ?? 'waiting',
+      phase:
+          json['phase']?.toString() ?? json['estado']?.toString() ?? 'waiting',
 
-      jugadores: (json['players'] as List?)
-          ?.map((p) => JugadorPartidaModel.fromJson(p))
-          .toList() ??
-          [],
-      currentTurn: json['currentTurn'] ?? 0,
+      jugadores: players,
+      currentTurn: currentTurnIndex,
       direction: json['direction'] ?? 1,
-      currentCard: json['currentCard'],
+      currentCard: json['currentCard'] ?? json['discardTop'],
       rolesMode: json['modo_roles'] ?? json['rolesMode'] ?? false,
-      specialCardsMode: json['modo_cartas_especiales'] ?? json['specialCardsMode'] ?? false,
+      specialCardsMode:
+          json['modo_cartas_especiales'] ?? json['specialCardsMode'] ?? false,
     );
   }
 

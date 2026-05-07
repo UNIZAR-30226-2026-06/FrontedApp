@@ -1,6 +1,7 @@
 class ApiConfig {
   // Cambia esta URL cuando tengas tu backend definitivo
   static const String baseUrl = "http://10.0.2.2:3000/api/v1";
+  static const String socketUrl = "http://10.0.2.2:3000";
 
   // Endpoints
   static const String login = "/auth/login";

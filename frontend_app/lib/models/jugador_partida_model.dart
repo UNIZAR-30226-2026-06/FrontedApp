@@ -18,9 +18,12 @@ class JugadorPartidaModel {
   });
 
   factory JugadorPartidaModel.fromJson(Map<String, dynamic> json) {
+    final rawHand = json['hand'];
     return JugadorPartidaModel(
       id: json['id']?.toString() ?? '',
-      hand: json['hand'] ?? [],
+      hand: rawHand is List
+          ? rawHand
+          : List.filled((rawHand as int?) ?? 0, null),
       rol: json['rol']?.toString(),
       rolUses: json['rolUses'] ?? 0,
       connected: json['connected'] ?? true,
