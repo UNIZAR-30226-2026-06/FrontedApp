@@ -283,16 +283,28 @@ class PartidaActualViewModel extends ChangeNotifier {
 
 
   Future<void> emitirVotoPausa() async {
-    if (_partidaActual == null || _yoHeVotadoPausa) return;
+    if (_partidaActual == null) {
+      debugPrint("emitirVotoPausa cancelado: _partidaActual es null");
+      return;
+    }
+    if (_yoHeVotadoPausa) {
+      debugPrint("emitirVotoPausa cancelado: _yoHeVotadoPausa ya es true");
+      return;
+    }
+
     _yoHeVotadoPausa = true;
     notifyListeners();
+    debugPrint("Estado CAMBIADO a yoHeVotadoPausa = true. Notificando a UI.");
 
     try {
+      debugPrint("Enviando petición HTTP de pausa...");
       await _repository.solicitarPausa(_partidaActual!.gameId);
+      debugPrint("Petición HTTP completada.");
     } catch (e) {
       _yoHeVotadoPausa = false;
       _error = "Error al votar pausa: $e";
       notifyListeners();
+      debugPrint("ERROR en la petición HTTP: $e. Estado RESETEADO a false.");
     }
   }
 
@@ -307,6 +319,16 @@ class PartidaActualViewModel extends ChangeNotifier {
       _yoHeVotadoReanudar = false;
       _error = "Error al votar reanudar: $e";
       notifyListeners();
+    }
+  }
+
+  Future<void> anyadirBot() async {
+    if (_partidaActual == null) return;
+    try {
+      final partidaActualizada = await _repository.anyadirBot(_partidaActual!.gameId);
+    } catch (e) {
+      _error = "Error al añadir bot: $e";
+      rethrow;
     }
   }
 }

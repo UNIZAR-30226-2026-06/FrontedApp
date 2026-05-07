@@ -9,9 +9,11 @@ class ConfigRolesVsIaViewModel extends ChangeNotifier {
 
   int _jugadores = 2;
   int get jugadores => _jugadores;
+  bool _cargando = false;
 
   bool _reglasAbiertas = false;
   bool get reglasAbiertas => _reglasAbiertas;
+  bool get cargando => _cargando;
 
   void inc() {
     if (_jugadores < 4) {
@@ -41,40 +43,42 @@ class ConfigRolesVsIaViewModel extends ChangeNotifier {
 
   Future<void> comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm) async {
     try {
-      print("Iniciando peticion al servidor...");
+      _cargando = true;
+      notifyListeners();
+
       await partidaVm.crearPartida(
-          isPrivate: true,
-          jugadorLocal: "Jugador Beta",
-          maxJugadores: _jugadores,
+        isPrivate: true,
+        jugadorLocal: "Jugador Beta",
+        maxJugadores: _jugadores,
       );
 
-      print("crearPartida ha terminado correctamente");
 
       final int botsASpawnear = _jugadores - 1;
 
-      print("Llamando a iniciarPartida (Socket) con $botsASpawnear bots...");
+      for (int i = 0; i < botsASpawnear; i++) {
+        print("Añadiendo bot ${i + 1} de $botsASpawnear...");
+        await partidaVm.anyadirBot();
+      }
+
 
       partidaVm.iniciarPartida(
           vsIA: true,
           cantidadBots: botsASpawnear
       );
 
-
-      print("Comprobando context.mounted: ${context.mounted}");
-
       if (context.mounted) {
-        print("Navegando al TableroView...");
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => const TableroView(),
-          ),
+          MaterialPageRoute(builder: (context) => const TableroView()),
         );
-      }else{
-        print("EL CONTEXT YA NO ESTA MONTADO; NO PUEDO NAVEGAR"); // BORRAR
       }
     } catch (e) {
       debugPrint("Error al configurar partida IA: $e");
+    } finally {
+      if(context.mounted) {
+        _cargando = false;
+        notifyListeners();
+      }
     }
   }
 }

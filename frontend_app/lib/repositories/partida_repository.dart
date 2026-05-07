@@ -123,13 +123,21 @@ class PartidaRepository {
   }
 
 
-  Future<PartidaModel> anyadirBot(String gameId) async {
-    final response = await _api.post('/partidas/$gameId/add-bot', {});
+  Future<void> anyadirBot(String gameId) async {
+    developer.log('Llamando a POST /partidas/$gameId/add-bot', name: 'PartidaRepository');
+    final response = await _api.post('/partidas/$gameId/add-bot', {})
+        .timeout(const Duration(seconds: 5));
+    developer.log('Respuesta add-bot: ${response.statusCode} - Body: ${response.body}', name: 'PartidaRepository');
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return PartidaModel.fromJson(jsonDecode(response.body));
+      final data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        developer.log('Bot añadido con éxito. ID del Bot: ${data['botId']}', name: 'PartidaRepository');
+        return;
+      }
     }
-    throw Exception('Fallo al añadir bot a la partida');
+
+    throw Exception('Fallo al añadir bot. Código: ${response.statusCode}, Error: ${response.body}');
   }
 
 }

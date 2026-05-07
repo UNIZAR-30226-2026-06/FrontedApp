@@ -190,10 +190,8 @@ class TableroView extends StatelessWidget {
                 totalJugadores: totalJugadores,
                 haVotado: partidaVm.yoHeVotadoPausa,
                 onTap: () {
-                  // Si no ha votado todavía, disparamos la función del ViewModel
                   if (!partidaVm.yoHeVotadoPausa) {
-                    // TODO: Descomentar cuando actualicemos el ViewModel
-                    // partidaVm.emitirVotoPausa();
+                    partidaVm.emitirVotoPausa();
                     debugPrint("Votando para pausar...");
                   }
                 },
