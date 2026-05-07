@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/partida_model.dart';
 import '../models/jugador_partida_model.dart';
@@ -16,13 +17,16 @@ class PartidaActualViewModel extends ChangeNotifier {
   bool _isVsIA = false;
   int _maxJugadores = 4;
 
-  // Variables de estado para "PAUSAR"
   int _votosPausa = 0;
   bool _yoHeVotadoPausa = false;
   bool _partidaEstaPausada = false;
+  String? _votanteActualPausa;
 
   int _votosReanudar = 0;
   bool _yoHeVotadoReanudar = false;
+
+  int _segundosTranscurridos = 0;
+  Timer? _cronometro;
 
   String? get error => _error;
   PartidaModel? get partidaActual => _partidaActual;
@@ -33,8 +37,33 @@ class PartidaActualViewModel extends ChangeNotifier {
   int get votosPausa => _votosPausa;
   bool get yoHeVotadoPausa => _yoHeVotadoPausa;
   bool get partidaEstaPausada => _partidaEstaPausada;
+  String? get votanteActualPausa => _votanteActualPausa;
   int get votosReanudar => _votosReanudar;
   bool get yoHeVotadoReanudar => _yoHeVotadoReanudar;
+
+  String get tiempoFormateado {
+    final minutos = (_segundosTranscurridos ~/ 60).toString();
+    final segundos = (_segundosTranscurridos % 60).toString().padLeft(2, '0');
+    return "$minutos:$segundos";
+  }
+
+  void _iniciarCronometro() {
+    _cronometro?.cancel();
+    _cronometro = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _segundosTranscurridos++;
+      notifyListeners();
+    });
+  }
+
+  void _pausarCronometro() {
+    _cronometro?.cancel();
+  }
+
+  @override
+  void dispose() {
+    _cronometro?.cancel();
+    super.dispose();
+  }
 
   void iniciarPartida({bool vsIA = false, int cantidadBots = 0}) {
     if (_partidaActual == null) return;
@@ -64,7 +93,7 @@ class PartidaActualViewModel extends ChangeNotifier {
     _socketService.socket!.off('carta_robada');
     _socketService.socket!.off('game_finished');
     _socketService.socket!.off('voto_pausa_registrado');
-    _socketService.socket!.off('voto_reanudar_registrado'); // 🔥 Nuevo off
+    _socketService.socket!.off('voto_reanudar_registrado');
     _socketService.socket!.off('partida_pausada');
     _socketService.socket!.off('partida_reanudada');
 
@@ -98,6 +127,9 @@ class PartidaActualViewModel extends ChangeNotifier {
               data['modoJuego'] == 'cards' || data['mode'] == 'cards',
           jugadores: jugadoresActualizados,
         );
+
+        _segundosTranscurridos = 0;
+        _iniciarCronometro();
         notifyListeners();
         _refrescarEstadoDesdeServidor();
       }
@@ -107,11 +139,14 @@ class PartidaActualViewModel extends ChangeNotifier {
       _votosPausa = data['votosFavor'] ?? 0;
       final String? jugadorQueVoto = data['jugador'];
 
-      notifyListeners();
-
-      if (jugadorQueVoto != null) {
+      if (jugadorQueVoto != null &&
+          jugadorQueVoto != _partidaActual?.jugadorLocal &&
+          !_yoHeVotadoPausa) {
+        _votanteActualPausa = jugadorQueVoto;
         debugPrint("El jugador $jugadorQueVoto acaba de votar para pausar.");
       }
+
+      notifyListeners();
     });
 
     _socketService.socket!.on('voto_reanudar_registrado', (data) {
@@ -126,20 +161,27 @@ class PartidaActualViewModel extends ChangeNotifier {
     });
 
     _socketService.socket!.on('partida_pausada', (_) {
+      debugPrint("¡Socket notificó PAUSA TOTAL!");
       _partidaEstaPausada = true;
       _votosPausa = 0;
       _yoHeVotadoPausa = false;
       _votosReanudar = 0;
       _yoHeVotadoReanudar = false;
+      _votanteActualPausa = null;
+      _pausarCronometro();
       notifyListeners();
     });
 
     _socketService.socket!.on('partida_reanudada', (_) {
+      debugPrint("¡Socket notificó REANUDACIÓN TOTAL!");
       _partidaEstaPausada = false;
+
       _votosPausa = 0;
       _yoHeVotadoPausa = false;
       _votosReanudar = 0;
       _yoHeVotadoReanudar = false;
+      _iniciarCronometro();
+
       notifyListeners();
     });
 
@@ -282,6 +324,11 @@ class PartidaActualViewModel extends ChangeNotifier {
     _socketService.emitir('robar_carta', {'partidaID': _partidaActual!.gameId});
   }
 
+  void dismissBannerPausa() {
+    _votanteActualPausa = null;
+    notifyListeners();
+  }
+
   void limpiarPartida() {
     if (_socketService.socket != null) {
       _socketService.socket!.off('partida_iniciada');
@@ -293,7 +340,7 @@ class PartidaActualViewModel extends ChangeNotifier {
       _socketService.socket!.off('carta_robada');
       _socketService.socket!.off('game_finished');
       _socketService.socket!.off('voto_pausa_registrado');
-      _socketService.socket!.off('voto_reanudar_registrado'); // Limpieza
+      _socketService.socket!.off('voto_reanudar_registrado');
       _socketService.socket!.off('partida_pausada');
       _socketService.socket!.off('partida_reanudada');
     }
@@ -305,6 +352,10 @@ class PartidaActualViewModel extends ChangeNotifier {
     _yoHeVotadoPausa = false;
     _votosReanudar = 0;
     _yoHeVotadoReanudar = false;
+    _votanteActualPausa = null;
+
+    _pausarCronometro();
+    _segundosTranscurridos = 0;
 
     notifyListeners();
   }
@@ -327,7 +378,6 @@ class PartidaActualViewModel extends ChangeNotifier {
     if (jugadorLocal != null) {
       _partidaActual = _partidaActual!.copyWith(jugadorLocal: jugadorLocal);
     }
-    // Comprueba si la partida esta en pausa
     if (partida.phase == 'paused') {
       _partidaEstaPausada = true;
     }
@@ -364,10 +414,12 @@ class PartidaActualViewModel extends ChangeNotifier {
 
   Future<void> emitirVotoReanudar() async {
     if (_partidaActual == null || _yoHeVotadoReanudar) return;
+
     _yoHeVotadoReanudar = true;
     notifyListeners();
 
     try {
+      debugPrint("Enviando voto para REANUDAR...");
       await _repository.reanudarPartida(_partidaActual!.gameId);
     } catch (e) {
       _yoHeVotadoReanudar = false;

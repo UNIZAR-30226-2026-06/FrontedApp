@@ -9,11 +9,12 @@ class ConfigRolesVsIaViewModel extends ChangeNotifier {
 
   int _jugadores = 2;
   int get jugadores => _jugadores;
+
   bool _cargando = false;
+  bool get cargando => _cargando;
 
   bool _reglasAbiertas = false;
   bool get reglasAbiertas => _reglasAbiertas;
-  bool get cargando => _cargando;
 
   void inc() {
     if (_jugadores < 4) {
@@ -42,6 +43,8 @@ class ConfigRolesVsIaViewModel extends ChangeNotifier {
   }
 
   Future<void> comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm) async {
+    bool navegoConExito = false;
+
     try {
       _cargando = true;
       notifyListeners();
@@ -50,16 +53,15 @@ class ConfigRolesVsIaViewModel extends ChangeNotifier {
         isPrivate: true,
         jugadorLocal: "Jugador Beta",
         maxJugadores: _jugadores,
-      );
-
+      ).timeout(const Duration(seconds: 10));
 
       final int botsASpawnear = _jugadores - 1;
 
+      // 2. Añadir los bots secuencialmente
       for (int i = 0; i < botsASpawnear; i++) {
-        print("Añadiendo bot ${i + 1} de $botsASpawnear...");
+        debugPrint("Añadiendo bot ${i + 1} de $botsASpawnear...");
         await partidaVm.anyadirBot();
       }
-
 
       partidaVm.iniciarPartida(
           vsIA: true,
@@ -67,6 +69,7 @@ class ConfigRolesVsIaViewModel extends ChangeNotifier {
       );
 
       if (context.mounted) {
+        navegoConExito = true;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TableroView()),
@@ -75,9 +78,11 @@ class ConfigRolesVsIaViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("Error al configurar partida IA: $e");
     } finally {
-      if(context.mounted) {
+      if (!navegoConExito) {
         _cargando = false;
-        notifyListeners();
+        try {
+          notifyListeners();
+        } catch (_) {}
       }
     }
   }
