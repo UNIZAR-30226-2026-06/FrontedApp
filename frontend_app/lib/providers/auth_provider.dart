@@ -76,10 +76,18 @@ class AuthProvider with ChangeNotifier {
       final resultados = await Future.wait([
         _repository.obtenerAvataresComprados(),
         _repository.obtenerEstilosComprados(),
+        _repository.obtenerEstilosCompradosDetalle(),
       ]);
+      final estilosDetalle = resultados[2] as List;
+      final estiloActivo = estilosDetalle
+          .where((e) => e.id == _usuario!.idEstiloSeleccionado?.toString())
+          .cast<dynamic>()
+          .firstOrNull;
       _usuario = _usuario!.copyWith(
-        avataresComprados: resultados[0],
-        estilosComprados: resultados[1],
+        avataresComprados: resultados[0] as List<int>,
+        estilosComprados: resultados[1] as List<int>,
+        estiloNombre: estiloActivo?.titulo,
+        estiloImage: estiloActivo?.assetPath,
       );
       notifyListeners();
     } catch (e) {
@@ -94,9 +102,15 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  void registrarCompraExitosa(int idComprado, int nuevoSaldo, {required bool esAvatar}) {
+  void registrarCompraExitosa(
+    int idComprado,
+    int nuevoSaldo, {
+    required bool esAvatar,
+  }) {
     if (_usuario == null) return;
-    final listaActual = esAvatar ? _usuario!.avataresComprados : _usuario!.estilosComprados;
+    final listaActual = esAvatar
+        ? _usuario!.avataresComprados
+        : _usuario!.estilosComprados;
     final nuevaLista = {...listaActual, idComprado}.toList();
     _usuario = esAvatar
         ? _usuario!.copyWith(avataresComprados: nuevaLista)
@@ -113,11 +127,16 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void actualizarEstiloSeleccionado(int estiloId, {String? image}) {
+  void actualizarEstiloSeleccionado(
+    int estiloId, {
+    String? image,
+    String? nombre,
+  }) {
     if (_usuario == null) return;
     _usuario = _usuario!.copyWith(
       idEstiloSeleccionado: estiloId,
       estiloImage: image,
+      estiloNombre: nombre,
     );
     notifyListeners();
   }

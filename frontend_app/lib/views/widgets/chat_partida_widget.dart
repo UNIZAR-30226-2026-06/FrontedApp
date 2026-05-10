@@ -116,11 +116,15 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    final openWidth = screen.width < 700 ? 285.0 : 310.0;
+    final openHeight = screen.height < 520 ? 230.0 : 350.0;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
-      width: _abierto ? 310 : 54,
-      height: _abierto ? 350 : 54,
+      width: _abierto ? openWidth : 54,
+      height: _abierto ? openHeight : 54,
       child: _abierto ? _buildPanel() : _buildClosedButton(),
     );
   }

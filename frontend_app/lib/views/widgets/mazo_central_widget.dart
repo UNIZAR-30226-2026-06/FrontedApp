@@ -5,8 +5,14 @@ import 'carta_widget.dart';
 class MazoCentralWidget extends StatelessWidget {
   final Carta? cartaEnMesa;
   final VoidCallback onRobar;
+  final EstiloCarta estilo;
 
-  const MazoCentralWidget({super.key, this.cartaEnMesa, required this.onRobar});
+  const MazoCentralWidget({
+    super.key,
+    this.cartaEnMesa,
+    required this.onRobar,
+    this.estilo = EstiloCarta.basic,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +34,7 @@ class MazoCentralWidget extends StatelessWidget {
                 ),
               ],
             ),
-            child: const CartaReversoWidget(
-              width: 66,
-              estilo: EstiloCarta.retro,
-            ),
+            child: CartaReversoWidget(width: 66, estilo: estilo),
           ),
         ),
         const SizedBox(width: 36),
@@ -39,7 +42,7 @@ class MazoCentralWidget extends StatelessWidget {
         if (cartaEnMesa != null)
           Transform.rotate(
             angle: 0.15, // Efecto orgánico
-            child: CartaWidget(carta: cartaEnMesa!, width: 76),
+            child: CartaWidget(carta: cartaEnMesa!, width: 76, estilo: estilo),
           )
         else
           // Espacio vacío si no hay carta todavía

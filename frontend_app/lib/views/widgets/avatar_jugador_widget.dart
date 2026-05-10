@@ -5,11 +5,13 @@ import 'carta_widget.dart';
 class AvatarJugadorWidget extends StatefulWidget {
   final JugadorPartidaModel participante;
   final bool esSuTurno;
+  final EstiloCarta estilo;
 
   const AvatarJugadorWidget({
     super.key,
     required this.participante,
     this.esSuTurno = false,
+    this.estilo = EstiloCarta.basic,
   });
 
   @override
@@ -126,7 +128,7 @@ class _AvatarJugadorWidgetState extends State<AvatarJugadorWidget>
               child: Transform.rotate(
                 angle: (i - (visible - 1) / 2) * 0.16,
                 alignment: Alignment.bottomCenter,
-                child: const CartaReversoWidget(width: 34),
+                child: CartaReversoWidget(width: 34, estilo: widget.estilo),
               ),
             ),
           Positioned(

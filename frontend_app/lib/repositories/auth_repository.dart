@@ -3,14 +3,18 @@ import 'package:flutter/foundation.dart';
 
 import '../services/api_service.dart';
 import '../models/usuario_model.dart';
+import '../models/tienda_item_model.dart';
 
 class AuthRepository {
   final ApiService _apiService;
 
   AuthRepository(this._apiService);
 
-  Future<UsuarioModel> register(String username, String email,
-      String password) async {
+  Future<UsuarioModel> register(
+    String username,
+    String email,
+    String password,
+  ) async {
     final response = await _apiService.post('/auth/register', {
       'nombre_usuario': username,
       'correo': email,
@@ -34,12 +38,14 @@ class AuthRepository {
         return UsuarioModel.fromJson(meData, token: token);
       } else {
         throw Exception(
-            'Cuenta creada, pero falló al cargar el perfil o la cartera.');
+          'Cuenta creada, pero falló al cargar el perfil o la cartera.',
+        );
       }
     } else {
       final error = json.decode(response.body);
       throw Exception(
-          error['error'] ?? error['message'] ?? 'Error al registrar usuario');
+        error['error'] ?? error['message'] ?? 'Error al registrar usuario',
+      );
     }
   }
 
@@ -66,12 +72,14 @@ class AuthRepository {
         return UsuarioModel.fromJson(meData, token: token);
       } else {
         throw Exception(
-            'Sesión iniciada, pero falló al descargar el perfil o la cartera.');
+          'Sesión iniciada, pero falló al descargar el perfil o la cartera.',
+        );
       }
     } else {
       final error = json.decode(response.body);
       throw Exception(
-          error['error'] ?? error['message'] ?? 'Error al iniciar sesión');
+        error['error'] ?? error['message'] ?? 'Error al iniciar sesión',
+      );
     }
   }
 
@@ -101,6 +109,34 @@ class AuthRepository {
       return [];
     } catch (e) {
       debugPrint("Error obteniendo estilos comprados: $e");
+      return [];
+    }
+  }
+
+  Future<List<TiendaItem>> obtenerEstilosCompradosDetalle() async {
+    try {
+      final response = await _apiService.get('/usuarios/me/estilos');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((item) {
+          return TiendaItem(
+            id: (item['id_estilo'] ?? item['id'] ?? item['estilo_id'])
+                .toString(),
+            titulo: item['nombre'] ?? '',
+            precio:
+                item['precioestilo'] ??
+                item['precio_estilo'] ??
+                item['precio'] ??
+                0,
+            tipo: TiendaItemTipo.diseno,
+            assetPath: item['image'] ?? item['assetPath'],
+          );
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error obteniendo detalle de estilos comprados: $e");
       return [];
     }
   }

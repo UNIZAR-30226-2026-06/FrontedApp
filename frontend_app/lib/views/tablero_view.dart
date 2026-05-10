@@ -22,6 +22,11 @@ class TableroView extends StatelessWidget {
     final partidaVm = context.watch<PartidaActualViewModel>();
     final auth = context.watch<AuthProvider>();
     final partida = partidaVm.partidaActual;
+    final estiloActivo = estiloCartaDesdeDatos(
+      id: auth.usuario?.idEstiloSeleccionado,
+      nombre: auth.usuario?.estiloNombre,
+      image: auth.usuario?.estiloImage,
+    );
 
     if (partida == null || partida.jugadores.isEmpty) {
       return const Scaffold(
@@ -70,6 +75,7 @@ class TableroView extends StatelessWidget {
                 child: AvatarJugadorWidget(
                   participante: rivales[0],
                   esSuTurno: esTurnoDeRival(rivales[0].id),
+                  estilo: estiloActivo,
                 ),
               ),
 
@@ -82,6 +88,7 @@ class TableroView extends StatelessWidget {
                   child: AvatarJugadorWidget(
                     participante: rivales[1],
                     esSuTurno: esTurnoDeRival(rivales[1].id),
+                    estilo: estiloActivo,
                   ),
                 ),
               ),
@@ -93,6 +100,7 @@ class TableroView extends StatelessWidget {
                 child: AvatarJugadorWidget(
                   participante: rivales[2],
                   esSuTurno: esTurnoDeRival(rivales[2].id),
+                  estilo: estiloActivo,
                 ),
               ),
 
@@ -103,6 +111,7 @@ class TableroView extends StatelessWidget {
                     ? Carta.fromJson(partida.currentCard)
                     : null,
                 onRobar: esMiTurno ? () => vm.robarCarta() : () {},
+                estilo: estiloActivo,
               ),
             ),
 
@@ -130,7 +139,12 @@ class TableroView extends StatelessWidget {
                     ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 30),
-                    child: _buildManoJugador(miJugador, esMiTurno, vm),
+                    child: _buildManoJugador(
+                      miJugador,
+                      esMiTurno,
+                      vm,
+                      estiloActivo,
+                    ),
                   ),
                 ],
               ),
@@ -138,7 +152,7 @@ class TableroView extends StatelessWidget {
 
             Positioned(
               right: 16,
-              bottom: 156,
+              bottom: 22,
               child: SafeArea(
                 child: ChatPartidaWidget(
                   partidaId: partida.gameId,
@@ -168,6 +182,7 @@ class TableroView extends StatelessWidget {
     JugadorPartidaModel? miJugador,
     bool esMiTurno,
     TableroViewModel vm,
+    EstiloCarta estilo,
   ) {
     final cartas = (miJugador?.hand ?? [])
         .whereType<Map<String, dynamic>>()
@@ -197,6 +212,7 @@ class TableroView extends StatelessWidget {
                       child: CartaWidget(
                         carta: carta,
                         width: 78,
+                        estilo: estilo,
                         onTap: esMiTurno
                             ? () => vm.intentarTirarCarta(carta.id)
                             : null,

@@ -8,6 +8,7 @@ class UsuarioModel {
   final int? idEstiloSeleccionado;
   final String? avatarImage;
   final String? estiloImage;
+  final String? estiloNombre;
   final String? token;
   final List<int> avataresComprados;
   final List<int> estilosComprados;
@@ -22,6 +23,7 @@ class UsuarioModel {
     this.idEstiloSeleccionado,
     this.avatarImage,
     this.estiloImage,
+    this.estiloNombre,
     this.token,
     this.avataresComprados = const [],
     this.estilosComprados = const [],
@@ -38,6 +40,7 @@ class UsuarioModel {
     int? idEstiloSeleccionado,
     String? avatarImage,
     String? estiloImage,
+    String? estiloNombre,
     String? token,
     List<int>? avataresComprados,
     List<int>? estilosComprados,
@@ -52,6 +55,7 @@ class UsuarioModel {
       idEstiloSeleccionado: idEstiloSeleccionado ?? this.idEstiloSeleccionado,
       avatarImage: avatarImage ?? this.avatarImage,
       estiloImage: estiloImage ?? this.estiloImage,
+      estiloNombre: estiloNombre ?? this.estiloNombre,
       token: token ?? this.token,
       avataresComprados: avataresComprados ?? this.avataresComprados,
       estilosComprados: estilosComprados ?? this.estilosComprados,
@@ -67,15 +71,19 @@ class UsuarioModel {
       totalPartidas: json['total_partidas'] ?? 0,
       idAvatarSeleccionado: json['id_avatar_seleccionado'] ?? json['avatar'],
       idEstiloSeleccionado: json['id_estilo_seleccionado'] ?? json['estilo'],
-      avatarImage: json['avatar_image'] ?? json['imagen_avatar'] ?? json['image_avatar'],
-      estiloImage: json['estilo_image'] ?? json['imagen_estilo'] ?? json['image_estilo'],
+      avatarImage:
+          json['avatar_image'] ?? json['imagen_avatar'] ?? json['image_avatar'],
+      estiloImage:
+          json['estilo_image'] ?? json['imagen_estilo'] ?? json['image_estilo'],
+      estiloNombre:
+          json['estilo_nombre'] ?? json['nombre_estilo'] ?? json['style_name'],
       token: token,
       avataresComprados: json['avatares_comprados'] != null
           ? List<int>.from(json['avatares_comprados'])
           : [],
       estilosComprados: json['estilos_comprados'] != null
-        ? List<int>.from(json['estilos_comprados'])
-          : []
+          ? List<int>.from(json['estilos_comprados'])
+          : [],
     );
   }
 
@@ -87,12 +95,13 @@ class UsuarioModel {
       'id_avatar_seleccionado': idAvatarSeleccionado,
       'id_estilo_seleccionado': idEstiloSeleccionado,
       'avatares_comprados': avataresComprados,
-      'estilos_comprados' : estilosComprados,
+      'estilos_comprados': estilosComprados,
       if (password != null) 'password': password,
     };
   }
 
   //Tengo mis dudas si modificar los datos devueltos
   @override
-  String toString() => 'Usuario(nombre: $nombreUsuario, correo: $correo, monedas: $monedas)';
+  String toString() =>
+      'Usuario(nombre: $nombreUsuario, correo: $correo, monedas: $monedas)';
 }

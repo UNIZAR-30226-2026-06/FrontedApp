@@ -31,12 +31,12 @@ class _PerfilViewState extends State<PerfilView> {
       jugadorInicial: usuario == null
           ? null
           : Jugador(
-        nombre: usuario.nombreUsuario,
-        correo: usuario.correo,
-        coins: usuario.monedas,
-        avatarId: usuario.idAvatarSeleccionado?.toString() ?? '0',
-        skinId: usuario.idEstiloSeleccionado?.toString() ?? '1',
-      ),
+              nombre: usuario.nombreUsuario,
+              correo: usuario.correo,
+              coins: usuario.monedas,
+              avatarId: usuario.idAvatarSeleccionado?.toString() ?? '0',
+              skinId: usuario.idEstiloSeleccionado?.toString() ?? '1',
+            ),
       repo: UserRepository(apiService),
     );
   }
@@ -54,27 +54,45 @@ class _PerfilViewState extends State<PerfilView> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF3A4288),
-          title: const Text('Cambiar nombre', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Cambiar nombre',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           content: TextField(
             controller: controller,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
               hintText: 'Nuevo nombre',
               hintStyle: TextStyle(color: Colors.white38),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFF4C542))),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white24),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFFF4C542)),
+              ),
             ),
             autofocus: true,
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar', style: TextStyle(color: Colors.white70))
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF4C542)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF4C542),
+              ),
               onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('Guardar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Guardar',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -106,6 +124,7 @@ class _PerfilViewState extends State<PerfilView> {
       context.read<AuthProvider>().actualizarEstiloSeleccionado(
         int.tryParse(skin.id) ?? 0,
         image: skin.assetPath,
+        nombre: skin.nombre,
       );
     } catch (e) {
       if (!mounted) return;
@@ -129,7 +148,10 @@ class _PerfilViewState extends State<PerfilView> {
             return Padding(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               child: Container(
-                decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(22)),
+                decoration: BoxDecoration(
+                  color: panel,
+                  borderRadius: BorderRadius.circular(22),
+                ),
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 child: Column(
                   children: [
@@ -145,16 +167,27 @@ class _PerfilViewState extends State<PerfilView> {
                                 child: Text(
                                   vm.nombre,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              _HoverIconButton(icon: Icons.edit, onTap: _editarNombre, size: 34),
+                              _HoverIconButton(
+                                icon: Icons.edit,
+                                onTap: _editarNombre,
+                                size: 34,
+                              ),
                             ],
                           ),
                         ),
                         _AnimatedBackPill(
-                          onTap: () => Navigator.pop(context, vm.buildJugadorActualizado()),
+                          onTap: () => Navigator.pop(
+                            context,
+                            vm.buildJugadorActualizado(),
+                          ),
                         ),
                       ],
                     ),
@@ -170,7 +203,13 @@ class _PerfilViewState extends State<PerfilView> {
                           children: [
                             const Icon(Icons.attach_money, size: 16),
                             const SizedBox(width: 4),
-                            Text('${vm.coins} Monedas', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            Text(
+                              '${vm.coins} Monedas',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -186,11 +225,32 @@ class _PerfilViewState extends State<PerfilView> {
                             // STATS
                             Row(
                               children: [
-                                Expanded(child: _AnimatedStatCard(icon: Icons.emoji_events, value: '0', label: 'Victorias', color: Colors.orange)),
+                                Expanded(
+                                  child: _AnimatedStatCard(
+                                    icon: Icons.emoji_events,
+                                    value: '0',
+                                    label: 'Victorias',
+                                    color: Colors.orange,
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
-                                Expanded(child: _AnimatedStatCard(icon: Icons.star_border, value: '0', label: 'Partidas', color: Colors.blue)),
+                                Expanded(
+                                  child: _AnimatedStatCard(
+                                    icon: Icons.star_border,
+                                    value: '0',
+                                    label: 'Partidas',
+                                    color: Colors.blue,
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
-                                Expanded(child: _AnimatedStatCard(icon: Icons.group, value: '1', label: 'Amigos', color: Colors.green)),
+                                Expanded(
+                                  child: _AnimatedStatCard(
+                                    icon: Icons.group,
+                                    value: '1',
+                                    label: 'Amigos',
+                                    color: Colors.green,
+                                  ),
+                                ),
                               ],
                             ),
 
@@ -201,16 +261,22 @@ class _PerfilViewState extends State<PerfilView> {
                             if (vm.isLoading)
                               const Padding(
                                 padding: EdgeInsets.only(bottom: 10),
-                                child: LinearProgressIndicator(color: Color(0xFFF4C542)),
+                                child: LinearProgressIndicator(
+                                  color: Color(0xFFF4C542),
+                                ),
                               ),
                             if (!vm.isLoading && vm.avatars.isEmpty)
-                              const Text('No tienes avatares.', style: TextStyle(color: Colors.white54)),
+                              const Text(
+                                'No tienes avatares.',
+                                style: TextStyle(color: Colors.white54),
+                              ),
                             SizedBox(
                               height: 56,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 itemCount: vm.avatars.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 10),
                                 itemBuilder: (context, i) {
                                   final a = vm.avatars[i];
                                   return _AnimatedSelectTile(
@@ -218,7 +284,11 @@ class _PerfilViewState extends State<PerfilView> {
                                     onTap: () {
                                       _seleccionarAvatar(a);
                                     },
-                                    child: _AssetOrEmoji(assetPath: a.assetPath, emoji: a.emoji, size: 34),
+                                    child: _AssetOrEmoji(
+                                      assetPath: a.assetPath,
+                                      emoji: a.emoji,
+                                      size: 34,
+                                    ),
                                   );
                                 },
                               ),
@@ -231,15 +301,21 @@ class _PerfilViewState extends State<PerfilView> {
                             if (vm.isLoading)
                               const Padding(
                                 padding: EdgeInsets.only(bottom: 10),
-                                child: LinearProgressIndicator(color: Color(0xFFF4C542)),
+                                child: LinearProgressIndicator(
+                                  color: Color(0xFFF4C542),
+                                ),
                               ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 60),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 60,
+                              ),
                               child: Row(
                                 children: vm.skins.map((s) {
                                   return Expanded(
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
                                       child: _AnimatedSelectTile(
                                         selected: s.id == vm.skinSeleccionadoId,
                                         onTap: () {
@@ -247,15 +323,25 @@ class _PerfilViewState extends State<PerfilView> {
                                         },
                                         height: 42,
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
-                                            _AssetOrEmoji(assetPath: s.assetPath, emoji: s.emoji, size: 22, baseFolder: 'shop'),
+                                            _AssetOrEmoji(
+                                              assetPath: s.assetPath,
+                                              emoji: s.emoji,
+                                              size: 22,
+                                              baseFolder: 'shop',
+                                            ),
                                             const SizedBox(width: 6),
                                             Flexible(
                                               child: Text(
-                                                  s.nombre,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)
+                                                s.nombre,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 11,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -284,7 +370,14 @@ class _PerfilViewState extends State<PerfilView> {
   Widget _sectionTitle(String title) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 15,
+        ),
+      ),
     );
   }
 }
@@ -307,7 +400,10 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
     const activeBlue = Color(0xFF3A6BFF);
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
         duration: Duration.zero,
@@ -319,11 +415,13 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
             color: _isPressed ? activeBlue : const Color(0xFF263064),
             borderRadius: BorderRadius.circular(15),
             boxShadow: _isPressed
-                ? [BoxShadow(
-                color: activeBlue.withOpacity(0.7),
-                blurRadius: 15,
-                spreadRadius: 4
-            )]
+                ? [
+                    BoxShadow(
+                      color: activeBlue.withOpacity(0.7),
+                      blurRadius: 15,
+                      spreadRadius: 4,
+                    ),
+                  ]
                 : [],
           ),
           child: Row(
@@ -331,7 +429,14 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
             children: const [
               Icon(Icons.arrow_back, color: Colors.white, size: 18),
               SizedBox(width: 6),
-              Text('Volver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+              Text(
+                'Volver',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
         ),
@@ -345,7 +450,12 @@ class _AnimatedSelectTile extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
   final double height;
-  const _AnimatedSelectTile({required this.selected, required this.child, required this.onTap, this.height = 56});
+  const _AnimatedSelectTile({
+    required this.selected,
+    required this.child,
+    required this.onTap,
+    this.height = 56,
+  });
 
   @override
   State<_AnimatedSelectTile> createState() => _AnimatedSelectTileState();
@@ -358,7 +468,10 @@ class _AnimatedSelectTileState extends State<_AnimatedSelectTile> {
     const gold = Color(0xFFF4C542);
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
         duration: Duration.zero,
@@ -370,9 +483,18 @@ class _AnimatedSelectTileState extends State<_AnimatedSelectTile> {
           decoration: BoxDecoration(
             color: const Color(0xFF2A316B),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: widget.selected ? gold : Colors.transparent, width: 2.5),
+            border: Border.all(
+              color: widget.selected ? gold : Colors.transparent,
+              width: 2.5,
+            ),
             boxShadow: (widget.selected || _isPressed)
-                ? [BoxShadow(color: gold.withOpacity(0.7), blurRadius: 12, spreadRadius: 2)]
+                ? [
+                    BoxShadow(
+                      color: gold.withOpacity(0.7),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ]
                 : [],
           ),
           child: Center(child: widget.child),
@@ -383,8 +505,16 @@ class _AnimatedSelectTileState extends State<_AnimatedSelectTile> {
 }
 
 class _AnimatedStatCard extends StatefulWidget {
-  final IconData icon; final String value; final String label; final Color color;
-  const _AnimatedStatCard({required this.icon, required this.value, required this.label, required this.color});
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+  const _AnimatedStatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
   @override
   State<_AnimatedStatCard> createState() => _AnimatedStatCardState();
 }
@@ -405,15 +535,41 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard> {
           decoration: BoxDecoration(
             color: const Color(0xFF2A316B),
             borderRadius: BorderRadius.circular(18),
-            boxShadow: _isPressed ? [BoxShadow(color: widget.color.withOpacity(0.7), blurRadius: 12, spreadRadius: 2)] : [],
+            boxShadow: _isPressed
+                ? [
+                    BoxShadow(
+                      color: widget.color.withOpacity(0.7),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : [],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(widget.icon, color: _isPressed ? widget.color : Colors.white70, size: 20),
+              Icon(
+                widget.icon,
+                color: _isPressed ? widget.color : Colors.white70,
+                size: 20,
+              ),
               const SizedBox(height: 4),
-              Text(widget.value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)),
-              Text(widget.label, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 10)),
+              Text(
+                widget.value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                widget.label,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10,
+                ),
+              ),
             ],
           ),
         ),
@@ -423,8 +579,14 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard> {
 }
 
 class _HoverIconButton extends StatefulWidget {
-  final IconData icon; final VoidCallback onTap; final double size;
-  const _HoverIconButton({required this.icon, required this.onTap, this.size = 34});
+  final IconData icon;
+  final VoidCallback onTap;
+  final double size;
+  const _HoverIconButton({
+    required this.icon,
+    required this.onTap,
+    this.size = 34,
+  });
   @override
   State<_HoverIconButton> createState() => _HoverIconButtonState();
 }
@@ -435,20 +597,32 @@ class _HoverIconButtonState extends State<_HoverIconButton> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
         duration: Duration.zero,
         scale: _isPressed ? 1.1 : 1.0,
         child: AnimatedContainer(
           duration: Duration.zero,
-          width: widget.size, height: widget.size,
+          width: widget.size,
+          height: widget.size,
           decoration: BoxDecoration(
-            color: _isPressed ? const Color(0xFF3A4288) : const Color(0xFF263064),
+            color: _isPressed
+                ? const Color(0xFF3A4288)
+                : const Color(0xFF263064),
             borderRadius: BorderRadius.circular(10),
-            boxShadow: _isPressed ? [BoxShadow(color: Colors.white10, blurRadius: 10)] : [],
+            boxShadow: _isPressed
+                ? [BoxShadow(color: Colors.white10, blurRadius: 10)]
+                : [],
           ),
-          child: Icon(widget.icon, color: _isPressed ? Colors.white : Colors.white70, size: 16),
+          child: Icon(
+            widget.icon,
+            color: _isPressed ? Colors.white : Colors.white70,
+            size: 16,
+          ),
         ),
       ),
     );
@@ -456,21 +630,40 @@ class _HoverIconButtonState extends State<_HoverIconButton> {
 }
 
 class _AvatarCircle extends StatelessWidget {
-  final AvatarItem item; const _AvatarCircle({required this.item});
+  final AvatarItem item;
+  const _AvatarCircle({required this.item});
   @override
   Widget build(BuildContext context) => Container(
     width: 42,
     height: 42,
-    decoration: const BoxDecoration(color: Color(0xFF263064), shape: BoxShape.circle),
+    decoration: const BoxDecoration(
+      color: Color(0xFF263064),
+      shape: BoxShape.circle,
+    ),
     clipBehavior: Clip.antiAlias,
-    child: Center(child: _AssetOrEmoji(assetPath: item.assetPath, emoji: item.emoji, size: 32)),
+    child: Center(
+      child: _AssetOrEmoji(
+        assetPath: item.assetPath,
+        emoji: item.emoji,
+        size: 32,
+      ),
+    ),
   );
 }
 
 class _StaticPill extends StatelessWidget {
-  final Widget child; final Color color; const _StaticPill({required this.child, required this.color});
+  final Widget child;
+  final Color color;
+  const _StaticPill({required this.child, required this.color});
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)), child: child);
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: child,
+  );
 }
 
 class _AssetOrEmoji extends StatelessWidget {
@@ -495,12 +688,13 @@ class _AssetOrEmoji extends StatelessWidget {
 
     final image = path.startsWith('http')
         ? Image.network(
-      path,
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Text(emoji, style: TextStyle(fontSize: size * 0.75)),
-    )
+            path,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                Text(emoji, style: TextStyle(fontSize: size * 0.75)),
+          )
         : null;
 
     if (image != null) return image;
@@ -514,7 +708,8 @@ class _AssetOrEmoji extends StatelessWidget {
       width: size,
       height: size,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Text(emoji, style: TextStyle(fontSize: size * 0.75)),
+      errorBuilder: (_, __, ___) =>
+          Text(emoji, style: TextStyle(fontSize: size * 0.75)),
     );
   }
 }

@@ -5,6 +5,25 @@ import '../../models/carta_model.dart';
 
 enum EstiloCarta { basic, neon, gold, retro }
 
+EstiloCarta estiloCartaDesdeDatos({int? id, String? nombre, String? image}) {
+  final raw = '${nombre ?? ''} ${image ?? ''}'.toLowerCase();
+  if (raw.contains('neon')) return EstiloCarta.neon;
+  if (raw.contains('gold') || raw.contains('dorado')) return EstiloCarta.gold;
+  if (raw.contains('retro')) return EstiloCarta.retro;
+  if (raw.contains('classic') ||
+      raw.contains('clasico') ||
+      raw.contains('clásico')) {
+    return EstiloCarta.basic;
+  }
+
+  return switch (id) {
+    2 => EstiloCarta.neon,
+    3 => EstiloCarta.gold,
+    4 => EstiloCarta.retro,
+    _ => EstiloCarta.basic,
+  };
+}
+
 class CartaWidget extends StatefulWidget {
   final Carta carta;
   final VoidCallback? onTap;
