@@ -19,8 +19,12 @@ class JugadorPartidaModel {
 
   factory JugadorPartidaModel.fromJson(Map<String, dynamic> json) {
     final rawHand = json['hand'];
+    // Soportamos ambos formatos: `id` (state endpoint) y `nombre_usuario`
+    // (lobby endpoint del backend del compañero).
+    final id =
+        json['id']?.toString() ?? json['nombre_usuario']?.toString() ?? '';
     return JugadorPartidaModel(
-      id: json['id']?.toString() ?? '',
+      id: id,
       hand: rawHand is List
           ? rawHand
           : List.filled((rawHand as int?) ?? 0, null),

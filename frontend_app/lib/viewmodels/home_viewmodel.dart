@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/jugador_model.dart';
 import '../repositories/user_repository.dart';
+import '../repositories/partida_repository.dart';
 import '../views/tienda_view.dart';
 import '../views/perfil_view.dart';
 import '../views/amigos_view.dart';
@@ -8,9 +9,11 @@ import '../views/partida_personalizada_view.dart';
 import '../views/seleccion_roles_view.dart';
 import '../views/seleccion_cartas_view.dart';
 import '../views/partidas_pausadas_view.dart';
+import '../services/api_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final UserRepository? _userRepo;
+  late final PartidaRepository _partidaRepo;
 
   HomeViewModel({Jugador? jugadorInicial, UserRepository? userRepo})
       : _userRepo = userRepo,
@@ -20,13 +23,28 @@ class HomeViewModel extends ChangeNotifier {
               coins: 0,
               avatarId: 'a1',
               skinId: 's1',
-            );
+            ) {
+    _partidaRepo = PartidaRepository(ApiService());
+  }
 
   Jugador _jugador;
   Jugador get jugador => _jugador;
 
   int _bottomIndex = -1;
   int get bottomIndex => _bottomIndex;
+
+  // Variable para el contador
+  int cantidadPausadas = 0;
+
+  Future<void> cargarCantidadPausadas() async {
+    try {
+      final partidas = await _partidaRepo.obtenerPartidasPausadas();
+      cantidadPausadas = partidas.length;
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error contando pausadas: $e");
+    }
+  }
 
   Future<void> setJugador(Jugador nuevo) async {
     _jugador = nuevo;

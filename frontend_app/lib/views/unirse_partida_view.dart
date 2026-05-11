@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 import '../viewmodels/unirse_partida_viewmodel.dart';
 import 'sala_espera_view.dart';
@@ -146,8 +147,9 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                             _AnimatedGreenButton(
                               label: 'Unirse partida',
                               onTap: () async {
+                                final jugadorLocal = context.read<AuthProvider>().usuario?.nombreUsuario;
                                 try {
-                                  await vm.unirse();
+                                  await vm.unirse(jugadorLocal: jugadorLocal);
                                   if (context.mounted) {
                                     Navigator.pushReplacement(
                                       context,

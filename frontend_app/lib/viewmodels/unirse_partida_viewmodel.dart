@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/jugador_model.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 
 class UnirsePartidaViewModel extends ChangeNotifier {
@@ -27,21 +26,14 @@ class UnirsePartidaViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  final miPerfil = Jugador(
-    nombre: "Jugador Beta",
-    coins: 100,
-    avatarId: "user_avatar",
-    skinId: "default",
-  );
-
-  Future<void> unirse() async {
+  Future<void> unirse({String? jugadorLocal}) async {
     _mensajeError = null;
     notifyListeners();
 
     try {
       await _partidaActualViewModel.unirsePorCodigo(
         _codigo,
-        jugadorLocal: miPerfil.nombre,
+        jugadorLocal: jugadorLocal,
       );
     } catch (e) {
       if (e.toString().contains('column "codigo" does not exist')) {

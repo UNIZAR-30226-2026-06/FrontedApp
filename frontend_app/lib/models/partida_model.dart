@@ -8,11 +8,17 @@ class PartidaModel {
 
   final String phase;
   final List<JugadorPartidaModel> jugadores;
-  final int currentTurn;
+
+  final String? currentTurn;
+
   final int direction;
   final dynamic currentCard;
   final bool rolesMode;
   final bool specialCardsMode;
+  final int maxJugadores;
+  final int drawCount;
+  final List<String> resumeVoters;
+  final List<String> pauseVoters;
 
   PartidaModel({
     required this.gameId,
@@ -21,72 +27,63 @@ class PartidaModel {
     this.jugadorLocal,
     this.phase = 'waiting',
     this.jugadores = const [],
-    this.currentTurn = 0,
+    this.currentTurn, // 🔥
     this.direction = 1,
     this.currentCard,
     this.rolesMode = false,
     this.specialCardsMode = false,
+    this.maxJugadores = 4,
+    this.drawCount = 0,
+    this.resumeVoters = const [],
+    this.pauseVoters = const [],
   });
 
   factory PartidaModel.fromJson(Map<String, dynamic> json) {
     final rawPlayers = json['players'] ?? json['jugadores'];
-    final players =
-        (rawPlayers as List?)
-            ?.map(
-              (p) => p is Map<String, dynamic>
-                  ? JugadorPartidaModel.fromJson(p)
-                  : JugadorPartidaModel(id: p.toString()),
-            )
-            .toList() ??
-        [];
+    final players = (rawPlayers as List?)?.map((p) {
+      if (p is Map<String, dynamic>) return JugadorPartidaModel.fromJson(p);
+      return JugadorPartidaModel(id: p.toString());
+    }).toList() ?? [];
 
-    final rawTurn = json['currentTurn'];
-    int currentTurnIndex = 0;
-    if (rawTurn is int) {
-      currentTurnIndex = rawTurn;
-    } else if (rawTurn != null) {
-      final idx = players.indexWhere((p) => p.id == rawTurn.toString());
-      currentTurnIndex = idx < 0 ? 0 : idx;
+    final rawTurn = json['currentTurn']?.toString();
+
+    dynamic rawCard = json['discardTop'] ?? json['currentCard'];
+    dynamic processedCard;
+
+    if (rawCard is String && rawCard.contains('_')) {
+      final partes = rawCard.split('_');
+      processedCard = {
+        'id': rawCard,
+        'color': partes[0],
+        'valor': partes[1],
+      };
+    } else {
+      processedCard = rawCard;
     }
 
     return PartidaModel(
-      gameId: (json['id_partida'] ?? json['gameId'] ?? json['id'] ?? '')
-          .toString(),
+      gameId: (json['gameId'] ?? json['id_partida'] ?? '').toString(),
       code: (json['codigo'] ?? json['code'])?.toString(),
-
-      isPrivate:
-          json['partida_publica'] == false ||
-          json['isPrivate'] == true ||
-          json['private'] == true ||
-          json['visibility'] == 'private',
-
+      isPrivate: json['codigo'] != null || json['isPrivate'] == true,
       jugadorLocal: json['jugadorLocal']?.toString(),
-
-      phase:
-          json['phase']?.toString() ?? json['estado']?.toString() ?? 'waiting',
-
+      phase: _normalizarFase(json['phase']?.toString() ?? json['estado']?.toString() ?? 'waiting'),
       jugadores: players,
-      currentTurn: currentTurnIndex,
-      direction: json['direction'] ?? 1,
-      currentCard: json['currentCard'] ?? json['discardTop'],
-      rolesMode: json['modo_roles'] ?? json['rolesMode'] ?? false,
-      specialCardsMode:
-          json['modo_cartas_especiales'] ?? json['specialCardsMode'] ?? false,
+
+      currentTurn: rawTurn,
+
+      currentCard: processedCard,
+      maxJugadores: (json['maxJugadores'] ?? json['max_jugadores'] ?? json['max_jugadores_partida'] ?? 4) as int,
+      drawCount: (json['drawCount'] as int?) ?? 0,
+      resumeVoters: json['resumeVoters'] is List ? List<String>.from(json['resumeVoters']) : const [],
+      pauseVoters: json['pauseVoters'] is List ? List<String>.from(json['pauseVoters']) : const [],
     );
   }
 
   PartidaModel copyWith({
-    String? gameId,
-    String? code,
-    bool? isPrivate,
-    String? jugadorLocal,
-    String? phase,
-    List<JugadorPartidaModel>? jugadores,
-    int? currentTurn,
-    int? direction,
-    dynamic currentCard,
-    bool? rolesMode,
-    bool? specialCardsMode,
+    String? gameId, String? code, bool? isPrivate, String? jugadorLocal,
+    String? phase, List<JugadorPartidaModel>? jugadores, String? currentTurn,
+    int? direction, dynamic currentCard, bool? rolesMode, bool? specialCardsMode,
+    int? maxJugadores, int? drawCount, List<String>? resumeVoters, List<String>? pauseVoters,
   }) {
     return PartidaModel(
       gameId: gameId ?? this.gameId,
@@ -100,12 +97,34 @@ class PartidaModel {
       currentCard: currentCard ?? this.currentCard,
       rolesMode: rolesMode ?? this.rolesMode,
       specialCardsMode: specialCardsMode ?? this.specialCardsMode,
+      maxJugadores: maxJugadores ?? this.maxJugadores,
+      drawCount: drawCount ?? this.drawCount,
+      resumeVoters: resumeVoters ?? this.resumeVoters,
+      pauseVoters: pauseVoters ?? this.pauseVoters,
     );
   }
 
   bool esMiTurno(String miIdUsuario) {
-    if (jugadores.isEmpty) return false;
-    final jugadorActual = jugadores[currentTurn % jugadores.length];
-    return jugadorActual.id == miIdUsuario;
+    if (currentTurn == null) return false;
+    return currentTurn == miIdUsuario;
+  }
+
+  static String _normalizarFase(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'esperando_jugadores':
+      case 'waiting':
+        return 'waiting';
+      case 'en_curso':
+      case 'playing':
+        return 'playing';
+      case 'pausada':
+      case 'paused':
+        return 'paused';
+      case 'finalizada':
+      case 'finished':
+        return 'finished';
+      default:
+        return raw;
+    }
   }
 }

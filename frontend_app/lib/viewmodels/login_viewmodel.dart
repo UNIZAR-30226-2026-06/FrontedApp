@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/socket_service.dart';
 
 class LoginViewModel extends ChangeNotifier {
   // Quitamos la instancia manual del repositorio, usaremos el Provider
@@ -27,18 +28,19 @@ class LoginViewModel extends ChangeNotifier {
     _setLoading(true);
 
     try {
-      // LLAMADA REAL AL BACKEND
-      // Nota: nombreController aquí actúa como el campo de Email/Usuario
+
       await authProvider.login(email, password);
 
       if (context.mounted) {
+        final socketService = Provider.of<SocketService>(context, listen: false);
+        final String token = authProvider.token ?? '';
+        socketService.connect(token);
+
         _mostrarSnackBar(context, "¡Bienvenido de nuevo!", esError: false);
-        // Navegamos al Home y limpiamos el historial para que no pueda volver atrás al login
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
       if (context.mounted) {
-        // Si el backend devuelve 401, el error dirá algo como "Invalid credentials"
         String mensaje = e.toString().replaceAll('Exception: ', '');
         if (mensaje.contains("401")) mensaje = "Usuario o contraseña incorrectos";
 

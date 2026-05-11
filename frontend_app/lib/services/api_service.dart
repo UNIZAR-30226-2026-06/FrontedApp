@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
+  // 10.0.2.2 = host machine desde emulador Android.
+  // Para volver a Render: "https://backend-i797.onrender.com/api/v1"
   final String baseUrl = "https://backend-i797.onrender.com/api/v1";
   String? _token;
 

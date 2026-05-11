@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import '../viewmodels/config_roles_multijugador_viewmodel.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 
@@ -154,11 +155,11 @@ class _ConfigRolesMultijugadorViewState
                                 ),
                                 const SizedBox(height: 20),
                                 _AnimatedGreenButton(
-                                  // Cambiamos el texto dinámicamente si está cargando
                                   label: vm.isCreating ? 'Creando sala...' : 'Comenzar partida',
                                   onTap: () {
                                     if (!vm.isCreating) {
-                                      vm.comenzarPartida(context, partidaVm);
+                                      final jugadorLocal = context.read<AuthProvider>().usuario?.nombreUsuario;
+                                      vm.comenzarPartida(context, partidaVm, jugadorLocal);
                                     }
                                   },
                                 ),
@@ -195,10 +196,6 @@ class _ConfigRolesMultijugadorViewState
     );
   }
 }
-
-// ---------------------------------------------------------
-// COMPONENTES REFACTORIZADOS (0ms / Brillo 0.7)
-// ---------------------------------------------------------
 
 class _AnimatedSquareBtn extends StatefulWidget {
   final String label;

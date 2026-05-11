@@ -35,17 +35,30 @@ class PartidasPausadasViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> reanudarPartida(BuildContext context, String gameId, PartidaActualViewModel partidaActualVm) async {
+  Future<void> reanudarPartida(
+    BuildContext context,
+    String gameId,
+    PartidaActualViewModel partidaActualVm,
+  ) async {
     try {
-      final partida = await _repository.reanudarPartida(gameId);
+      final partidaFresh = await _repository.obtenerPartida(gameId);
 
-      // 2. Actualizamos el ViewModel global con la partida recuperada
-      // OJO: Tendrás que asegurarte de que tienes un método similar a este en tu PartidaActualViewModel
-      // para sobreescribir la partida actual y reactivar los sockets.
-      partidaActualVm.setPartidaActual(partida);
+      final original = _partidas.firstWhere(
+        (p) => p.gameId == gameId,
+        orElse: () => partidaFresh,
+      );
+      final partida = partidaFresh.copyWith(
+        isPrivate: original.isPrivate,
+        code: original.code,
+      );
 
-      // 3. Navegamos al tablero de forma limpia
+      partidaActualVm.setPartidaActual(
+        partida,
+        jugadorLocal: miPerfil.nombre,
+      );
+
       if (context.mounted) {
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const TableroView()),
@@ -53,7 +66,6 @@ class PartidasPausadasViewModel extends ChangeNotifier {
       }
     } catch (e) {
       _error = "No se pudo reanudar: ${e.toString()}";
-      // is Loading = false; (si teníais un _isLoading, no olvides ponerlo en false aquí)
       notifyListeners();
     }
   }

@@ -22,6 +22,10 @@ class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     vm = HomeViewModel();
+
+    // 🔥 Pedimos el número real al backend nada más entrar
+    vm.cargarCantidadPausadas();
+
     _pageController = PageController(
       viewportFraction: 0.55,
       initialPage: _kLoopBase,
@@ -54,7 +58,6 @@ class _HomeViewState extends State<HomeView> {
     const panel = Color(0xFF3A4288);
     const card = Color(0xFF2A316B);
 
-    // ESCUCHAMOS AL AUTHPROVIDER PARA LAS MONEDAS REALES
     final usuario = context.watch<AuthProvider>().usuario;
 
     final modes = <Widget>[
@@ -96,7 +99,7 @@ class _HomeViewState extends State<HomeView> {
         title: 'Pausadas',
         icon: Icons.save,
         description: 'Reanuda tus partidas privadas.',
-        buttonLabel: 'Reanudar (0)',
+        buttonLabel: 'Reanudar (${vm.cantidadPausadas})',
         buttonColor: const Color(0xFF2F6BFF),
         onTap: () => vm.onTapAction(context, 'pausadas_abrir'),
       ),
@@ -214,19 +217,19 @@ class _AvatarBubble extends StatelessWidget {
     if (path != null && path.isNotEmpty) {
       child = path.startsWith('http')
           ? Image.network(
-              path,
-              width: 32,
-              height: 32,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Text(emoji, style: const TextStyle(fontSize: 22)),
-            )
+        path,
+        width: 32,
+        height: 32,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Text(emoji, style: const TextStyle(fontSize: 22)),
+      )
           : Image.asset(
-              path.startsWith('assets/') ? path : 'assets/images/avatares/$path',
-              width: 32,
-              height: 32,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Text(emoji, style: const TextStyle(fontSize: 22)),
-            );
+        path.startsWith('assets/') ? path : 'assets/images/avatares/$path',
+        width: 32,
+        height: 32,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Text(emoji, style: const TextStyle(fontSize: 22)),
+      );
     }
 
     return Container(

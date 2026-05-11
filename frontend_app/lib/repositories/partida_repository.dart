@@ -3,6 +3,28 @@ import 'dart:developer' as developer;
 import '../models/partida_model.dart';
 import '../services/api_service.dart';
 
+class PartidaNoEncontradaException implements Exception {
+  final String message;
+  PartidaNoEncontradaException([this.message = 'Partida no encontrada']);
+  @override
+  String toString() => message;
+}
+
+
+class ResumeVoteResult {
+  final String action;
+  final List<String> voters;
+  final int votosActuales;
+
+  const ResumeVoteResult({
+    required this.action,
+    required this.voters,
+    required this.votosActuales,
+  });
+
+  bool get partidaReanudada => action == 'reanudada';
+}
+
 class PartidaRepository {
   final ApiService _api;
 
@@ -15,7 +37,11 @@ class PartidaRepository {
       final response = await _api.get('/partidas/pausadas');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final decoded = jsonDecode(response.body);
+
+        final List<dynamic> data = decoded is List
+            ? decoded
+            : (decoded['data'] as List<dynamic>? ?? []);
         developer.log(
           'Se encontraron ${data.length} partidas pausadas',
           name: 'PartidaRepository',
@@ -41,12 +67,13 @@ class PartidaRepository {
   Future<PartidaModel> crearPartida({
     required bool isPrivate,
     int maxJugadores = 4,
+    bool modoRoles = false,
   }) async {
     final response = await _api.post('/partidas', {
       'maxJugadores': maxJugadores,
       'privada': isPrivate,
       'modoCartasEspeciales': true,
-      'modoRoles': false,
+      'modoRoles': modoRoles,
       'numCartasInicio': 7,
       'timeoutTurno': 30,
     });
@@ -92,6 +119,10 @@ class PartidaRepository {
       return PartidaModel.fromJson(data);
     }
 
+    if (response.statusCode == 404) {
+      throw PartidaNoEncontradaException();
+    }
+
     throw Exception('Error al obtener partida: ${response.body}');
   }
 
@@ -122,25 +153,30 @@ class PartidaRepository {
     }
   }
 
-  /// Reanudar una partida pausada
-  Future<PartidaModel> reanudarPartida(String gameId) async {
-    developer.log('Reanudando partida: $gameId', name: 'PartidaRepository');
+  /// Resultado de votar reanudación. El backend devuelve uno de dos formatos:
+  ///   { action: 'reanudada', ... }
+  ///   { action: 'voto_reanudar_registrado', voters: [...], votosActuales: N }
+  /// Este método NO devuelve un PartidaModel: es solo el ack del voto.
+  Future<ResumeVoteResult> votarReanudarPartida(String gameId) async {
+    developer.log('Votando reanudar partida: $gameId', name: 'PartidaRepository');
     final response = await _api.post('/partidas/$gameId/resume', {});
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return PartidaModel.fromJson(data);
-    }
-
-    throw Exception('Error al reanudar partida: ${response.body}');
-  }
-
-  Future<void> solicitarPausa(String gameId) async {
-    final response = await _api.post('/partidas/$gameId/pause', {});
-
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Error al solicitar la pausa: ${response.body}');
+      throw Exception('Error al reanudar partida: ${response.body}');
     }
+
+    final data = jsonDecode(response.body);
+    final action = data is Map ? data['action']?.toString() ?? '' : '';
+    final voters = data is Map && data['voters'] is List
+        ? (data['voters'] as List).map((v) => v.toString()).toList()
+        : <String>[];
+    final votosActuales = data is Map ? (data['votosActuales'] as int? ?? 0) : 0;
+
+    return ResumeVoteResult(
+      action: action,
+      voters: voters,
+      votosActuales: votosActuales,
+    );
   }
 
   Future<void> anyadirBot(String gameId) async {
@@ -170,5 +206,53 @@ class PartidaRepository {
     throw Exception(
       'Fallo al añadir bot. Código: ${response.statusCode}, Error: ${response.body}',
     );
+  }
+
+  // ==========================================
+  // ENDPOINTS DE ROLES
+  // ==========================================
+
+  /// 1. Obtiene la información del rol asignado al jugador local
+  Future<Map<String, dynamic>> obtenerMiRol(String gameId) async {
+    final response = await _api.get('/roles/$gameId/me');
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Error al obtener el rol: ${response.body}');
+  }
+
+  /// 2. Obtiene solo el número de usos (útil para refrescar rápido)
+  Future<Map<String, dynamic>> obtenerUsosRol(String gameId) async {
+    final response = await _api.get('/roles/$gameId/me/uses');
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Error al obtener usos del rol: ${response.body}');
+  }
+
+  /// 3. Usa la habilidad del rol. Los parámetros son opcionales porque
+  /// dependen de la habilidad específica de cada rol.
+  Future<Map<String, dynamic>> usarRol(
+      String gameId, {
+        String? targetPlayerId,
+        String? ownCardId,
+        String? cardId,
+        String? newColor,
+        int? newNumber,
+      }) async {
+    final payload = <String, dynamic>{};
+
+    if (targetPlayerId != null) payload['targetPlayerId'] = targetPlayerId;
+    if (ownCardId != null) payload['ownCardId'] = ownCardId;
+    if (cardId != null) payload['cardId'] = cardId;
+    if (newColor != null) payload['newColor'] = newColor;
+    if (newNumber != null) payload['newNumber'] = newNumber;
+
+    final response = await _api.post('/roles/$gameId/use', payload);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Error al usar el rol: ${response.body}');
   }
 }

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/auth_provider.dart';
 import '../viewmodels/config_cartas_vs_ia_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 
 class ConfigCartasVsIaView extends StatefulWidget {
   final String modoTitulo;
@@ -150,7 +154,12 @@ class _ConfigCartasVsIaViewState extends State<ConfigCartasVsIaView> {
                                 // BOTÓN COMENZAR INSTANTÁNEO
                                 _AnimatedGreenButton(
                                   label: 'Comenzar partida',
-                                  onTap: () => vm.comenzarPartida(context),
+                                  cargando: vm.cargando,
+                                  onTap: () async {
+                                    final partidaVm = context.read<PartidaActualViewModel>();
+                                    final jugadorLocal = context.read<AuthProvider>().usuario?.nombreUsuario;
+                                    await vm.comenzarPartida(context, partidaVm, jugadorLocal);
+                                  },
                                 ),
 
                                 const SizedBox(height: 16),
@@ -241,7 +250,13 @@ class _AnimatedSquareBtnState extends State<_AnimatedSquareBtn> {
 class _AnimatedGreenButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
-  const _AnimatedGreenButton({required this.label, required this.onTap});
+  final bool cargando;
+
+  const _AnimatedGreenButton({
+    required this.label,
+    required this.onTap,
+    this.cargando = false,
+  });
 
   @override
   State<_AnimatedGreenButton> createState() => _AnimatedGreenButtonState();
@@ -253,32 +268,40 @@ class _AnimatedGreenButtonState extends State<_AnimatedGreenButton> {
   @override
   Widget build(BuildContext context) {
     const greenBase = Color(0xFF53D86A);
+    const loadingGray = Color(0xFF6B7280);
+
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
+      onTapDown: widget.cargando ? null : (_) => setState(() => _isPressed = true),
+      onTapUp: widget.cargando ? null : (_) {
         setState(() => _isPressed = false);
         widget.onTap();
       },
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
-        duration: Duration.zero,
-        scale: _isPressed ? 1.08 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        scale: _isPressed && !widget.cargando ? 1.08 : 1.0,
         child: AnimatedContainer(
-          duration: Duration.zero,
+          duration: const Duration(milliseconds: 200),
           width: double.infinity,
           height: 44,
           decoration: BoxDecoration(
-            color: greenBase,
+            color: widget.cargando ? loadingGray : greenBase,
             borderRadius: BorderRadius.circular(14),
-            boxShadow: _isPressed
+            boxShadow: _isPressed && !widget.cargando
                 ? [BoxShadow(color: greenBase.withOpacity(0.7), blurRadius: 15, spreadRadius: 4)]
                 : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
           ),
           child: Center(
-            child: Text(
-              widget.label,
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14),
-            ),
+            child: widget.cargando
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                  )
+                : Text(
+                    widget.label,
+                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14),
+                  ),
           ),
         ),
       ),

@@ -17,29 +17,120 @@ class PartidaActualViewModel extends ChangeNotifier {
   bool _isVsIA = false;
   int _maxJugadores = 4;
 
+  // ESTADOS DE LA PAUSA
   int _votosPausa = 0;
   bool _yoHeVotadoPausa = false;
   bool _partidaEstaPausada = false;
   String? _votanteActualPausa;
 
+  // ==========================================
+  // ESTADOS DE ROLES
+  // ==========================================
+  Map<String, dynamic>? _miRol;
+  Map<String, dynamic>? get miRol => _miRol;
+
+  int _usosRol = 0;
+  int get usosRol => _usosRol;
+
+  int _maxUsosRol = 0;
+  int get maxUsosRol => _maxUsosRol;
+
+  bool _canUseRoleNow = false;
+  bool get canUseRoleNow => _canUseRoleNow;
+
+  // ESTADOS DE REANUDAR
   int _votosReanudar = 0;
   bool _yoHeVotadoReanudar = false;
+  List<String> _votersReanudar = const [];
 
   int _segundosTranscurridos = 0;
   Timer? _cronometro;
+  Timer? _tasaDeRefresco;
+  bool _refrescandoEstado = false;
+  bool _partidaEliminada = false;
+
+  String? _ganadorPartida;
+  int _recompensaUltimaPartida = 0;
+  int? _monedasTotalesUltimaPartida;
+  bool _ganadorEsBot = false;
+  bool _recompensaAplicada = false;
+
+  static const int _duracionTurnoMs = 30000;
+  static const int _margenTimeoutMs = 2000;
+  int? _turnoExpiraEnMs;
+  Timer? _refreshTrasTimeout;
+
+  String? _mensajeFeedback;
+  String? get mensajeFeedback => _mensajeFeedback;
+
+  void _setMensajeFeedback(String mensaje) {
+    _mensajeFeedback = mensaje;
+    notifyListeners();
+  }
+
+  String? consumirMensajeFeedback() {
+    final m = _mensajeFeedback;
+    _mensajeFeedback = null;
+    return m;
+  }
+
+  void _reiniciarDeadlineTurno() {
+    _turnoExpiraEnMs = DateTime.now().millisecondsSinceEpoch + _duracionTurnoMs;
+
+    _refreshTrasTimeout?.cancel();
+    _refreshTrasTimeout = Timer(
+      const Duration(milliseconds: _duracionTurnoMs + _margenTimeoutMs),
+          () {
+        if (_partidaActual?.phase == 'playing' && !_partidaEstaPausada) {
+          _refrescarEstadoDesdeServidor();
+          _reiniciarDeadlineTurno();
+        }
+      },
+    );
+  }
 
   String? get error => _error;
   PartidaModel? get partidaActual => _partidaActual;
   bool get cargando => _cargando;
   bool get hayPartidaActiva => _partidaActual != null;
   bool get isVsIA => _isVsIA;
-  int get maxJugadores => _maxJugadores;
+  int get maxJugadores => _partidaActual?.maxJugadores ?? _maxJugadores;
+
   int get votosPausa => _votosPausa;
   bool get yoHeVotadoPausa => _yoHeVotadoPausa;
   bool get partidaEstaPausada => _partidaEstaPausada;
   String? get votanteActualPausa => _votanteActualPausa;
+
   int get votosReanudar => _votosReanudar;
   bool get yoHeVotadoReanudar => _yoHeVotadoReanudar;
+  List<String> get votersReanudar => _votersReanudar;
+  bool get partidaEliminada => _partidaEliminada;
+
+  String? get ganadorPartida => _ganadorPartida;
+  int get recompensaUltimaPartida => _recompensaUltimaPartida;
+  int? get monedasTotalesUltimaPartida => _monedasTotalesUltimaPartida;
+  bool get ganadorEsBot => _ganadorEsBot;
+
+  bool get recompensaPendienteAplicar =>
+      _ganadorPartida != null &&
+          _recompensaUltimaPartida > 0 &&
+          _monedasTotalesUltimaPartida != null &&
+          !_recompensaAplicada;
+
+  void marcarRecompensaAplicada() {
+    _recompensaAplicada = true;
+  }
+
+  bool ganadorEs(String? jugadorId) =>
+      _ganadorPartida != null && _ganadorPartida == jugadorId;
+
+  int? get turnoExpiraEnMs => _turnoExpiraEnMs;
+
+  bool get yoSoyHost {
+    final p = _partidaActual;
+    if (p == null || p.jugadores.isEmpty) return false;
+    return p.jugadores.first.id == p.jugadorLocal;
+  }
 
   String get tiempoFormateado {
     final minutos = (_segundosTranscurridos ~/ 60).toString();
@@ -59,9 +150,29 @@ class PartidaActualViewModel extends ChangeNotifier {
     _cronometro?.cancel();
   }
 
+  void _iniciarTasaDeRefresco() {
+    _tasaDeRefresco?.cancel();
+
+    Timer(const Duration(seconds: 1), () {
+      if (_partidaActual?.phase == 'waiting' && !_partidaEliminada) {
+        _refrescarLobbyDesdeServidor();
+      }
+    });
+
+    _tasaDeRefresco = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (_partidaActual?.phase != 'waiting') {
+        _tasaDeRefresco?.cancel();
+        return;
+      }
+      _refrescarLobbyDesdeServidor();
+    });
+  }
+
   @override
   void dispose() {
     _cronometro?.cancel();
+    _tasaDeRefresco?.cancel();
+    _refreshTrasTimeout?.cancel();
     super.dispose();
   }
 
@@ -79,171 +190,368 @@ class PartidaActualViewModel extends ChangeNotifier {
   }
 
   void _activarTiempoReal() {
-    if (_socketService.socket == null || _partidaActual == null) return;
+    if (!_socketService.hasSocket || _partidaActual == null) return;
 
     final String gameId = _partidaActual!.gameId;
 
-    // Limpieza de listeners
-    _socketService.socket!.off('partida_iniciada');
-    _socketService.socket!.off('nuevo_jugador');
-    _socketService.socket!.off('error_partida');
-    _socketService.socket!.off('turno_siguiente');
-    _socketService.socket!.off('game_state_updated');
-    _socketService.socket!.off('bot_action');
-    _socketService.socket!.off('carta_robada');
-    _socketService.socket!.off('game_finished');
-    _socketService.socket!.off('voto_pausa_registrado');
-    _socketService.socket!.off('voto_reanudar_registrado');
-    _socketService.socket!.off('partida_pausada');
-    _socketService.socket!.off('partida_reanudada');
+    _socketService.off('partida_iniciada');
+    _socketService.off('partida_iniciada_broadcast');
+    _socketService.off('nuevo_jugador');
+    _socketService.off('bot_unido');
+    _socketService.off('error_partida');
+    _socketService.off('turno_invalido');
+    _socketService.off('turno_siguiente');
+    _socketService.off('game_state_updated');
+    _socketService.off('bot_action');
+    _socketService.off('carta_robada');
+    _socketService.off('game_finished');
+    _socketService.off('voto_pausa');
+    _socketService.off('voto_reanudar');
+    _socketService.off('voto_reanudar_retirado');
+    _socketService.off('pausa_rechazada');
+    _socketService.off('partida_pausada');
+    _socketService.off('partida_reanudada');
 
-    _socketService.emitir('unirse_partida', {'partidaID': gameId});
+    _socketService.on('partida_iniciada', (data) {
+      _tasaDeRefresco?.cancel();
+      if (_partidaActual == null) return;
 
-    _socketService.socket!.on('partida_iniciada', (data) {
-      if (_partidaActual != null) {
-        final misCartas = data['manoInicial'] ?? [];
+      final misCartas = (data is Map && data['manoInicial'] is List)
+          ? data['manoInicial'] as List
+          : null;
+
+      if (misCartas != null) {
         final miId = _partidaActual!.jugadorLocal ?? 'yo';
 
         List<JugadorPartidaModel> jugadoresActualizados = _partidaActual!
             .jugadores
             .map((j) {
-              if (j.id == miId) {
-                return JugadorPartidaModel(id: j.id, hand: misCartas);
-              }
-              return j;
-            })
-            .toList();
+          if (j.id == miId) return JugadorPartidaModel(id: j.id, hand: misCartas);
+          return j;
+        }).toList();
 
         if (jugadoresActualizados.isEmpty) {
-          jugadoresActualizados.add(
-            JugadorPartidaModel(id: miId, hand: misCartas),
-          );
+          jugadoresActualizados.add(JugadorPartidaModel(id: miId, hand: misCartas));
         }
 
         _partidaActual = _partidaActual!.copyWith(
           phase: 'playing',
-          rolesMode: data['modoJuego'] == 'roles' || data['mode'] == 'roles',
-          specialCardsMode:
-              data['modoJuego'] == 'cards' || data['mode'] == 'cards',
+          rolesMode: data['mode'] == 'roles',
+          specialCardsMode: data['mode'] == 'cards',
           jugadores: jugadoresActualizados,
         );
-
-        _segundosTranscurridos = 0;
-        _iniciarCronometro();
-        notifyListeners();
-        _refrescarEstadoDesdeServidor();
+      } else {
+        _partidaActual = _partidaActual!.copyWith(
+          phase: 'playing',
+          rolesMode: data is Map && data['mode'] == 'roles',
+          specialCardsMode: data is Map && data['mode'] == 'cards',
+        );
       }
+
+      _segundosTranscurridos = 0;
+      _iniciarCronometro();
+      _reiniciarDeadlineTurno();
+      notifyListeners();
+      _refrescarEstadoDesdeServidor();
+
+      if(_partidaActual?.rolesMode == true) cargarMiRol();
     });
 
-    _socketService.socket!.on('voto_pausa_registrado', (data) {
-      _votosPausa = data['votosFavor'] ?? 0;
-      final String? jugadorQueVoto = data['jugador'];
+    _socketService.on('partida_iniciada_broadcast', (data) {
+      if (_partidaActual == null || _partidaActual!.phase == 'playing') return;
+
+      _tasaDeRefresco?.cancel();
+      _partidaActual = _partidaActual!.copyWith(
+        phase: 'playing',
+        rolesMode: data is Map ? data['mode'] == 'roles' : false,
+        specialCardsMode: data is Map ? data['mode'] == 'cards' : false,
+      );
+      _segundosTranscurridos = 0;
+      _iniciarCronometro();
+      _reiniciarDeadlineTurno();
+      notifyListeners();
+      _refrescarEstadoDesdeServidor();
+    });
+
+    void aplicarVotoPausa(dynamic data) {
+      if (data is! Map) return;
+      _votosPausa = (data['votosActuales'] as int?) ?? _votosPausa;
+      final String? jugadorQueVoto = data['jugador']?.toString();
 
       if (jugadorQueVoto != null &&
           jugadorQueVoto != _partidaActual?.jugadorLocal &&
           !_yoHeVotadoPausa) {
         _votanteActualPausa = jugadorQueVoto;
-        debugPrint("El jugador $jugadorQueVoto acaba de votar para pausar.");
       }
+      notifyListeners();
+    }
 
+    _socketService.on('voto_pausa', aplicarVotoPausa);
+    _socketService.on('voto_pausa_registrado', aplicarVotoPausa);
+
+    _socketService.on('pausa_rechazada', (data) {
+      _votosPausa = 0;
+      _yoHeVotadoPausa = false;
+      _votanteActualPausa = null;
       notifyListeners();
     });
 
-    _socketService.socket!.on('voto_reanudar_registrado', (data) {
-      _votosReanudar = data['votosFavor'] ?? 0;
-      final String? jugadorQueVoto = data['jugador'];
-
-      notifyListeners();
-
-      if (jugadorQueVoto != null) {
-        debugPrint("El jugador $jugadorQueVoto acaba de votar para reanudar.");
-      }
-    });
-
-    _socketService.socket!.on('partida_pausada', (_) {
-      debugPrint("¡Socket notificó PAUSA TOTAL!");
+    _socketService.on('partida_pausada', (_) {
       _partidaEstaPausada = true;
       _votosPausa = 0;
       _yoHeVotadoPausa = false;
       _votosReanudar = 0;
       _yoHeVotadoReanudar = false;
+      _votersReanudar = const [];
       _votanteActualPausa = null;
+      _turnoExpiraEnMs = null;
+      _refreshTrasTimeout?.cancel();
       _pausarCronometro();
       notifyListeners();
     });
 
-    _socketService.socket!.on('partida_reanudada', (_) {
-      debugPrint("¡Socket notificó REANUDACIÓN TOTAL!");
-      _partidaEstaPausada = false;
+    // --- EVENTOS DE REANUDAR ---
+    void aplicarPayloadReanudar(dynamic data) {
+      if (data is! Map) return;
+      _votosReanudar = (data['votosActuales'] as int?) ?? _votosReanudar;
+      final raw = data['voters'];
+      if (raw is List) {
+        _votersReanudar = raw.map((v) => v.toString()).toList();
+      }
+      final miId = _partidaActual?.jugadorLocal;
+      if (miId != null && raw is List) {
+        _yoHeVotadoReanudar = _votersReanudar.contains(miId);
+      }
+    }
 
+    void onVotoReanudar(dynamic data) {
+      aplicarPayloadReanudar(data);
+      notifyListeners();
+    }
+
+    _socketService.on('voto_reanudar', onVotoReanudar);
+    _socketService.on('voto_reanudar_registrado', onVotoReanudar);
+
+    _socketService.on('voto_reanudar_retirado', (data) {
+      aplicarPayloadReanudar(data);
+      final String? jugadorQueRetiro = data is Map ? data['jugador'] : null;
+      if (jugadorQueRetiro != null && jugadorQueRetiro == _partidaActual?.jugadorLocal) {
+        _yoHeVotadoReanudar = false;
+      }
+      notifyListeners();
+    });
+
+    _socketService.on('partida_reanudada', (_) {
+      _partidaEstaPausada = false;
+      if (_partidaActual != null) {
+        _partidaActual = _partidaActual!.copyWith(phase: 'playing');
+      }
       _votosPausa = 0;
       _yoHeVotadoPausa = false;
       _votosReanudar = 0;
       _yoHeVotadoReanudar = false;
+      _votersReanudar = const [];
       _iniciarCronometro();
-
+      _reiniciarDeadlineTurno();
       notifyListeners();
     });
 
-    _socketService.socket!.on('nuevo_jugador', (data) {
-      if (_partidaActual != null) {
-        final nuevoJugador = JugadorPartidaModel(id: data['jugador']);
-        final listaActualizada = List<JugadorPartidaModel>.from(
-          _partidaActual!.jugadores,
-        )..add(nuevoJugador);
+    // --- EVENTOS GENERALES ---
+    _socketService.on('nuevo_jugador', (_) => _refrescarLobbyDesdeServidor());
+    _socketService.on('bot_unido', (_) => _refrescarLobbyDesdeServidor());
 
-        _partidaActual = _partidaActual!.copyWith(jugadores: listaActualizada);
-        notifyListeners();
+    _socketService.on('error_partida', (data) {
+      final msg = data is Map ? data['message']?.toString() : null;
+      if (msg != null && msg.isNotEmpty) _setMensajeFeedback(msg);
+    });
+
+    _socketService.on('turno_invalido', (data) {
+      final msg = data is Map ? data['message']?.toString() : null;
+      if (msg != null && msg.isNotEmpty) _setMensajeFeedback(msg);
+    });
+
+    _socketService.on('turno_siguiente', (_) => notifyListeners());
+    _socketService.on('game_state_updated', (_) {
+      _reiniciarDeadlineTurno();
+      _refrescarEstadoDesdeServidor();
+    });
+
+
+    _socketService.on('game_finished', (data) {
+      if (data is Map) {
+        _ganadorPartida = data['winner']?.toString();
+        _ganadorEsBot = data['isBot'] == true;
+        final rec = data['recompensa'];
+        _recompensaUltimaPartida = rec is int ? rec : 0;
+        final tot = data['monedasTotales'];
+        _monedasTotalesUltimaPartida = tot is int ? tot : null;
+        _recompensaAplicada = false;
       }
-    });
-
-    _socketService.socket!.on('error_partida', (data) {
-      _error = data['message'];
-      notifyListeners();
-    });
-
-    _socketService.socket!.on('turno_siguiente', (data) {
-      notifyListeners();
-    });
-
-    _socketService.socket!.on(
-      'game_state_updated',
-      (_) => _refrescarEstadoDesdeServidor(),
-    );
-    _socketService.socket!.on(
-      'bot_action',
-      (_) => _refrescarEstadoDesdeServidor(),
-    );
-    _socketService.socket!.on(
-      'carta_robada',
-      (_) => _refrescarEstadoDesdeServidor(),
-    );
-    _socketService.socket!.on('game_finished', (data) {
       if (_partidaActual != null) {
         _partidaActual = _partidaActual!.copyWith(phase: 'finished');
       }
-      _error = data is Map ? 'Ganador: ${data['winner']}' : null;
       notifyListeners();
     });
+
+    _socketService.emitir('unirse_partida', {'partidaID': gameId});
+
+    if (_partidaActual!.phase == 'waiting') {
+      _iniciarTasaDeRefresco();
+    }
   }
 
-  Future<void> _refrescarEstadoDesdeServidor() async {
-    if (_partidaActual == null) return;
+  Future<void> _refrescarLobbyDesdeServidor() async {
+    if (_partidaActual == null || _refrescandoEstado) return;
+
+    if (_partidaActual!.phase != 'waiting') {
+      _tasaDeRefresco?.cancel();
+      await _refrescarEstadoDesdeServidor();
+      return;
+    }
+
+    _refrescandoEstado = true;
+    final String gameId = _partidaActual!.gameId;
+    final String fasePrevia = _partidaActual!.phase;
 
     try {
-      final estado = await _repository.obtenerEstadoPartida(
-        _partidaActual!.gameId,
-      );
+      final estado = await _repository.obtenerPartida(gameId);
+      if (_partidaActual == null) return;
+
+      if (fasePrevia == 'waiting' && _partidaActual!.phase != 'waiting') return;
+
+      if (estado.phase != 'waiting') {
+        _tasaDeRefresco?.cancel();
+        _refrescandoEstado = false;
+        await _refrescarEstadoDesdeServidor();
+        return;
+      }
+
       _partidaActual = estado.copyWith(
         code: _partidaActual!.code,
         isPrivate: _partidaActual!.isPrivate,
         jugadorLocal: _partidaActual!.jugadorLocal,
+        maxJugadores: _partidaActual!.maxJugadores,
         rolesMode: _partidaActual!.rolesMode,
         specialCardsMode: _partidaActual!.specialCardsMode,
       );
       notifyListeners();
+    } on PartidaNoEncontradaException {
+      _partidaEliminada = true;
+      _tasaDeRefresco?.cancel();
+      notifyListeners();
     } catch (e) {
-      debugPrint("Error refrescando estado de partida: $e");
+      debugPrint("[LOBBY] Error refrescando: $e");
+    } finally {
+      _refrescandoEstado = false;
+    }
+  }
+
+  Future<void> _refrescarEstadoDesdeServidor() async {
+    await _refrescarConRepoCall((id) => _repository.obtenerEstadoPartida(id), etiqueta: 'STATE');
+  }
+
+  Future<void> _refrescarConRepoCall(
+      Future<PartidaModel> Function(String) repoCall, {
+        required String etiqueta,
+      }) async {
+    if (_partidaActual == null || _refrescandoEstado) return;
+
+    _refrescandoEstado = true;
+    final String gameId = _partidaActual!.gameId;
+
+    try {
+      final estado = await repoCall(gameId);
+      if (_partidaActual == null) return;
+
+      if (estado.phase == 'paused' || estado.phase == 'pausada') {
+        _partidaEstaPausada = true;
+      } else if (estado.phase == 'playing') {
+        _partidaEstaPausada = false;
+      }
+
+      _partidaActual = estado.copyWith(
+        code: _partidaActual!.code,
+        isPrivate: _partidaActual!.isPrivate,
+        jugadorLocal: _partidaActual!.jugadorLocal,
+        maxJugadores: _partidaActual!.maxJugadores, // ¡Mantiene el 2 intacto!
+        rolesMode: _partidaActual!.rolesMode,
+        specialCardsMode: _partidaActual!.specialCardsMode,
+      );
+
+      _votersReanudar = estado.resumeVoters;
+      _votosReanudar = estado.resumeVoters.length;
+      _votosPausa = estado.pauseVoters.length;
+
+      final miId = _partidaActual!.jugadorLocal;
+      if (miId != null) {
+        _yoHeVotadoReanudar = estado.resumeVoters.contains(miId);
+        _yoHeVotadoPausa = estado.pauseVoters.contains(miId);
+      }
+
+      if (estado.rolesMode && _miRol == null && (estado.phase == 'playing' || estado.phase == 'paused')) {
+        cargarMiRol();
+      }
+
+      notifyListeners();
+    } on PartidaNoEncontradaException {
+      _partidaEliminada = true;
+      _tasaDeRefresco?.cancel();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("[$etiqueta] Error: $e");
+    } finally {
+      _refrescandoEstado = false;
+    }
+  }
+
+  // ==========================================
+  // LÓGICA DE ROLES
+  // ==========================================
+
+  /// Llama al backend para saber qué rol me ha tocado
+  Future<void> cargarMiRol() async {
+    if (_partidaActual == null || !_partidaActual!.rolesMode) return;
+
+    try {
+      final infoRol = await _repository.obtenerMiRol(_partidaActual!.gameId);
+      _miRol = infoRol['role'];
+      _usosRol = infoRol['uses'] ?? 0;
+      _maxUsosRol = infoRol['maxUses'] ?? 0;
+      _canUseRoleNow = infoRol['canUseNow'] ?? false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error al cargar mi rol: $e");
+    }
+  }
+
+  /// Método genérico para usar la habilidad del rol
+  Future<Map<String, dynamic>?> activarHabilidadRol({
+    String? targetPlayerId,
+    String? ownCardId,
+    String? cardId,
+    String? newColor,
+    int? newNumber,
+  }) async {
+    if (_partidaActual == null || !_canUseRoleNow) return null;
+
+    try {
+      final response = await _repository.usarRol(
+        _partidaActual!.gameId,
+        targetPlayerId: targetPlayerId,
+        ownCardId: ownCardId,
+        cardId: cardId,
+        newColor: newColor,
+        newNumber: newNumber,
+      );
+
+      await cargarMiRol();
+      await _refrescarEstadoDesdeServidor();
+
+      return response;
+    } catch (e) {
+      debugPrint("Error al usar habilidad del rol: $e");
+      _setMensajeFeedback("No se pudo usar la habilidad");
+      return null;
     }
   }
 
@@ -251,6 +559,7 @@ class PartidaActualViewModel extends ChangeNotifier {
     required bool isPrivate,
     String? jugadorLocal,
     int maxJugadores = 4,
+    bool modoRoles = false,
   }) async {
     _cargando = true;
     _error = null;
@@ -258,7 +567,11 @@ class PartidaActualViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final partida = await _repository.crearPartida(isPrivate: isPrivate);
+      final partida = await _repository.crearPartida(
+        isPrivate: isPrivate,
+        maxJugadores: maxJugadores,
+        modoRoles: modoRoles,
+      );
       List<JugadorPartidaModel> listaInicial = partida.jugadores;
       if (listaInicial.isEmpty) {
         listaInicial = [JugadorPartidaModel(id: jugadorLocal ?? 'Yo')];
@@ -266,6 +579,8 @@ class PartidaActualViewModel extends ChangeNotifier {
       _partidaActual = partida.copyWith(
         jugadorLocal: jugadorLocal,
         jugadores: listaInicial,
+        maxJugadores: maxJugadores,
+        isPrivate: isPrivate,
       );
       _activarTiempoReal();
     } catch (e) {
@@ -285,6 +600,7 @@ class PartidaActualViewModel extends ChangeNotifier {
       final partida = await _repository.unirsePartidaPublica();
       _partidaActual = partida.copyWith(jugadorLocal: jugadorLocal);
       _activarTiempoReal();
+      await _refrescarEstadoDesdeServidor();
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -300,8 +616,13 @@ class PartidaActualViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final partida = await _repository.unirsePorCodigo(code);
-      _partidaActual = partida.copyWith(jugadorLocal: jugadorLocal);
+      _partidaActual = partida.copyWith(
+        jugadorLocal: jugadorLocal,
+        isPrivate: true,
+        code: code,
+      );
       _activarTiempoReal();
+      await _refrescarEstadoDesdeServidor();
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -330,43 +651,77 @@ class PartidaActualViewModel extends ChangeNotifier {
   }
 
   void limpiarPartida() {
-    if (_socketService.socket != null) {
-      _socketService.socket!.off('partida_iniciada');
-      _socketService.socket!.off('nuevo_jugador');
-      _socketService.socket!.off('error_partida');
-      _socketService.socket!.off('turno_siguiente');
-      _socketService.socket!.off('game_state_updated');
-      _socketService.socket!.off('bot_action');
-      _socketService.socket!.off('carta_robada');
-      _socketService.socket!.off('game_finished');
-      _socketService.socket!.off('voto_pausa_registrado');
-      _socketService.socket!.off('voto_reanudar_registrado');
-      _socketService.socket!.off('partida_pausada');
-      _socketService.socket!.off('partida_reanudada');
+    if (_socketService.hasSocket) {
+      _socketService.off('partida_iniciada');
+      _socketService.off('partida_iniciada_broadcast');
+      _socketService.off('nuevo_jugador');
+      _socketService.off('bot_unido');
+      _socketService.off('error_partida');
+      _socketService.off('turno_invalido');
+      _socketService.off('turno_siguiente');
+      _socketService.off('game_state_updated');
+      _socketService.off('bot_action');
+      _socketService.off('carta_robada');
+      _socketService.off('game_finished');
+      _socketService.off('voto_pausa');
+      _socketService.off('voto_reanudar');
+      _socketService.off('voto_reanudar_retirado');
+      _socketService.off('pausa_rechazada');
+      _socketService.off('partida_pausada');
+      _socketService.off('partida_reanudada');
     }
     _partidaActual = null;
     _error = null;
+    _maxJugadores = 4;
+    _partidaEliminada = false;
+    _isVsIA = false;
+
+    _ganadorPartida = null;
+    _recompensaUltimaPartida = 0;
+    _monedasTotalesUltimaPartida = null;
+    _ganadorEsBot = false;
+    _recompensaAplicada = false;
+    _turnoExpiraEnMs = null;
+    _refreshTrasTimeout?.cancel();
+    _mensajeFeedback = null;
 
     _partidaEstaPausada = false;
     _votosPausa = 0;
     _yoHeVotadoPausa = false;
     _votosReanudar = 0;
     _yoHeVotadoReanudar = false;
+    _votersReanudar = const [];
     _votanteActualPausa = null;
 
+    _tasaDeRefresco?.cancel();
     _pausarCronometro();
     _segundosTranscurridos = 0;
+    _refrescandoEstado = false;
 
     notifyListeners();
   }
 
   Future<void> abandonarYBorrarPartida() async {
     try {
-      if (partidaActual != null) {
-        await _repository.borrarPartida(partidaActual!.gameId);
+      if (_partidaActual != null) {
+        await _repository.borrarPartida(_partidaActual!.gameId);
       }
     } catch (e) {
-      debugPrint("Error borrando partida zombie: $e");
+      debugPrint("Error borrando partida: $e");
+    } finally {
+      limpiarPartida();
+    }
+  }
+
+  Future<void> salirDePartidaVsIA() async {
+    if (_partidaActual == null) {
+      limpiarPartida();
+      return;
+    }
+    try {
+      await _repository.finalizarPartida(_partidaActual!.gameId);
+    } catch (e) {
+      debugPrint("Error al finalizar partida vs IA: $e");
     } finally {
       limpiarPartida();
     }
@@ -378,54 +733,92 @@ class PartidaActualViewModel extends ChangeNotifier {
     if (jugadorLocal != null) {
       _partidaActual = _partidaActual!.copyWith(jugadorLocal: jugadorLocal);
     }
-    if (partida.phase == 'paused') {
-      _partidaEstaPausada = true;
-    }
 
+    _partidaEstaPausada = partida.phase == 'paused';
     _activarTiempoReal();
     notifyListeners();
+    _refrescarEstadoDesdeServidor();
   }
 
-  Future<void> emitirVotoPausa() async {
-    if (_partidaActual == null) {
-      debugPrint("emitirVotoPausa cancelado: _partidaActual es null");
-      return;
-    }
-    if (_yoHeVotadoPausa) {
-      debugPrint("emitirVotoPausa cancelado: _yoHeVotadoPausa ya es true");
+  void solicitarPausa() {
+    if (_partidaActual == null || _yoHeVotadoPausa) return;
+
+    if (_partidaActual!.phase != 'playing' ||
+        _partidaEstaPausada ||
+        _isVsIA ||
+        !_partidaActual!.isPrivate) {
       return;
     }
 
     _yoHeVotadoPausa = true;
+    _votosPausa = 1;
     notifyListeners();
-    debugPrint("Estado CAMBIADO a yoHeVotadoPausa = true. Notificando a UI.");
 
-    try {
-      debugPrint("Enviando petición HTTP de pausa...");
-      await _repository.solicitarPausa(_partidaActual!.gameId);
-      debugPrint("Petición HTTP completada.");
-    } catch (e) {
-      _yoHeVotadoPausa = false;
-      _error = "Error al votar pausa: $e";
-      notifyListeners();
-      debugPrint("ERROR en la petición HTTP: $e. Estado RESETEADO a false.");
-    }
+    _socketService.emitir('jugador_solicita_pausa', {'partidaID': _partidaActual!.gameId});
   }
 
-  Future<void> emitirVotoReanudar() async {
+  void aceptarPausa() {
+    if (_partidaActual == null || _yoHeVotadoPausa) return;
+
+    _yoHeVotadoPausa = true;
+    _votosPausa = _votosPausa + 1;
+    _votanteActualPausa = null;
+    notifyListeners();
+
+    _socketService.emitir('jugador_voto_pausa', {'partidaID': _partidaActual!.gameId});
+  }
+
+
+  void emitirRechazoPausa() {
+    if (_partidaActual == null) return;
+
+    _votanteActualPausa = null;
+    notifyListeners();
+
+    _socketService.emitir('jugador_rechaza_pausa', {'partidaID': _partidaActual!.gameId});
+  }
+
+  void emitirVotoReanudar() {
     if (_partidaActual == null || _yoHeVotadoReanudar) return;
 
     _yoHeVotadoReanudar = true;
     notifyListeners();
 
-    try {
-      debugPrint("Enviando voto para REANUDAR...");
-      await _repository.reanudarPartida(_partidaActual!.gameId);
-    } catch (e) {
+    final evento = _votosReanudar == 0 ? 'jugador_solicita_reanudar' : 'jugador_voto_reanudar';
+    _socketService.emitir(evento, {'partidaID': _partidaActual!.gameId});
+  }
+
+  void aplicarResultadoVotoReanudar(ResumeVoteResult res) {
+    if (res.partidaReanudada) {
+      _partidaEstaPausada = false;
+      if (_partidaActual != null) {
+        _partidaActual = _partidaActual!.copyWith(phase: 'playing');
+      }
+      _votosReanudar = 0;
       _yoHeVotadoReanudar = false;
-      _error = "Error al votar reanudar: $e";
-      notifyListeners();
+      _votersReanudar = const [];
+      _iniciarCronometro();
+      _reiniciarDeadlineTurno();
+    } else {
+      _votersReanudar = res.voters;
+      _votosReanudar = res.votosActuales;
+      final miId = _partidaActual?.jugadorLocal;
+      if (miId != null) {
+        _yoHeVotadoReanudar = res.voters.contains(miId);
+      } else {
+        _yoHeVotadoReanudar = true;
+      }
     }
+    notifyListeners();
+  }
+
+  void retirarVotoReanudar() {
+    if (_partidaActual == null || !_yoHeVotadoReanudar) return;
+
+    _yoHeVotadoReanudar = false;
+    notifyListeners();
+
+    _socketService.emitir('abandonar_voto_reanudar', {'partidaID': _partidaActual!.gameId});
   }
 
   Future<void> anyadirBot() async {

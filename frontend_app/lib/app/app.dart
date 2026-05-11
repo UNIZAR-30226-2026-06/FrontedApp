@@ -27,7 +27,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Instanciamos los servicios base una sola vez
     final apiService = ApiService();
     final authRepository = AuthRepository(apiService);
     final userRepository = UserRepository(apiService);
@@ -35,16 +34,14 @@ class MyApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        // --- SERVICIOS BASE ---
         ChangeNotifierProvider(create: (_) => SocketService()),
 
-        // --- VIEWMODELS INDEPENDIENTES ---
+        Provider<PartidaRepository>.value(value: partidaRepository),
+
         ChangeNotifierProvider(create: (_) => LoginViewModel()),
         ChangeNotifierProvider(create: (_) => HomeViewModel(userRepo: userRepository)),
 
-        // --- VIEWMODELS DEPENDIENTES DEL SOCKET (ProxyProviders) ---
 
-        // AuthProvider depende de SocketService
         ChangeNotifierProxyProvider<SocketService, AuthProvider>(
           create: (context) => AuthProvider(
             authRepository,

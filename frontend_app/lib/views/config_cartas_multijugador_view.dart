@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/auth_provider.dart';
 import '../viewmodels/config_cartas_multijugador_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 
 class ConfigCartasMultijugadorView extends StatefulWidget {
   final String modoTitulo;
@@ -30,6 +34,8 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
 
   @override
   Widget build(BuildContext context) {
+    final partidaVm = context.watch<PartidaActualViewModel>();
+
     const bg = Color(0xFF2D3473);
     const panel = Color(0xFF3A4288);
     const inner = Color(0xFF2A316B);
@@ -75,24 +81,9 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                // Fila de info y Código de partida (estilo multijugador)
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        vm.subtitulo,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(color: inner.withOpacity(0.5), borderRadius: BorderRadius.circular(8)),
-                                      child: Text(
-                                        'Código: ${vm.codigoPartida}',
-                                        style: const TextStyle(color: Color(0xFF53D86A), fontSize: 12, fontWeight: FontWeight.w900),
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  vm.subtitulo,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 16),
                                 // PANEL CONTADOR JUGADORES
@@ -122,8 +113,13 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
                                 ),
                                 const SizedBox(height: 20),
                                 _AnimatedGreenButton(
-                                  label: 'Comenzar partida',
-                                  onTap: () => vm.comenzarPartida(context),
+                                  label: vm.isCreating ? 'Creando sala...' : 'Comenzar partida',
+                                  onTap: () {
+                                    if (!vm.isCreating) {
+                                      final jugadorLocal = context.read<AuthProvider>().usuario?.nombreUsuario;
+                                      vm.comenzarPartida(context, partidaVm, jugadorLocal);
+                                    }
+                                  },
                                 ),
                                 const SizedBox(height: 16),
                                 _RulesSection(open: vm.reglasAbiertas, onToggle: vm.toggleReglas),

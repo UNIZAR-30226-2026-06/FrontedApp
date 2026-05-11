@@ -39,18 +39,20 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
 
   String get detalleJugadores => '$_jugadores humanos';
 
-  Future<void> comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm, {bool isPrivate = true}) async {
+  Future<void> comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm, String? jugadorLocal, {bool isPrivate = true}) async {
     if (_isCreating) return;
 
     _isCreating = true;
     notifyListeners();
 
     try {
-      debugPrint("⏱️ 1. Solicitando al servidor crear sala multijugador...");
+      debugPrint("1. Solicitando al servidor crear sala multijugador...");
 
       await partidaVm.crearPartida(
         isPrivate: isPrivate,
         maxJugadores: _jugadores,
+        jugadorLocal: jugadorLocal,
+        modoRoles: true,
       );
 
       debugPrint("Sala creada. Código: ${partidaVm.partidaActual?.code}");
@@ -65,7 +67,7 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
       );
 
     } catch (e) {
-      debugPrint("❌ Error al crear la sala: $e");
+      debugPrint("Error al crear la sala: $e");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

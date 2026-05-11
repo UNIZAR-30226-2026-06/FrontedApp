@@ -3,16 +3,23 @@ import 'package:provider/provider.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 import 'tablero_view.dart';
 
-class SalaEsperaView extends StatelessWidget {
+class SalaEsperaView extends StatefulWidget {
   final String modoJuego;
 
   const SalaEsperaView({super.key, required this.modoJuego});
 
-  // 🔥 NUEVA FUNCIÓN: Muestra el popup de confirmación
+  @override
+  State<SalaEsperaView> createState() => _SalaEsperaViewState();
+}
+
+class _SalaEsperaViewState extends State<SalaEsperaView> {
+  bool _navegandoATablero = false;
+  bool _navegandoAlMenu = false;
+
   Future<bool> _pedirConfirmacionSalir(BuildContext context) async {
     return await showDialog<bool>(
       context: context,
-      barrierDismissible: false, // Obliga a elegir una opción
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF3A4288),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -42,7 +49,7 @@ class SalaEsperaView extends StatelessWidget {
           ),
         ],
       ),
-    ) ?? false; // Si tocan fuera por algún motivo, devuelve false
+    ) ?? false;
   }
 
   @override
@@ -58,12 +65,39 @@ class SalaEsperaView extends StatelessWidget {
         ? (jugadores.length / maxJugadores).clamp(0.0, 1.0)
         : 0.0;
 
+    final phase = partida?.phase ?? 'waiting';
+    final yoSoyHost = partidaVm.yoSoyHost;
+
+    if (phase == 'playing' && !_navegandoATablero) {
+      _navegandoATablero = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TableroView()),
+        );
+      });
+    }
+
+    // El host cerró la sala → echamos a este jugador al menú
+    if (partidaVm.partidaEliminada && !_navegandoAlMenu) {
+      _navegandoAlMenu = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        partidaVm.limpiarPartida();
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+      });
+    }
+
+    const bg = Color(0xFF2D3473);
+    const panel = Color(0xFF3A4288);
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        if (!yoSoyHost) return; // Joiners no pueden salir de la sala
 
-        // 🔥 Al darle al botón físico de "Atrás", pedimos confirmación
         final salir = await _pedirConfirmacionSalir(context);
         if (salir) {
           await partidaVm.abandonarYBorrarPartida();
@@ -72,23 +106,7 @@ class SalaEsperaView extends StatelessWidget {
           }
         }
       },
-      child: Selector<PartidaActualViewModel, String>(
-        selector: (context, vm) => vm.partidaActual?.phase ?? 'waiting',
-        builder: (context, phase, child) {
-
-          if (phase == 'playing') {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const TableroView()),
-              );
-            });
-          }
-
-          const bg = Color(0xFF2D3473);
-          const panel = Color(0xFF3A4288);
-
-          return Scaffold(
+      child: Scaffold(
             backgroundColor: bg,
             body: SafeArea(
               child: Padding(
@@ -101,57 +119,61 @@ class SalaEsperaView extends StatelessWidget {
                   child: Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _AnimatedExitPill(
-                              onTap: () async {
-                                // 🔥 Al darle al botón "Salir" de la UI, pedimos confirmación
-                                final salir = await _pedirConfirmacionSalir(context);
-                                if (salir) {
-                                  await partidaVm.abandonarYBorrarPartida();
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
+                            if (yoSoyHost)
+                              _AnimatedExitPill(
+                                onTap: () async {
+                                  final salir = await _pedirConfirmacionSalir(context);
+                                  if (salir) {
+                                    await partidaVm.abandonarYBorrarPartida();
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                    }
                                   }
-                                }
-                              },
-                            ),
+                                },
+                              )
+                            else
+                              const SizedBox.shrink(),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 const Text("CÓDIGO DE SALA",
-                                    style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold)),
                                 Text(codigo,
-                                    style: const TextStyle(color: Color(0xFF53D86A), fontSize: 22, fontWeight: FontWeight.w900)),
+                                    style: const TextStyle(color: Color(0xFF53D86A), fontSize: 18, fontWeight: FontWeight.w900)),
                               ],
                             )
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 6),
 
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 25),
                         child: Row(
                           children: [
-                            const Icon(Icons.bolt, color: Colors.orangeAccent, size: 36),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text("Sala de Espera",
-                                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
-                                Text(modoJuego,
-                                    style: const TextStyle(color: Colors.white60, fontSize: 13, fontWeight: FontWeight.w600)),
-                              ],
+                            const Icon(Icons.bolt, color: Colors.orangeAccent, size: 24),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Sala de Espera",
+                                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                                  Text(widget.modoJuego,
+                                      style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
                             )
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 10),
 
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -161,58 +183,72 @@ class SalaEsperaView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text("Jugadores: ${jugadores.length}/$maxJugadores",
-                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
                                 Text("${(porcentaje * 100).toInt()}%",
-                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 5),
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                               child: LinearProgressIndicator(
                                 value: porcentaje,
                                 backgroundColor: Colors.white10,
                                 color: const Color(0xFF53D86A),
-                                minHeight: 10,
+                                minHeight: 6,
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 12),
 
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 25),
-                          child: GridView.builder(
-                            physics: const BouncingScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 2.4,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
-                            itemCount: maxJugadores,
-                            itemBuilder: (context, index) {
-                              if (index < jugadores.length) {
-                                final j = jugadores[index];
-                                final esYo = j.id == partida?.jugadorLocal;
-                                return _buildPlayerCard(
-                                  nombre: esYo ? "Tú" : "Jugador ${index + 1}",
-                                  status: "LISTO",
-                                  esHost: index == 0,
-                                  letra: (esYo ? "T" : "J"),
-                                );
-                              }
-                              return _buildEmptyCard();
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final esLandscape = constraints.maxWidth > 600;
+                              final crossAxisCount = esLandscape ? 4 : 2;
+                              final aspectRatio = esLandscape ? 3.2 : 2.4;
+                              return GridView.builder(
+                                physics: const BouncingScrollPhysics(),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  childAspectRatio: aspectRatio,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                ),
+                                itemCount: maxJugadores,
+                                itemBuilder: (context, index) {
+                                  if (index < jugadores.length) {
+                                    final j = jugadores[index];
+                                    final esYo = j.id == partida?.jugadorLocal;
+                                    // Nombre real del backend (id = nombre de
+                                    // usuario para humanos, "Bot_NNNN" para bots).
+                                    // Si es el local, marcamos "(Tú)" para distinguir.
+                                    final nombre = esYo ? "${j.id} (Tú)" : j.id;
+                                    final letra = j.id.isNotEmpty
+                                        ? j.id[0].toUpperCase()
+                                        : '?';
+                                    return _buildPlayerCard(
+                                      nombre: nombre,
+                                      status: "LISTO",
+                                      esHost: index == 0,
+                                      letra: letra,
+                                    );
+                                  }
+                                  return _buildEmptyCard();
+                                },
+                              );
                             },
                           ),
                         ),
                       ),
 
                       Padding(
-                        padding: const EdgeInsets.all(25.0),
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                         child: _buildBotonComenzar(context, partidaVm),
                       ),
                     ],
@@ -220,8 +256,6 @@ class SalaEsperaView extends StatelessWidget {
                 ),
               ),
             ),
-          );
-        },
       ),
     );
   }
@@ -280,32 +314,60 @@ class SalaEsperaView extends StatelessWidget {
   }
 
   Widget _buildBotonComenzar(BuildContext context, PartidaActualViewModel vm) {
-    bool canStart = (vm.partidaActual?.jugadores.length ?? 0) >= 2;
+    final yoSoyHost = vm.yoSoyHost;
+    final hayMinimoJugadores = (vm.partidaActual?.jugadores.length ?? 0) >= 2;
+
+    // Solo el host puede iniciar la partida.
+    if (!yoSoyHost) {
+      return Container(
+        width: double.infinity,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A316B),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: const Center(
+          child: Text(
+            "Esperando a que el anfitrión inicie la partida...",
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final bool canStart = hayMinimoJugadores;
 
     return GestureDetector(
       onTap: canStart
           ? () {
-        vm.iniciarPartida(vsIA: false, cantidadBots: 0);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Iniciando partida, esperando al servidor...')),
-        );
-      }
+              vm.iniciarPartida(vsIA: false, cantidadBots: 0);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Iniciando partida, esperando al servidor...'),
+                ),
+              );
+            }
           : null,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
         opacity: canStart ? 1.0 : 0.5,
         child: Container(
           width: double.infinity,
-          height: 48,
+          height: 40,
           decoration: BoxDecoration(
               color: const Color(0xFF53D86A),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
-                BoxShadow(color: const Color(0xFF53D86A).withOpacity(0.3), blurRadius: 10, spreadRadius: 2)
+                BoxShadow(color: const Color(0xFF53D86A).withOpacity(0.3), blurRadius: 8, spreadRadius: 1)
               ]),
           child: const Center(
               child: Text("Comenzar partida",
-                  style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w900))),
+                  style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w900))),
         ),
       ),
     );

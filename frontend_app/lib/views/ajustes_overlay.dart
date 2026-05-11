@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../viewmodels/partida_actual_viewmodel.dart';
 
 class AjustesOverlay extends StatefulWidget {
   final VoidCallback onClose;
@@ -16,6 +19,59 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
   bool musica = true;
   bool sonido = false;
   bool vibracion = true;
+  bool _saliendo = false;
+
+  Future<void> _confirmarSalida() async {
+    final partidaVm = context.read<PartidaActualViewModel>();
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF3A4288),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '¿Seguro que deseas salirte de la partida?',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'No se podrá deshacer esta acción. La partida se finalizará.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí, salir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!confirmar || !mounted) return;
+
+    setState(() => _saliendo = true);
+
+    await partidaVm.salirDePartidaVsIA();
+
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +182,19 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
                         onChanged: (val) => setState(() => vibracion = val),
                       ),
 
-                      const SizedBox(height: 30),
+                      if (context.watch<PartidaActualViewModel>().isVsIA) ...[
+                        const SizedBox(height: 24),
+                        const Divider(color: Colors.white10, thickness: 1.2),
+                        const SizedBox(height: 16),
+
+                        _BotonSalirPartida(
+                          cargando: _saliendo,
+                          onTap: _confirmarSalida,
+                        ),
+
+                        const SizedBox(height: 24),
+                      ] else
+                        const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -197,6 +265,76 @@ class _AnimatedSettingRowState extends State<_AnimatedSettingRow> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BotonSalirPartida extends StatefulWidget {
+  final VoidCallback onTap;
+  final bool cargando;
+
+  const _BotonSalirPartida({required this.onTap, this.cargando = false});
+
+  @override
+  State<_BotonSalirPartida> createState() => _BotonSalirPartidaState();
+}
+
+class _BotonSalirPartidaState extends State<_BotonSalirPartida> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const errorRed = Color(0xFFE53935);
+
+    return GestureDetector(
+      onTapDown: widget.cargando ? null : (_) => setState(() => _isPressed = true),
+      onTapUp: widget.cargando
+          ? null
+          : (_) {
+              setState(() => _isPressed = false);
+              widget.onTap();
+            },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 100),
+        scale: _isPressed && !widget.cargando ? 1.05 : 1.0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: double.infinity,
+          height: 46,
+          decoration: BoxDecoration(
+            color: widget.cargando ? errorRed.withOpacity(0.5) : errorRed,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: _isPressed && !widget.cargando
+                ? [BoxShadow(color: errorRed.withOpacity(0.6), blurRadius: 14, spreadRadius: 3)]
+                : [const BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+          ),
+          child: Center(
+            child: widget.cargando
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.exit_to_app, color: Colors.white, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        'SALIR DE LA PARTIDA',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

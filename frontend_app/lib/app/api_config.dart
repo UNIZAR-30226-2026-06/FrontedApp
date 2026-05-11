@@ -1,7 +1,7 @@
 class ApiConfig {
-  // Cambia esta URL cuando tengas tu backend definitivo
-  static const String baseUrl = "http://10.0.2.2:3000/api/v1";
-  static const String socketUrl = "http://10.0.2.2:3000";
+
+  static const String baseUrl = "https://backend-i797.onrender.com/api/v1";
+  static const String socketUrl = "https://backend-i797.onrender.com";
 
   // Endpoints
   static const String login = "/auth/login";
