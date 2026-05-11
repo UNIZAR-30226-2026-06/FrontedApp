@@ -27,7 +27,7 @@ class PartidaModel {
     this.jugadorLocal,
     this.phase = 'waiting',
     this.jugadores = const [],
-    this.currentTurn, // 🔥
+    this.currentTurn,
     this.direction = 1,
     this.currentCard,
     this.rolesMode = false,
@@ -61,6 +61,16 @@ class PartidaModel {
       processedCard = rawCard;
     }
 
+    final bool modoRolesActivo =
+        json['rolesMode'] == true ||
+            json['modo_roles'] == true ||
+            json['mode'] == 'roles';
+
+    final bool modoCartasActivo =
+        json['specialCardsMode'] == true ||
+            json['modo_cartas_especiales'] == true ||
+            json['mode'] == 'cards';
+
     return PartidaModel(
       gameId: (json['gameId'] ?? json['id_partida'] ?? '').toString(),
       code: (json['codigo'] ?? json['code'])?.toString(),
@@ -74,10 +84,13 @@ class PartidaModel {
       currentCard: processedCard,
       maxJugadores: (json['maxJugadores'] ?? json['max_jugadores'] ?? json['max_jugadores_partida'] ?? 4) as int,
       drawCount: (json['drawCount'] as int?) ?? 0,
+      rolesMode: modoRolesActivo,
+      specialCardsMode: modoCartasActivo,
       resumeVoters: json['resumeVoters'] is List ? List<String>.from(json['resumeVoters']) : const [],
       pauseVoters: json['pauseVoters'] is List ? List<String>.from(json['pauseVoters']) : const [],
     );
   }
+
 
   PartidaModel copyWith({
     String? gameId, String? code, bool? isPrivate, String? jugadorLocal,

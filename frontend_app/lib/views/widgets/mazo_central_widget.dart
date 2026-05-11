@@ -19,7 +19,6 @@ class MazoCentralWidget extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Mazo de robo (Boca abajo) con contador de cartas restantes
         GestureDetector(
           onTap: onRobar,
           child: Stack(

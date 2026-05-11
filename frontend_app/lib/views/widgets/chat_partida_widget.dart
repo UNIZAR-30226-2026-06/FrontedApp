@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../services/socket_service.dart';
 
 class ChatPartidaWidget extends StatefulWidget {
@@ -21,8 +20,8 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _mensajes = [];
-  bool _abierto = false;
   SocketService? _socketService;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void didChangeDependencies() {
@@ -48,7 +47,7 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
     _limpiarListeners();
     _controller.dispose();
     _scrollController.dispose();
-    _mensajes.clear();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -57,7 +56,10 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
     if (socket == null) return;
 
     _limpiarListeners();
+    // Nos aseguramos de estar en la sala correcta para recibir mensajes
     _socketService?.emitir('unirse_room_partida', widget.partidaId);
+
+    // Escuchamos los mensajes entrantes (los nuestros y los del resto)
     socket.on('mensajeMostrar', _recibirMensaje);
     socket.on('nuevoMensajeChat', _recibirMensaje);
     socket.on('chat_error', _recibirError);
@@ -72,11 +74,15 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
 
   void _recibirMensaje(dynamic data) {
     if (!mounted || data is! Map) return;
+
     final msg = _ChatMessage.fromSocket(data);
+
+    // Verificamos que el mensaje sea para esta partida
     if (msg.partidaId != null && msg.partidaId != widget.partidaId) return;
 
     setState(() {
       _mensajes.add(msg);
+      // Mantenemos un máximo de 80 mensajes en RAM para no saturar
       if (_mensajes.length > 80) _mensajes.removeAt(0);
     });
     _scrollToBottom();
@@ -84,23 +90,29 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
 
   void _recibirError(dynamic data) {
     if (!mounted) return;
-    final message = data is Map
-        ? data['message']?.toString()
-        : 'Error en el chat';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message ?? 'Error en el chat')));
+    final message = data is Map ? data['message']?.toString() : 'Error al enviar mensaje';
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message ?? 'Error en el chat'),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 2),
+        )
+    );
   }
 
   void _enviar() {
     final texto = _controller.text.trim();
     if (texto.isEmpty) return;
 
+    // Emitimos el evento 'newMessage' al backend
     _socketService?.emitir('newMessage', {
       'partidaID': widget.partidaId,
       'mensaje': texto,
     });
+
     _controller.clear();
+    // Devolvemos el foco al TextField por si quiere seguir escribiendo
+    _focusNode.requestFocus();
   }
 
   void _scrollToBottom() {
@@ -108,99 +120,42 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
       );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      width: _abierto ? 310 : 54,
-      height: _abierto ? 350 : 54,
-      child: _abierto ? _buildPanel() : _buildClosedButton(),
-    );
-  }
-
-  Widget _buildClosedButton() {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(27),
-        onTap: () => setState(() => _abierto = true),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.72),
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF00E5FF), width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF00E5FF).withOpacity(0.35),
-                blurRadius: 18,
-              ),
-            ],
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const Icon(Icons.chat_bubble_outline, color: Color(0xFF00E5FF)),
-              if (_mensajes.isNotEmpty)
-                Positioned(
-                  right: 7,
-                  top: 7,
-                  child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFD54F),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPanel() {
+    // Al ser el contenido de un Dialog, usamos Expanded donde se pueda
+    // y decoramos el contenedor principal.
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF080C22).withOpacity(0.92),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00E5FF).withOpacity(0.22),
-            blurRadius: 24,
-          ),
-        ],
+        color: const Color(0xFF0F1535).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
           _buildHeader(),
           Expanded(
-            child: ListView.builder(
+            child: _mensajes.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               itemCount: _mensajes.length,
               itemBuilder: (context, index) {
                 final msg = _mensajes[index];
-                final mine = msg.remitente == widget.miUsuario;
+                final isMine = msg.remitente == widget.miUsuario;
                 return Align(
-                  alignment: mine
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: _MessageBubble(message: msg, mine: mine),
+                  alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+                  child: _MessageBubble(message: msg, isMine: isMine),
                 );
               },
             ),
           ),
-          _buildInput(),
+          _buildInputArea(),
         ],
       ),
     );
@@ -208,57 +163,79 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
 
   Widget _buildHeader() {
     return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withOpacity(0.08)),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
       ),
       child: Row(
         children: [
-          const Icon(Icons.forum_outlined, color: Color(0xFF00E5FF), size: 18),
-          const SizedBox(width: 8),
+          const Icon(Icons.forum, color: Color(0xFF00E5FF), size: 20),
+          const SizedBox(width: 12),
           const Expanded(
             child: Text(
-              'Chat',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
+              'Chat de Partida',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
           IconButton(
-            visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close, color: Colors.white70, size: 18),
-            onPressed: () => setState(() => _abierto = false),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.close, color: Colors.white70),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInput() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.chat_bubble_outline, color: Colors.white.withOpacity(0.2), size: 48),
+          const SizedBox(height: 12),
+          Text(
+            'Aún no hay mensajes.\n¡Sé el primero en saludar!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _controller,
+              focusNode: _focusNode,
               maxLength: 150,
+              maxLines: 3,
               minLines: 1,
-              maxLines: 2,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              textCapitalization: TextCapitalization.sentences,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
-                counterText: '',
-                hintText: 'Mensaje...',
-                hintStyle: const TextStyle(color: Colors.white38),
-                isDense: true,
+                counterText: '', // Ocultar el contador de caracteres
+                hintText: 'Escribe un mensaje...',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.08),
+                fillColor: Colors.white.withOpacity(0.05),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -266,13 +243,15 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton.filled(
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF00E5FF),
-              foregroundColor: Colors.black,
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF00E5FF),
+              shape: BoxShape.circle,
             ),
-            onPressed: _enviar,
-            icon: const Icon(Icons.send_rounded, size: 18),
+            child: IconButton(
+              icon: const Icon(Icons.send_rounded, color: Colors.black, size: 20),
+              onPressed: _enviar,
+            ),
           ),
         ],
       ),
@@ -282,46 +261,50 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
 
 class _MessageBubble extends StatelessWidget {
   final _ChatMessage message;
-  final bool mine;
+  final bool isMine;
 
-  const _MessageBubble({required this.message, required this.mine});
+  const _MessageBubble({required this.message, required this.isMine});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 230),
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      margin: const EdgeInsets.only(bottom: 12),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.7, // No ocupar todo el ancho
+      ),
       decoration: BoxDecoration(
-        color: mine
-            ? const Color(0xFF00E5FF).withOpacity(0.18)
-            : Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
+        color: isMine ? const Color(0xFF00E5FF).withOpacity(0.2) : Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(12),
+          topRight: const Radius.circular(12),
+          bottomLeft: isMine ? const Radius.circular(12) : const Radius.circular(4),
+          bottomRight: isMine ? const Radius.circular(4) : const Radius.circular(12),
+        ),
         border: Border.all(
-          color: mine ? const Color(0xFF00E5FF) : Colors.white12,
+          color: isMine ? const Color(0xFF00E5FF).withOpacity(0.5) : Colors.white24,
           width: 1,
         ),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            message.remitente,
-            style: TextStyle(
-              color: mine ? const Color(0xFF00E5FF) : const Color(0xFFFFD54F),
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
+          // Mostrar el nombre del remitente si no soy yo
+          if (!isMine) ...[
+            Text(
+              message.remitente,
+              style: const TextStyle(
+                color: Color(0xFFFFD54F), // Amarillo para destacar a los demás
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
+            const SizedBox(height: 4),
+          ],
           Text(
             message.texto,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              height: 1.2,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.3),
           ),
         ],
       ),
