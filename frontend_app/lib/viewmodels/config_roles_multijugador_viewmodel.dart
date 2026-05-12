@@ -4,8 +4,12 @@ import '../views/sala_espera_view.dart';
 
 class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
   final String modoTitulo;
+  final bool isPrivate;
 
-  ConfigRolesMultijugadorViewModel({required this.modoTitulo});
+  ConfigRolesMultijugadorViewModel({
+    required this.modoTitulo,
+    required this.isPrivate,
+  });
 
   int _jugadores = 2;
   int get jugadores => _jugadores;
@@ -35,23 +39,38 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  String get subtitulo => 'Modo multijugador';
+  String get subtitulo => isPrivate ? 'Partida Privada' : 'Partida Pública';
 
   String get detalleJugadores => '$_jugadores humanos';
 
-  Future<void> comenzarPartida(BuildContext context, PartidaActualViewModel partidaVm, {bool isPrivate = true}) async {
+  Future<void> comenzarPartida(
+    BuildContext context,
+    PartidaActualViewModel partidaVm, {
+    String? jugadorLocal,
+  }) async {
     if (_isCreating) return;
 
     _isCreating = true;
     notifyListeners();
 
     try {
-      debugPrint("⏱️ 1. Solicitando al servidor crear sala multijugador...");
+      debugPrint("⏱️ 1. Solicitando sala de roles...");
 
-      await partidaVm.crearPartida(
-        isPrivate: isPrivate,
-        maxJugadores: _jugadores,
-      );
+      if (isPrivate) {
+        await partidaVm.crearPartida(
+          isPrivate: true,
+          maxJugadores: _jugadores,
+          modoCartasEspeciales: false,
+          modoRoles: true,
+          jugadorLocal: jugadorLocal,
+        );
+      } else {
+        await partidaVm.unirsePartidaPublica(
+          maxJugadores: _jugadores,
+          mode: 'roles',
+          jugadorLocal: jugadorLocal,
+        );
+      }
 
       debugPrint("Sala creada. Código: ${partidaVm.partidaActual?.code}");
 

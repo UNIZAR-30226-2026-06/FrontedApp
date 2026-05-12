@@ -8,6 +8,8 @@ import '../views/partida_personalizada_view.dart';
 import '../views/seleccion_roles_view.dart';
 import '../views/seleccion_cartas_view.dart';
 import '../views/partidas_pausadas_view.dart';
+import '../views/config_roles_multijugador_view.dart';
+import '../views/config_cartas_multijugador_view.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final UserRepository? _userRepo;
@@ -83,8 +85,16 @@ class HomeViewModel extends ChangeNotifier {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const SeleccionRolesView(modoTitulo: 'Modo con roles', modoSubtitulo: 'Partida Privada')));
       return;
     }
+    if (destino == 'roles_publica') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfigRolesMultijugadorView(modoTitulo: 'Modo con roles', isPrivate: false)));
+      return;
+    }
     if (destino == 'cartas_privada') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const SeleccionCartasView(modoTitulo: 'Modo cartas', modoSubtitulo: 'Partida Privada')));
+      return;
+    }
+    if (destino == 'cartas_publica') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfigCartasMultijugadorView(modoTitulo: 'Modo cartas', isPrivate: false)));
       return;
     }
     if (destino == 'pausadas_abrir') {

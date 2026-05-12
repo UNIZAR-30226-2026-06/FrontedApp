@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 import '../viewmodels/unirse_partida_viewmodel.dart';
 import 'sala_espera_view.dart';
@@ -83,7 +85,10 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text('🎭', style: TextStyle(fontSize: 22)),
+                                Text(
+                                  vm.modoTitulo.toLowerCase().contains('carta') ? '⚡' : '🎭',
+                                  style: const TextStyle(fontSize: 22),
+                                ),
                                 const SizedBox(width: 10),
                                 Text(
                                   vm.modoTitulo,
@@ -123,6 +128,11 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                   child: TextField(
                                     controller: _controller,
                                     onChanged: vm.setCodigo,
+                                    inputFormatters: [
+                                      LengthLimitingTextInputFormatter(6),
+                                      UpperCaseTextFormatter(),
+                                    ],
+                                    textCapitalization: TextCapitalization.characters,
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       color: Colors.black,
@@ -147,7 +157,12 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                               label: 'Unirse partida',
                               onTap: () async {
                                 try {
-                                  await vm.unirse();
+                                  await vm.unirse(
+                                    jugadorLocal: context
+                                        .read<AuthProvider>()
+                                        .usuario
+                                        ?.nombreUsuario,
+                                  );
                                   if (context.mounted) {
                                     Navigator.pushReplacement(
                                       context,
@@ -207,6 +222,19 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

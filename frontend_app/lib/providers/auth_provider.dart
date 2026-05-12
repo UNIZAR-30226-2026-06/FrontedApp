@@ -76,9 +76,15 @@ class AuthProvider with ChangeNotifier {
       final resultados = await Future.wait([
         _repository.obtenerAvataresComprados(),
         _repository.obtenerEstilosComprados(),
+        _repository.obtenerAvataresCompradosDetalle(),
         _repository.obtenerEstilosCompradosDetalle(),
       ]);
-      final estilosDetalle = resultados[2] as List;
+      final avataresDetalle = resultados[2] as List;
+      final estilosDetalle = resultados[3] as List;
+      final avatarActivo = avataresDetalle
+          .where((e) => e.id == _usuario!.idAvatarSeleccionado?.toString())
+          .cast<dynamic>()
+          .firstOrNull;
       final estiloActivo = estilosDetalle
           .where((e) => e.id == _usuario!.idEstiloSeleccionado?.toString())
           .cast<dynamic>()
@@ -86,6 +92,7 @@ class AuthProvider with ChangeNotifier {
       _usuario = _usuario!.copyWith(
         avataresComprados: resultados[0] as List<int>,
         estilosComprados: resultados[1] as List<int>,
+        avatarImage: avatarActivo?.assetPath,
         estiloNombre: estiloActivo?.titulo,
         estiloImage: estiloActivo?.assetPath,
       );

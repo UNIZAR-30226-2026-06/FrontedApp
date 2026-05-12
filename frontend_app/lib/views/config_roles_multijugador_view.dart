@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import '../viewmodels/config_roles_multijugador_viewmodel.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 
 class ConfigRolesMultijugadorView extends StatefulWidget {
   final String modoTitulo;
+  final bool isPrivate;
 
   const ConfigRolesMultijugadorView({
     super.key,
     required this.modoTitulo,
+    this.isPrivate = true,
   });
 
   @override
@@ -24,7 +27,10 @@ class _ConfigRolesMultijugadorViewState
   @override
   void initState() {
     super.initState();
-    vm = ConfigRolesMultijugadorViewModel(modoTitulo: widget.modoTitulo);
+    vm = ConfigRolesMultijugadorViewModel(
+      modoTitulo: widget.modoTitulo,
+      isPrivate: widget.isPrivate,
+    );
   }
 
   @override
@@ -158,7 +164,14 @@ class _ConfigRolesMultijugadorViewState
                                   label: vm.isCreating ? 'Creando sala...' : 'Comenzar partida',
                                   onTap: () {
                                     if (!vm.isCreating) {
-                                      vm.comenzarPartida(context, partidaVm);
+                                      vm.comenzarPartida(
+                                        context,
+                                        partidaVm,
+                                        jugadorLocal: context
+                                            .read<AuthProvider>()
+                                            .usuario
+                                            ?.nombreUsuario,
+                                      );
                                     }
                                   },
                                 ),

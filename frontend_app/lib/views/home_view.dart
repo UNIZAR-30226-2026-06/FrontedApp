@@ -41,6 +41,10 @@ class _HomeViewState extends State<HomeView> {
 
   String _avatarEmoji(String? avatarId) {
     switch (avatarId) {
+      case '4': return '👤';
+      case '5': return '😎';
+      case '6': return '🥷';
+      case '7': return '🤡';
       case '1': return '🤖';
       case '2': return '🤠';
       case '3': return '😈';
@@ -212,7 +216,16 @@ class _AvatarBubble extends StatelessWidget {
     final path = assetPath;
     Widget child = Text(emoji, style: const TextStyle(fontSize: 22));
     if (path != null && path.isNotEmpty) {
-      child = path.startsWith('http')
+      final isImagePath = path.startsWith('http') ||
+          path.startsWith('assets/') ||
+          path.contains('.') ||
+          path.contains('/') ||
+          path.contains('\\');
+
+      if (!isImagePath) {
+        child = Text(path, style: const TextStyle(fontSize: 22));
+      } else {
+        child = path.startsWith('http')
           ? Image.network(
               path,
               width: 32,
@@ -227,6 +240,7 @@ class _AvatarBubble extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Text(emoji, style: const TextStyle(fontSize: 22)),
             );
+      }
     }
 
     return Container(

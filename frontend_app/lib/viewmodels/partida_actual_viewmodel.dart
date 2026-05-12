@@ -209,6 +209,8 @@ class PartidaActualViewModel extends ChangeNotifier {
     required bool isPrivate,
     String? jugadorLocal,
     int maxJugadores = 4,
+    bool modoCartasEspeciales = true,
+    bool modoRoles = false,
   }) async {
     _cargando = true;
     _error = null;
@@ -216,14 +218,22 @@ class PartidaActualViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final partida = await _repository.crearPartida(isPrivate: isPrivate);
+      final partida = await _repository.crearPartida(
+        isPrivate: isPrivate,
+        maxJugadores: maxJugadores,
+        modoCartasEspeciales: modoCartasEspeciales,
+        modoRoles: modoRoles,
+      );
       List<JugadorPartidaModel> listaInicial = partida.jugadores;
       if (listaInicial.isEmpty) {
         listaInicial = [JugadorPartidaModel(id: jugadorLocal ?? 'Yo')];
       }
       _partidaActual = partida.copyWith(
+        isPrivate: isPrivate,
         jugadorLocal: jugadorLocal,
         jugadores: listaInicial,
+        rolesMode: modoRoles,
+        specialCardsMode: modoCartasEspeciales,
       );
       _activarTiempoReal();
     } catch (e) {
@@ -235,12 +245,20 @@ class PartidaActualViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> unirsePartidaPublica({String? jugadorLocal}) async {
+  Future<void> unirsePartidaPublica({
+    String? jugadorLocal,
+    int maxJugadores = 4,
+    String? mode,
+  }) async {
     _cargando = true;
     _error = null;
+    _maxJugadores = maxJugadores;
     notifyListeners();
     try {
-      final partida = await _repository.unirsePartidaPublica();
+      final partida = await _repository.unirsePartidaPublica(
+        maxJugadores: maxJugadores,
+        mode: mode,
+      );
       _partidaActual = partida.copyWith(jugadorLocal: jugadorLocal);
       _activarTiempoReal();
     } catch (e) {

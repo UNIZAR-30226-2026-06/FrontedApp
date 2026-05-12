@@ -10,6 +10,15 @@ class AuthRepository {
 
   AuthRepository(this._apiService);
 
+  String? _normalizarImagenTienda(dynamic value) {
+    final image = value?.toString().trim();
+    if (image == null || image.isEmpty) return null;
+    if (image.startsWith('http') || image.startsWith('assets/')) return image;
+    if (image.contains('/') || image.contains('\\')) return image;
+    if (image.contains('.')) return 'assets/images/shop/$image';
+    return image;
+  }
+
   Future<UsuarioModel> register(
     String username,
     String email,
@@ -98,6 +107,30 @@ class AuthRepository {
     }
   }
 
+  Future<List<TiendaItem>> obtenerAvataresCompradosDetalle() async {
+    try {
+      final response = await _apiService.get('/usuarios/me/avatares');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((item) {
+          return TiendaItem(
+            id: (item['id_avatar'] ?? item['id'] ?? item['avatar_id'])
+                .toString(),
+            titulo: item['nombre'] ?? '',
+            precio: item['precioavatar'] ?? item['precio_avatar'] ?? item['precio'] ?? 0,
+            tipo: TiendaItemTipo.avatar,
+            assetPath: item['image']?.toString() ?? item['assetPath']?.toString(),
+          );
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error obteniendo detalle de avatares comprados: $e");
+      return [];
+    }
+  }
+
   Future<List<int>> obtenerEstilosComprados() async {
     try {
       final response = await _apiService.get('/usuarios/me/estilos');
@@ -130,7 +163,7 @@ class AuthRepository {
                 item['precio'] ??
                 0,
             tipo: TiendaItemTipo.diseno,
-            assetPath: item['image'] ?? item['assetPath'],
+            assetPath: _normalizarImagenTienda(item['image'] ?? item['assetPath']),
           );
         }).toList();
       }

@@ -384,9 +384,7 @@ class _ShopCard extends StatelessWidget {
             decoration: BoxDecoration(color: const Color(0xFF1F2454), borderRadius: BorderRadius.circular(12)),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: item.assetPath == null
-                  ? Icon(item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style, color: Colors.white70)
-                  : Image.asset(item.assetPath!, fit: BoxFit.cover, errorBuilder: (c, e, s) => Icon(item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style, color: Colors.white70)),
+              child: _StoreItemImage(item: item),
             ),
           ),
           const SizedBox(width: 10),
@@ -432,6 +430,46 @@ class _Pill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(14)),
       child: DefaultTextStyle(style: TextStyle(color: foreground), child: IconTheme(data: IconThemeData(color: foreground), child: child)),
+    );
+  }
+}
+
+class _StoreItemImage extends StatelessWidget {
+  final TiendaItem item;
+  const _StoreItemImage({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final image = item.assetPath?.trim();
+    final fallbackIcon = Icon(
+      item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style,
+      color: Colors.white70,
+    );
+
+    if (image == null || image.isEmpty) return fallbackIcon;
+
+    final isImagePath = image.startsWith('http') ||
+        image.startsWith('assets/') ||
+        image.contains('.') ||
+        image.contains('/') ||
+        image.contains('\\');
+
+    if (!isImagePath && item.tipo == TiendaItemTipo.avatar) {
+      return Center(child: Text(image, style: const TextStyle(fontSize: 28)));
+    }
+
+    if (image.startsWith('http')) {
+      return Image.network(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => fallbackIcon,
+      );
+    }
+
+    return Image.asset(
+      image,
+      fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => fallbackIcon,
     );
   }
 }

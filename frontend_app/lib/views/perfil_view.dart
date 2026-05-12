@@ -107,7 +107,7 @@ class _PerfilViewState extends State<PerfilView> {
       if (!mounted) return;
       context.read<AuthProvider>().actualizarAvatarSeleccionado(
         int.tryParse(avatar.id) ?? 0,
-        image: avatar.assetPath,
+        image: avatar.assetPath ?? avatar.emoji,
       );
     } catch (e) {
       if (!mounted) return;
@@ -701,7 +701,9 @@ class _AssetOrEmoji extends StatelessWidget {
 
     final normalized = path.startsWith('assets/')
         ? path
-        : 'assets/images/$baseFolder/$path';
+        : path.contains('/') || path.contains('\\')
+            ? path
+            : 'assets/images/$baseFolder/$path';
 
     return Image.asset(
       normalized,

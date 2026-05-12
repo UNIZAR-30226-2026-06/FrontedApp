@@ -41,12 +41,14 @@ class PartidaRepository {
   Future<PartidaModel> crearPartida({
     required bool isPrivate,
     int maxJugadores = 4,
+    bool modoCartasEspeciales = true,
+    bool modoRoles = false,
   }) async {
     final response = await _api.post('/partidas', {
       'maxJugadores': maxJugadores,
       'privada': isPrivate,
-      'modoCartasEspeciales': true,
-      'modoRoles': false,
+      'modoCartasEspeciales': modoCartasEspeciales,
+      'modoRoles': modoRoles,
       'numCartasInicio': 7,
       'timeoutTurno': 30,
     });
@@ -59,11 +61,21 @@ class PartidaRepository {
     throw Exception('Error al crear partida: ${response.body}');
   }
 
-  Future<PartidaModel> unirsePartidaPublica() async {
-    final response = await _api.post('/partidas/join', {});
+  Future<PartidaModel> unirsePartidaPublica({
+    int maxJugadores = 4,
+    String? mode,
+  }) async {
+    final response = await _api.post('/partidas/join', {
+      'maxJugadores': maxJugadores,
+      if (mode != null) 'mode': mode,
+    });
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
+      final gameId = data['gameId']?.toString();
+      if (gameId != null && gameId.isNotEmpty) {
+        return await obtenerPartida(gameId);
+      }
       return PartidaModel.fromJson(data);
     }
 
@@ -71,14 +83,16 @@ class PartidaRepository {
   }
 
   Future<PartidaModel> unirsePorCodigo(String code) async {
+    final codigo = code.trim().toUpperCase();
     final response = await _api.post('/partidas/join-by-code', {
-      'codigo': code.trim(),
+      'codigo': codigo,
     });
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
       final String gameId = data['gameId'];
-      return await obtenerPartida(gameId);
+      final partida = await obtenerPartida(gameId);
+      return partida.copyWith(code: codigo, isPrivate: true);
     }
 
     throw Exception('Error al unirse por código: ${response.body}');
