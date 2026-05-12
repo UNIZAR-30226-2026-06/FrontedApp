@@ -3,11 +3,21 @@ import 'package:flutter/foundation.dart';
 
 import '../services/api_service.dart';
 import '../models/usuario_model.dart';
+import '../models/tienda_item_model.dart';
 
 class AuthRepository {
   final ApiService _apiService;
 
   AuthRepository(this._apiService);
+
+  String? _normalizarImagenTienda(dynamic value) {
+    final image = value?.toString().trim();
+    if (image == null || image.isEmpty) return null;
+    if (image.startsWith('http') || image.startsWith('assets/')) return image;
+    if (image.contains('/') || image.contains('\\')) return image;
+    if (image.contains('.')) return 'assets/images/shop/$image';
+    return image;
+  }
 
   Future<UsuarioModel> register(String username, String email,
       String password) async {
@@ -104,4 +114,33 @@ class AuthRepository {
       return [];
     }
   }
+
+  Future<List<TiendaItem>> obtenerEstilosCompradosDetalle() async {
+    try {
+      final response = await _apiService.get('/usuarios/me/estilos');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((item) {
+          return TiendaItem(
+            id: (item['id_estilo'] ?? item['id'] ?? item['estilo_id'])
+                .toString(),
+            titulo: item['nombre'] ?? '',
+            precio:
+            item['precioestilo'] ??
+                item['precio_estilo'] ??
+                item['precio'] ??
+                0,
+            tipo: TiendaItemTipo.diseno,
+            assetPath: _normalizarImagenTienda(item['image'] ?? item['assetPath']),
+          );
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error obteniendo detalle de estilos comprados: $e");
+      return [];
+    }
+  }
+
 }

@@ -39,27 +39,36 @@ class ConfigCartasMultijugadorViewModel extends ChangeNotifier {
   String get detalleJugadores => '$_jugadores humanos';
 
   Future<void> comenzarPartida(
-    BuildContext context,
-    PartidaActualViewModel partidaVm,
-    String? jugadorLocal, {
-    bool isPrivate = true,
-  }) async {
+      BuildContext context,
+      PartidaActualViewModel partidaVm,
+      String? jugadorLocal, {
+        bool isPrivate = true,
+      }) async {
     if (_isCreating) return;
 
     _isCreating = true;
     notifyListeners();
 
     try {
-      debugPrint("⏱️ Solicitando al servidor crear sala cartas multijugador...");
-
-      await partidaVm.crearPartida(
-        isPrivate: isPrivate,
-        maxJugadores: _jugadores,
-        jugadorLocal: jugadorLocal,
-        modoRoles: false,
-      );
-
-      debugPrint("Sala creada. Código: ${partidaVm.partidaActual?.code}");
+      if (isPrivate) {
+        debugPrint("⏱️ Solicitando al servidor crear sala PRIVADA cartas multijugador...");
+        await partidaVm.crearPartida(
+          isPrivate: true,
+          maxJugadores: _jugadores,
+          jugadorLocal: jugadorLocal,
+          modoRoles: false,
+        );
+        debugPrint("Sala creada. Código: ${partidaVm.partidaActual?.code}");
+      } else {
+        debugPrint("⏱️ Solicitando al servidor buscar/crear sala PÚBLICA cartas multijugador...");
+        // 🔥 LLAMADA AL NUEVO SISTEMA DE MATCHMAKING
+        await partidaVm.unirsePartidaPublica(
+          jugadorLocal: jugadorLocal,
+          maxJugadores: _jugadores,
+          mode: 'cards',
+        );
+        debugPrint("Unido a partida pública: ${partidaVm.partidaActual?.gameId}");
+      }
 
       if (!context.mounted) return;
 
@@ -70,11 +79,13 @@ class ConfigCartasMultijugadorViewModel extends ChangeNotifier {
         ),
       );
     } catch (e) {
-      debugPrint("Error al crear la sala: $e");
+      debugPrint("Error al acceder a la sala: $e");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error de conexión con el servidor. Inténtalo de nuevo.'),
+          SnackBar(
+            content: Text(isPrivate
+                ? 'Error de conexión con el servidor.'
+                : 'No se pudo buscar la partida pública.'),
             backgroundColor: Colors.redAccent,
           ),
         );

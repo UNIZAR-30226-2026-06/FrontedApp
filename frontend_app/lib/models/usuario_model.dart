@@ -11,6 +11,7 @@ class UsuarioModel {
   final String? token;
   final List<int> avataresComprados;
   final List<int> estilosComprados;
+  final String? estiloNombre;
 
   UsuarioModel({
     required this.nombreUsuario,
@@ -22,6 +23,7 @@ class UsuarioModel {
     this.idEstiloSeleccionado,
     this.avatarImage,
     this.estiloImage,
+    this.estiloNombre,
     this.token,
     this.avataresComprados = const [],
     this.estilosComprados = const [],
@@ -38,6 +40,7 @@ class UsuarioModel {
     int? idEstiloSeleccionado,
     String? avatarImage,
     String? estiloImage,
+    String? estiloNombre,
     String? token,
     List<int>? avataresComprados,
     List<int>? estilosComprados,
@@ -52,6 +55,7 @@ class UsuarioModel {
       idEstiloSeleccionado: idEstiloSeleccionado ?? this.idEstiloSeleccionado,
       avatarImage: avatarImage ?? this.avatarImage,
       estiloImage: estiloImage ?? this.estiloImage,
+      estiloNombre: estiloNombre ?? this.estiloNombre,
       token: token ?? this.token,
       avataresComprados: avataresComprados ?? this.avataresComprados,
       estilosComprados: estilosComprados ?? this.estilosComprados,
@@ -69,6 +73,7 @@ class UsuarioModel {
       idEstiloSeleccionado: json['id_estilo_seleccionado'] ?? json['estilo'],
       avatarImage: json['avatar_image'] ?? json['imagen_avatar'] ?? json['image_avatar'],
       estiloImage: json['estilo_image'] ?? json['imagen_estilo'] ?? json['image_estilo'],
+        estiloNombre: json['estilo_nombre'] ?? json['nombre_estilo'] ?? json['style_name'],
       token: token,
       avataresComprados: json['avatares_comprados'] != null
           ? List<int>.from(json['avatares_comprados'])

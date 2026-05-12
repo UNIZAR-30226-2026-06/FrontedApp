@@ -364,7 +364,6 @@ class _AnimatedFilterChipState extends State<_AnimatedFilterChip> {
   }
 }
 
-/* ================= WIDGETS DE SOPORTE ================= */
 
 class _ShopCard extends StatelessWidget {
   final Color background;
@@ -384,9 +383,29 @@ class _ShopCard extends StatelessWidget {
             decoration: BoxDecoration(color: const Color(0xFF1F2454), borderRadius: BorderRadius.circular(12)),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: item.assetPath == null
-                  ? Icon(item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style, color: Colors.white70)
-                  : Image.asset(item.assetPath!, fit: BoxFit.cover, errorBuilder: (c, e, s) => Icon(item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style, color: Colors.white70)),
+              child: Builder(
+                builder: (context) {
+                  final path = item.assetPath;
+
+                  if (path == null || path.isEmpty) {
+                    return Icon(item.tipo == TiendaItemTipo.avatar ? Icons.person : Icons.style, color: Colors.white70);
+                  }
+
+                  final isEmoji = !path.contains('.') && path.characters.length <= 5;
+
+                  if (isEmoji) {
+                    return Center(
+                      child: Text(path, style: const TextStyle(fontSize: 28)),
+                    );
+                  }
+
+                  return Image.asset(
+                    path,
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) => Center(child: Text(path, style: const TextStyle(fontSize: 28))),
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(width: 10),

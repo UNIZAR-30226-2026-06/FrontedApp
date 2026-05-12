@@ -223,7 +223,6 @@ class PartidaActualViewModel extends ChangeNotifier {
     _socketService.off('roles_asignados');
     _socketService.off('sincronizacion_completada');
 
-    // 🔥 ESCUCHAMOS EL RESCATE DE LA RAM
     _socketService.on('sincronizacion_completada', (data) async {
       if (data is! Map) return;
 
@@ -366,7 +365,6 @@ class PartidaActualViewModel extends ChangeNotifier {
       _iniciarCronometro();
       _reiniciarDeadlineTurno();
 
-      // 🔥 MAGIA PURA: Al reanudar, pedimos nuestra mano automáticamente
       solicitarSincronizacion();
 
       notifyListeners();
@@ -490,17 +488,34 @@ class PartidaActualViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> unirsePartidaPublica({String? jugadorLocal}) async {
+  Future<void> unirsePartidaPublica({
+    String? jugadorLocal,
+    required int maxJugadores,
+    required String mode,
+  }) async {
     _cargando = true;
     _error = null;
+    _maxJugadores = maxJugadores;
     notifyListeners();
+
     try {
-      final partida = await _repository.unirsePartidaPublica();
-      _partidaActual = partida.copyWith(jugadorLocal: jugadorLocal);
+      final partida = await _repository.unirsePartidaPublica(
+        maxJugadores: maxJugadores,
+        mode: mode,
+      );
+
+      _partidaActual = partida.copyWith(
+        jugadorLocal: jugadorLocal,
+        rolesMode: mode == 'roles',
+      );
+
       _activarTiempoReal();
-      await _refrescarEstadoDesdeServidor();
+
+      await _refrescarLobbyDesdeServidor();
+
     } catch (e) {
       _error = e.toString();
+      debugPrint("Error al buscar partida pública: $_error");
       rethrow;
     } finally {
       _cargando = false;

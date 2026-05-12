@@ -86,12 +86,28 @@ class PartidaRepository {
     throw Exception('Error al crear partida: ${response.body}');
   }
 
-  Future<PartidaModel> unirsePartidaPublica() async {
-    final response = await _api.post('/partidas/join', {});
+  Future<PartidaModel> unirsePartidaPublica({
+    required int maxJugadores,
+    required String mode,
+  }) async {
+    developer.log('Buscando partida pública. Jugadores: $maxJugadores, Modo: $mode', name: 'PartidaRepository');
+
+    // Enviamos los filtros al backend
+    final response = await _api.post('/partidas/join', {
+      'maxJugadores': maxJugadores,
+      'mode': mode,
+    });
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
-      return PartidaModel.fromJson(data);
+      final String gameId = data['gameId']?.toString() ?? '';
+
+      if (gameId.isEmpty) {
+        throw Exception('El servidor no devolvió un ID de partida válido.');
+      }
+
+      // Como el join solo devuelve el gameId, pedimos el lobby completo
+      return await obtenerPartida(gameId);
     }
 
     throw Exception('Error al unirse a partida pública: ${response.body}');
@@ -255,4 +271,5 @@ class PartidaRepository {
     }
     throw Exception('Error al usar el rol: ${response.body}');
   }
+
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../views/config_roles_vs_ia_view.dart';
+import '../views/multijugador_menu_view.dart';
 
 class SeleccionModoViewModel extends ChangeNotifier {
-  // Datos que la View leerá del ViewModel
   final String tituloModo = "Modo con roles";
   final String subtituloPartida = "Partida Privada";
 
@@ -10,12 +11,24 @@ class SeleccionModoViewModel extends ChangeNotifier {
   }
 
   void jugarVsIA(BuildContext context) {
-    debugPrint("Navegando a la pantalla de jugar contra la IA");
-    // Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaIA()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConfigRolesVsIaView(modoTitulo: tituloModo),
+      ),
+    );
   }
 
   void jugarVsJugador(BuildContext context) {
-    debugPrint("Navegando a la pantalla de jugar contra jugador");
-    // Navigator.push(context, MaterialPageRoute(builder: (_) => PantallaMulti()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MultijugadorMenuView(
+          modoTitulo: tituloModo,
+          modoSubtitulo1: 'Modo Multijugador',
+          modoSubtitulo2: subtituloPartida,
+        ),
+      ),
+    );
   }
 }

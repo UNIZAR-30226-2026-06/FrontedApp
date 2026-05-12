@@ -7,10 +7,12 @@ import '../viewmodels/partida_actual_viewmodel.dart';
 
 class ConfigCartasMultijugadorView extends StatefulWidget {
   final String modoTitulo;
+  final bool isPrivate;
 
   const ConfigCartasMultijugadorView({
     super.key,
     required this.modoTitulo,
+    this.isPrivate = true,
   });
 
   @override
@@ -113,11 +115,18 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
                                 ),
                                 const SizedBox(height: 20),
                                 _AnimatedGreenButton(
-                                  label: vm.isCreating ? 'Creando sala...' : 'Comenzar partida',
+                                  label: vm.isCreating
+                                      ? 'Procesando...'
+                                      : (widget.isPrivate ? 'Crear sala privada' : 'Buscar partida pública'),
                                   onTap: () {
                                     if (!vm.isCreating) {
                                       final jugadorLocal = context.read<AuthProvider>().usuario?.nombreUsuario;
-                                      vm.comenzarPartida(context, partidaVm, jugadorLocal);
+                                      vm.comenzarPartida(
+                                        context,
+                                        partidaVm,
+                                        jugadorLocal,
+                                        isPrivate: widget.isPrivate,
+                                      );
                                     }
                                   },
                                 ),
@@ -148,7 +157,6 @@ class _ConfigCartasMultijugadorViewState extends State<ConfigCartasMultijugadorV
     );
   }
 }
-
 
 class _AnimatedSquareBtn extends StatefulWidget {
   final String label;
@@ -298,7 +306,6 @@ class _AnimatedBackPillState extends State<_AnimatedBackPill> {
     );
   }
 }
-
 
 class _RulesSection extends StatelessWidget {
   final bool open;

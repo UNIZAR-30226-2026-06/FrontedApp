@@ -6,10 +6,11 @@ import '../views/tienda_view.dart';
 import '../views/perfil_view.dart';
 import '../views/amigos_view.dart';
 import '../views/partida_personalizada_view.dart';
-import '../views/seleccion_roles_view.dart';
-import '../views/seleccion_cartas_view.dart';
 import '../views/partidas_pausadas_view.dart';
 import '../services/api_service.dart';
+import '../views/config_roles_multijugador_view.dart';
+import '../views/config_cartas_multijugador_view.dart';
+import '../views/seleccionModo_view.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final UserRepository? _userRepo;
@@ -92,23 +93,41 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // 🔥 ENLACES DEL HOME A LAS PARTIDAS ARREGLADOS
   void onTapAction(BuildContext context, String destino) {
     if (destino == 'personalizada_privada') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const PartidaPersonalizadaView()));
       return;
     }
+
+    // --- MODO ROLES ---
     if (destino == 'roles_privada') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const SeleccionRolesView(modoTitulo: 'Modo con roles', modoSubtitulo: 'Partida Privada')));
+      // 🛠️ ARREGLO: Te mandamos al menú intermedio en lugar de ir directo al final
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const SeleccionModoView()));
       return;
     }
+    if (destino == 'roles_publica') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfigRolesMultijugadorView(modoTitulo: 'Modo con roles', isPrivate: false)));
+      return;
+    }
+
+    // --- MODO CARTAS ---
     if (destino == 'cartas_privada') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const SeleccionCartasView(modoTitulo: 'Modo cartas', modoSubtitulo: 'Partida Privada')));
+      // 🛠️ ARREGLO: Lo mismo para el modo cartas
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const SeleccionModoView()));
       return;
     }
+    if (destino == 'cartas_publica') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfigCartasMultijugadorView(modoTitulo: 'Modo cartas', isPrivate: false)));
+      return;
+    }
+
+    // --- PAUSADAS ---
     if (destino == 'pausadas_abrir') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const PartidasPausadasView()));
       return;
     }
+
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ir a: $destino (pendiente)')));
   }
 

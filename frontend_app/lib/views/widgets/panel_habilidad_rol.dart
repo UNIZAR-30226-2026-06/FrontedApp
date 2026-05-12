@@ -324,7 +324,7 @@ class _PanelHabilidadRolState extends State<PanelHabilidadRol> {
   Future<void> _mostrarPopup(BuildContext outerContext, String titulo, dynamic data) async {
     return showDialog(
       context: outerContext,
-      builder: (dialogCtx) => AlertDialog(git add .
+      builder: (dialogCtx) => AlertDialog(
 
         backgroundColor: const Color(0xFF0F1535),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFF00E5FF), width: 2)),

@@ -18,6 +18,12 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
   }
 
   @override
+  void dispose() {
+    vm.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     const Color azulFondo = Color(0xFF2D3473);
     const Color azulPanel = Color(0xFF3A4288);
@@ -26,7 +32,7 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
       backgroundColor: azulFondo,
       body: SafeArea(
         child: Center(
-          child: SingleChildScrollView( // Añadido para seguridad en Landscape (Pixel horizontal)
+          child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Container(
               margin: const EdgeInsets.all(20),
@@ -37,7 +43,6 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
               ),
               child: Stack(
                 children: [
-                  // 1. CONTENIDO PRINCIPAL (Capa inferior)
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -54,7 +59,6 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
 
                       const SizedBox(height: 15),
 
-                      // Icono y Títulos
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -83,7 +87,6 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
                       ),
                       const SizedBox(height: 25),
 
-                      // Botón Jugar vs IA (Rojo Neón 0.7)
                       _AnimatedModeButton(
                         titulo: "Jugar vs IA",
                         subtitulo: "Compite contra la IA en frenéticas partidas",
@@ -93,7 +96,6 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
 
                       const SizedBox(height: 18),
 
-                      // Botón Modo Multijugador (Verde Neón 0.7)
                       _AnimatedModeButton(
                         titulo: "Modo Multijugador",
                         subtitulo: "Desafía a otros rivales de la Arena",
@@ -104,7 +106,6 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
                     ],
                   ),
 
-                  // 2. BOTÓN VOLVER (Capa superior para asegurar respuesta)
                   Positioned(
                     top: 0,
                     right: 0,
@@ -123,7 +124,7 @@ class _SeleccionModoViewState extends State<SeleccionModoView> {
 }
 
 // ---------------------------------------------------------
-// COMPONENTES REFACTORIZADOS (0ms / Brillo 0.7)
+// COMPONENTES REFACTORIZADOS
 // ---------------------------------------------------------
 
 class _AnimatedModeButton extends StatefulWidget {

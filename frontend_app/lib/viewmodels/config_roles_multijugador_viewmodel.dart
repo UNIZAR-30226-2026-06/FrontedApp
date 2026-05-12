@@ -46,16 +46,25 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint("1. Solicitando al servidor crear sala multijugador...");
-
-      await partidaVm.crearPartida(
-        isPrivate: isPrivate,
-        maxJugadores: _jugadores,
-        jugadorLocal: jugadorLocal,
-        modoRoles: true,
-      );
-
-      debugPrint("Sala creada. Código: ${partidaVm.partidaActual?.code}");
+      if (isPrivate) {
+        debugPrint("1. Solicitando al servidor crear sala PRIVADA con roles...");
+        await partidaVm.crearPartida(
+          isPrivate: true,
+          maxJugadores: _jugadores,
+          jugadorLocal: jugadorLocal,
+          modoRoles: true,
+        );
+        debugPrint("Sala creada. Código: ${partidaVm.partidaActual?.code}");
+      } else {
+        debugPrint("1. Solicitando al servidor buscar/crear sala PÚBLICA con roles...");
+        // 🔥 LLAMADA AL NUEVO SISTEMA DE MATCHMAKING
+        await partidaVm.unirsePartidaPublica(
+          jugadorLocal: jugadorLocal,
+          maxJugadores: _jugadores,
+          mode: 'roles',
+        );
+        debugPrint("Unido a partida pública: ${partidaVm.partidaActual?.gameId}");
+      }
 
       if (!context.mounted) return;
 
@@ -67,11 +76,13 @@ class ConfigRolesMultijugadorViewModel extends ChangeNotifier {
       );
 
     } catch (e) {
-      debugPrint("Error al crear la sala: $e");
+      debugPrint("Error al acceder a la sala: $e");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error de conexión con el servidor. Inténtalo de nuevo.'),
+            content: Text(isPrivate
+                ? 'Error de conexión con el servidor.'
+                : 'No se pudo buscar la partida pública.'),
             backgroundColor: Colors.redAccent,
           ),
         );

@@ -8,6 +8,15 @@ class UserRepository {
 
   UserRepository(this._api);
 
+  String? _normalizeStoreImage(dynamic value) {
+    final image = value?.toString().trim();
+    if (image == null || image.isEmpty) return null;
+    if (image.startsWith('http') || image.startsWith('assets/')) return image;
+    if (image.contains('/') || image.contains('\\')) return image;
+    if (image.contains('.')) return 'assets/images/shop/$image';
+    return image;
+  }
+
   /// Obtiene los datos actualizados del perfil del usuario logueado
   Future<Jugador> getProfile() async {
     final response = await _api.get('/usuarios/me');
@@ -55,7 +64,7 @@ class UserRepository {
         titulo: item['nombre'] ?? '',
         precio: item['precioavatar'] ?? item['precio'] ?? 0,
         tipo: TiendaItemTipo.avatar,
-        assetPath: item['image'] ?? item['assetPath'],
+        assetPath: item['image']?.toString() ?? item['assetPath']?.toString(),
       )).toList();
     } else {
       throw Exception('Error al obtener avatares comprados');
@@ -73,7 +82,7 @@ class UserRepository {
         titulo: item['nombre'] ?? '',
         precio: item['precioestilo'] ?? item['precio'] ?? 0,
         tipo: TiendaItemTipo.diseno,
-        assetPath: item['image'] ?? item['assetPath'],
+        assetPath: _normalizeStoreImage(item['image'] ?? item['assetPath']),
       )).toList();
     } else {
       throw Exception('Error al obtener estilos comprados');

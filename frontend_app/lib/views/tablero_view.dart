@@ -60,6 +60,11 @@ class _TableroViewState extends State<TableroView> {
     final JugadorPartidaModel? miJugador = partida.jugadores.where((p) => p.id == miId).firstOrNull;
     final List<JugadorPartidaModel> rivales = partida.jugadores.where((p) => p.id != miId).toList();
     final bool esMiTurno = partida.esMiTurno(miId);
+    final estiloCartas = estiloCartaDesdePerfil(
+      id: auth.usuario?.idEstiloSeleccionado?.toString(),
+      nombre: auth.usuario?.estiloNombre,
+      image: auth.usuario?.estiloImage,
+    );
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
@@ -71,22 +76,21 @@ class _TableroViewState extends State<TableroView> {
         resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
-            _buildFondo(),
+            _buildFondo(auth.usuario?.estiloNombre),
 
-            // --- RIVALES (Distribución según capturas) ---
             if (rivales.isNotEmpty)
-              Positioned(top: 150, left: 40, child: AvatarJugadorWidget(participante: rivales[0], esSuTurno: partida.currentTurn == rivales[0].id)),
+              Positioned(top: 150, left: 40, child: AvatarJugadorWidget(participante: rivales[0], esSuTurno: partida.currentTurn == rivales[0].id, estilo: estiloCartas)),
             if (rivales.length > 1)
-              Positioned(top: 60, left: 0, right: 0, child: Center(child: AvatarJugadorWidget(participante: rivales[1], esSuTurno: partida.currentTurn == rivales[1].id))),
+              Positioned(top: 60, left: 0, right: 0, child: Center(child: AvatarJugadorWidget(participante: rivales[1], esSuTurno: partida.currentTurn == rivales[1].id, estilo: estiloCartas))),
             if (rivales.length > 2)
-              Positioned(top: 150, right: MediaQuery.of(context).size.width * 0.35, child: AvatarJugadorWidget(participante: rivales[2], esSuTurno: partida.currentTurn == rivales[2].id)),
+              Positioned(top: 150, right: MediaQuery.of(context).size.width * 0.35, child: AvatarJugadorWidget(participante: rivales[2], esSuTurno: partida.currentTurn == rivales[2].id, estilo: estiloCartas)),
 
             // --- MESA CENTRAL ---
             Center(
               child: MazoCentralWidget(
                 cartaEnMesa: partida.currentCard != null ? Carta.fromJson(partida.currentCard) : null,
                 onRobar: esMiTurno ? () => partidaVm.robarCarta() : () {},
-                cartasRestantes: partida.drawCount,
+                cartasRestantes: partida.drawCount, estilo: estiloCartas,
               ),
             ),
 
@@ -118,7 +122,6 @@ class _TableroViewState extends State<TableroView> {
               ),
             ),
 
-            // 🔥 COLUMNA DERECHA (ESTILO WEB: Ajustes -> Chat -> Roles)
             Positioned(
               top: 16,
               right: 16,
@@ -152,7 +155,7 @@ class _TableroViewState extends State<TableroView> {
                     ),
                   if (partidaVm.turnoExpiraEnMs != null && !partidaVm.partidaEstaPausada)
                     Padding(padding: const EdgeInsets.only(bottom: 8.0), child: _CountdownTurno(deadlineMs: partidaVm.turnoExpiraEnMs!)),
-                  Padding(padding: const EdgeInsets.only(bottom: 25), child: _buildManoJugador(miJugador, esMiTurno, vm, partidaVm)),
+                  Padding(padding: const EdgeInsets.only(bottom: 25), child: _buildManoJugador(miJugador, esMiTurno, vm, partidaVm, estiloCartas)),
                 ],
               ),
             ),
@@ -162,14 +165,14 @@ class _TableroViewState extends State<TableroView> {
               Positioned(top: 90, left: 16, right: 16, child: _VotoBannerPausa(votante: partidaVm.votanteActualPausa!, onPausar: () => partidaVm.aceptarPausa(), onNo: () => partidaVm.emitirRechazoPausa())),
             if (vm.mostrandoAjustes) Positioned.fill(child: AjustesOverlay(onClose: () => vm.cerrarAjustes())),
             if (partidaVm.partidaEstaPausada) _buildOverlayPartidaPausada(context, partidaVm),
-            if (partida.phase == 'finished') _buildOverlayPartidaFinalizada(context, partidaVm, auth),
+            if (partida.phase == 'finished') _buildOverlayPartidaFinalizada(context, partidaVm),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildManoJugador(JugadorPartidaModel? miJugador, bool esMiTurno, TableroViewModel vm, PartidaActualViewModel pVm) {
+  Widget _buildManoJugador(JugadorPartidaModel? miJugador, bool esMiTurno, TableroViewModel vm, PartidaActualViewModel pVm, EstiloCarta estilo) {
     final cartas = (miJugador?.hand ?? []).whereType<Map<String, dynamic>>().toList();
     if (cartas.isEmpty) {
       return ElevatedButton.icon(
@@ -199,7 +202,7 @@ class _TableroViewState extends State<TableroView> {
                   return Transform.rotate(
                     angle: (i - (cartas.length - 1) / 2) * 0.032,
                     alignment: Alignment.bottomCenter,
-                    child: CartaWidget(carta: carta, width: 80, onTap: esMiTurno ? () => vm.intentarTirarCarta(carta.id) : null),
+                    child: CartaWidget(carta: carta, width: 80, estilo : estilo, onTap: esMiTurno ? () => vm.intentarTirarCarta(carta.id) : null),
                   );
                 }),
               ),
@@ -209,7 +212,38 @@ class _TableroViewState extends State<TableroView> {
     );
   }
 
-  Widget _buildFondo() => Container(decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/images/tableroFuturista.png'), fit: BoxFit.cover)));
+  Widget _buildFondo(String? nombreEstilo) {
+    String rutaFondo;
+
+    switch (nombreEstilo?.toLowerCase()) {
+      case 'clásico':
+      case 'clasico':
+        rutaFondo = 'assets/images/shop/tableroClasico.JPG';
+        break;
+      case 'dorado':
+        rutaFondo = 'assets/images/shop/tableroDorado.JPG';
+        break;
+      case 'neón':
+      case 'neon':
+        rutaFondo = 'assets/images/shop/tableroNeon.JPG';
+        break;
+      case 'retro':
+        rutaFondo = 'assets/images/shop/tableroRetro.JPG';
+        break;
+      default:
+      // Si no hay estilo o hay un error, cargamos el futurista por defecto
+        rutaFondo = 'assets/images/tableroFuturista.png';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(rutaFondo),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
 
   Widget _buildOverlayPartidaPausada(BuildContext context, PartidaActualViewModel partidaVm) {
     final total = partidaVm.partidaActual?.jugadores.where((j) => !j.isBot).length ?? 0;
@@ -230,30 +264,224 @@ class _TableroViewState extends State<TableroView> {
     );
   }
 
-  Widget _buildOverlayPartidaFinalizada(BuildContext context, PartidaActualViewModel partidaVm, AuthProvider auth) {
-    final yoGane = partidaVm.ganadorEs(auth.usuario?.nombreUsuario);
+  Widget _buildOverlayPartidaFinalizada(BuildContext context, PartidaActualViewModel partidaVm) {
+    final auth = context.read<AuthProvider>();
+    final miId = auth.usuario?.nombreUsuario ?? partidaVm.partidaActual?.jugadorLocal;
+    final yoGane = partidaVm.ganadorEs(miId);
+    final nombreGanador = partidaVm.ganadorPartida ?? "Alguien";
+
+    final winnerCoins = partidaVm.recompensaUltimaPartida > 0 ? partidaVm.recompensaUltimaPartida : 50;
+    const loserCoins = 10;
+
+    final sortedPlayers = List<JugadorPartidaModel>.from(partidaVm.partidaActual?.jugadores ?? []);
+    sortedPlayers.sort((a, b) {
+      if (a.id == nombreGanador) return -1;
+      if (b.id == nombreGanador) return 1;
+      return 0;
+    });
+
+    int getCoinsForPlayer(JugadorPartidaModel p) {
+      if (p.id == nombreGanador && !(p.isBot ?? false)) return winnerCoins;
+      if (!(p.isBot ?? false)) return loserCoins;
+      return 0;
+    }
+
+    final colorPrincipal = yoGane ? const Color(0xFFFFD54F) : const Color(0xFF00E5FF);
+    final bgPanel = const Color(0xFF0F1535);
+    final bgCard = const Color(0xFF2A316B).withOpacity(0.5);
+
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.9),
+        color: Colors.black.withOpacity(0.85),
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.emoji_events, color: yoGane ? Colors.amber : Colors.grey, size: 80),
-              const SizedBox(height: 20),
-              Text(yoGane ? "¡VICTORIA!" : "PARTIDA FINALIZADA", style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Text("Ganador: ${partidaVm.ganadorPartida}", style: const TextStyle(color: Colors.white70, fontSize: 18)),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00E5FF), foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                onPressed: () {
-                  partidaVm.abandonarYBorrarPartida();
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                child: const Text("VOLVER AL MENÚ", style: TextStyle(fontWeight: FontWeight.bold)),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.elasticOut,
+            builder: (context, scale, child) {
+              return Transform.scale(
+                scale: scale.clamp(0.0, 1.0),
+                child: child,
+              );
+            },
+            child: Container(
+              width: 340,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: bgPanel,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: colorPrincipal.withOpacity(0.3), width: 1.5),
+                boxShadow: [
+                  BoxShadow(color: colorPrincipal.withOpacity(0.15), blurRadius: 30, spreadRadius: 5),
+                ],
               ),
-            ],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(yoGane ? "🏆" : "🎮", style: const TextStyle(fontSize: 54)),
+                  const SizedBox(height: 12),
+                  Text(
+                    yoGane ? "¡Victoria!" : "¡Fin de partida!",
+                    style: TextStyle(
+                      color: colorPrincipal,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(color: colorPrincipal.withOpacity(0.5), blurRadius: 10)],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    yoGane ? "¡Has ganado la partida! 🎉" : "$nombreGanador se ha llevado la victoria",
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: colorPrincipal.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: colorPrincipal.withOpacity(0.5), width: 1),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          yoGane ? "🥇 RECOMPENSA DE VICTORIA" : "🎖️ MONEDAS POR PARTICIPAR",
+                          style: TextStyle(color: colorPrincipal.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("🪙", style: TextStyle(fontSize: 24)),
+                            const SizedBox(width: 8),
+                            Text(
+                              "+${yoGane ? winnerCoins : loserCoins}",
+                              style: TextStyle(color: colorPrincipal, fontSize: 28, fontWeight: FontWeight.w900),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: sortedPlayers.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, i) {
+                        final p = sortedPlayers[i];
+                        final isWinnerCard = p.id == nombreGanador;
+                        final isMeCard = p.id == miId;
+                        final coins = getCoinsForPlayer(p);
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isWinnerCard ? const Color(0xFFFFD54F).withOpacity(0.08) : bgCard,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isWinnerCard ? const Color(0xFFFFD54F).withOpacity(0.5) : Colors.white10,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: isWinnerCard ? const Color(0xFFFFD54F) : const Color(0xFF3A4288),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    isWinnerCard ? "🏆" : p.id.substring(0, 1).toUpperCase(),
+                                    style: TextStyle(
+                                      color: isWinnerCard ? Colors.black : Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            p.id,
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isMeCard) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(color: const Color(0xFF00E5FF), borderRadius: BorderRadius.circular(4)),
+                                            child: const Text("TÚ", style: TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.w900)),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    Text(
+                                      (p.isBot ?? false) ? "🤖 Bot" : (isWinnerCard ? "🥇 Ganador" : "Participante"),
+                                      style: TextStyle(color: isWinnerCard ? const Color(0xFFFFD54F) : Colors.white54, fontSize: 10),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (coins > 0)
+                                Row(
+                                  children: [
+                                    const Text("🪙", style: TextStyle(fontSize: 14)),
+                                    const SizedBox(width: 4),
+                                    Text("+$coins", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                  ],
+                                )
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3A6BFF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 5,
+                      ),
+                      icon: const Icon(Icons.home, size: 18),
+                      label: const Text("Volver al inicio", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                      onPressed: () {
+                        if (partidaVm.monedasTotalesUltimaPartida != null) {
+                          auth.actualizarMonedas(partidaVm.monedasTotalesUltimaPartida!);
+                          partidaVm.marcarRecompensaAplicada();
+                        }
+
+                        partidaVm.abandonarYBorrarPartida();
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -267,9 +495,9 @@ class _TableroViewState extends State<TableroView> {
   }
 }
 
-// =====================================================================
-// 🔥 WIDGETS PRIVADOS (ESTILO WEB IMG_6603)
-// =====================================================================
+// ================
+// WIDGETS
+// ================
 
 class _PanelRolWeb extends StatelessWidget {
   final PartidaActualViewModel vm;

@@ -5,6 +5,28 @@ import '../../models/carta_model.dart';
 
 enum EstiloCarta { basic, neon, gold, retro }
 
+EstiloCarta estiloCartaDesdePerfil({
+  String? id,
+  String? nombre,
+  String? image,
+}) {
+  final idNormalizado = id?.trim();
+  if (idNormalizado == '2') return EstiloCarta.basic;
+  if (idNormalizado == '3') return EstiloCarta.neon;
+  if (idNormalizado == '4') return EstiloCarta.gold;
+  if (idNormalizado == '5') return EstiloCarta.retro;
+
+  final raw = [
+    nombre,
+    image,
+  ].whereType<String>().join(' ').toLowerCase();
+
+  if (raw.contains('neon')) return EstiloCarta.neon;
+  if (raw.contains('gold') || raw.contains('dorado')) return EstiloCarta.gold;
+  if (raw.contains('retro')) return EstiloCarta.retro;
+  return EstiloCarta.basic;
+}
+
 class CartaWidget extends StatefulWidget {
   final Carta carta;
   final VoidCallback? onTap;
@@ -352,7 +374,13 @@ class _CartaReversoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
-    canvas.drawRRect(rrect, Paint()..color = const Color(0xFF1A1A1A));
+    final fondo = switch (estilo) {
+      EstiloCarta.neon => const Color(0xFF050816),
+      EstiloCarta.gold => const Color(0xFF5F4300),
+      EstiloCarta.retro => const Color(0xFF1A1A1A),
+      EstiloCarta.basic => const Color(0xFF111827),
+    };
+    canvas.drawRRect(rrect, Paint()..color = fondo);
 
     canvas.save();
     canvas.clipRRect(rrect);
@@ -364,7 +392,13 @@ class _CartaReversoPainter extends CustomPainter {
         width: size.width * 1.35,
         height: size.height * 0.58,
       ),
-      Paint()..color = const Color(0xFFD72600),
+      Paint()
+        ..color = switch (estilo) {
+          EstiloCarta.neon => const Color(0xFF00CCFF),
+          EstiloCarta.gold => const Color(0xFFFFD54F),
+          EstiloCarta.retro => const Color(0xFFD72600),
+          EstiloCarta.basic => const Color(0xFFD72600),
+        },
     );
     canvas.restore();
 
@@ -372,8 +406,13 @@ class _CartaReversoPainter extends CustomPainter {
       rrect.deflate(2),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = const Color(0xFFFDF5E6),
+        ..strokeWidth = estilo == EstiloCarta.retro ? 3 : 4
+        ..color = switch (estilo) {
+          EstiloCarta.neon => const Color(0xFF00CCFF),
+          EstiloCarta.gold => const Color(0xFFFFF8E1),
+          EstiloCarta.retro => const Color(0xFFFDF5E6),
+          EstiloCarta.basic => const Color(0xFFFDF5E6),
+        },
     );
   }
 

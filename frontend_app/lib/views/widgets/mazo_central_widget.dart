@@ -6,12 +6,14 @@ class MazoCentralWidget extends StatelessWidget {
   final Carta? cartaEnMesa;
   final VoidCallback onRobar;
   final int? cartasRestantes;
+  final EstiloCarta estilo;
 
   const MazoCentralWidget({
     super.key,
     this.cartaEnMesa,
     required this.onRobar,
     this.cartasRestantes,
+    this.estilo = EstiloCarta.basic,
   });
 
   @override
@@ -36,9 +38,9 @@ class MazoCentralWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const CartaReversoWidget(
+                child: CartaReversoWidget(
                   width: 66,
-                  estilo: EstiloCarta.retro,
+                  estilo: estilo,
                 ),
               ),
               if (cartasRestantes != null)
@@ -76,7 +78,7 @@ class MazoCentralWidget extends StatelessWidget {
         if (cartaEnMesa != null)
           Transform.rotate(
             angle: 0.15, // Efecto orgánico
-            child: CartaWidget(carta: cartaEnMesa!, width: 76),
+            child: CartaWidget(carta: cartaEnMesa!, width: 76, estilo: estilo),
           )
         else
           // Espacio vacío si no hay carta todavía

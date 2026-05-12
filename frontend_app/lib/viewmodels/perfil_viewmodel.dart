@@ -54,6 +54,23 @@ class PerfilViewModel extends ChangeNotifier {
     return _skins.firstWhere((s) => s.id == _skinSeleccionadoId, orElse: () => _skins.first);
   }
 
+  AvatarItem _avatarDesdeTienda(TiendaItem item) {
+    final image = item.assetPath?.trim();
+    final isImagePath = image != null &&
+        (image.startsWith('http') ||
+            image.startsWith('assets/') ||
+            image.contains('.') ||
+            image.contains('/') ||
+            image.contains('\\'));
+
+    return AvatarItem(
+      id: item.id,
+      emoji: isImagePath ? '👤' : (image?.isNotEmpty == true ? image! : '👤'),
+      nombre: item.titulo,
+      assetPath: isImagePath ? image : null,
+    );
+  }
+
   Future<void> cargarPersonalizacion() async {
     if (_repo == null) return;
 
@@ -79,7 +96,7 @@ class PerfilViewModel extends ChangeNotifier {
       _skinSeleccionadoId = perfil.skinId;
 
       _avatars = avatares.isNotEmpty
-          ? avatares.map((item) => AvatarItem(id: item.id, emoji: '👤', nombre: item.titulo, assetPath: item.assetPath)).toList()
+          ? avatares.map(_avatarDesdeTienda).toList()
           : [const AvatarItem(id: '0', emoji: '👤', nombre: 'Default')];
 
       _skins = estilos.isNotEmpty

@@ -7,6 +7,15 @@ class TiendaRepository {
 
   TiendaRepository(this._api);
 
+  String? _normalizarImagenTienda(dynamic value) {
+    final image = value?.toString().trim();
+    if (image == null || image.isEmpty) return null;
+    if (image.startsWith('http') || image.startsWith('assets/')) return image;
+    if (image.contains('/') || image.contains('\\')) return image;
+    if (image.contains('.')) return 'assets/images/shop/$image';
+    return image;
+  }
+
   Future<int> comprarAvatar(int avatarId) async {
     final response = await _api.post(
         '/wallet/purchase/avatar',
@@ -61,7 +70,7 @@ class TiendaRepository {
         titulo: json['nombre'] ?? 'Avatar',
         precio: json['precioavatar'] ?? 0,
         tipo: TiendaItemTipo.avatar,
-        assetPath: json['image'],
+        assetPath: json['image']?.toString(),
       )));
     }
 
@@ -72,7 +81,7 @@ class TiendaRepository {
         titulo: json['nombre'] ?? 'Diseño',
         precio: json['precioestilo'] ?? 0,
         tipo: TiendaItemTipo.diseno,
-        assetPath: json['image'],
+        assetPath: _normalizarImagenTienda(json['image']),
       )));
     }
 
