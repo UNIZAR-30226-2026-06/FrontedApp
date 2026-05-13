@@ -7,6 +7,9 @@ class TableroViewModel extends ChangeNotifier {
   bool _mostrandoAjustes = false;
   bool get mostrandoAjustes => _mostrandoAjustes;
 
+  bool _mostrandoRol = false;
+  bool get mostrandoRol => _mostrandoRol;
+
   TableroViewModel(this._partidaViewModel);
 
   //Funciones
@@ -26,6 +29,16 @@ class TableroViewModel extends ChangeNotifier {
 
   void cerrarAjustes() {
     _mostrandoAjustes = false;
+    notifyListeners();
+  }
+
+  void abrirRol() {
+    _mostrandoRol = true;
+    notifyListeners();
+  }
+
+  void cerrarRol() {
+    _mostrandoRol = false;
     notifyListeners();
   }
 }

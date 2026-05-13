@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 
 class AjustesOverlay extends StatefulWidget {
   final VoidCallback onClose;
@@ -16,6 +18,82 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
   bool musica = true;
   bool sonido = false;
   bool vibracion = true;
+
+  Future<void> _confirmarYAbandonar(BuildContext context) async {
+    final partidaVm = context.read<PartidaActualViewModel>();
+    final confirmado = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: const Color(0xFF3A4288),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '¿Abandonar partida?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Si sales ahora, la partida se borrará para todos. Esta acción no se puede deshacer.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text(
+              'Sí, salir',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado != true) return;
+    if (!context.mounted) return;
+
+    // Capturamos el navigator antes del await — el árbol puede cambiar tras
+    // abandonar y dejar este context invalidado.
+    final navigator = Navigator.of(context);
+
+    await partidaVm.abandonarYBorrarPartida();
+
+    // Cerramos el overlay (resetea _mostrandoAjustes a false en el VM).
+    // Si no lo hacemos, al entrar a la próxima partida el TableroView vuelve
+    // a renderizar el overlay porque ese flag persiste entre partidas.
+    widget.onClose();
+
+    navigator.popUntil((route) => route.isFirst);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +205,18 @@ class _AjustesOverlayState extends State<AjustesOverlay> {
                       ),
 
                       const SizedBox(height: 30),
+
+                      const Divider(color: Colors.white10, thickness: 1.5),
+                      const SizedBox(height: 14),
+                      Center(
+                        child: _AnimatedDangerButton(
+                          label: 'ABANDONAR PARTIDA',
+                          icon: Icons.exit_to_app,
+                          onTap: () => _confirmarYAbandonar(context),
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -197,6 +287,82 @@ class _AnimatedSettingRowState extends State<_AnimatedSettingRow> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedDangerButton extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  const _AnimatedDangerButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedDangerButton> createState() => _AnimatedDangerButtonState();
+}
+
+class _AnimatedDangerButtonState extends State<_AnimatedDangerButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const errorRed = Color(0xFFE53935);
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        duration: Duration.zero,
+        scale: _isPressed ? 1.05 : 1.0,
+        child: AnimatedContainer(
+          duration: Duration.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: _isPressed ? errorRed : errorRed.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white24, width: 1),
+            boxShadow: _isPressed
+                ? [
+                    BoxShadow(
+                      color: errorRed.withOpacity(0.7),
+                      blurRadius: 18,
+                      spreadRadius: 3,
+                    ),
+                  ]
+                : [
+                    const BoxShadow(
+                      color: Colors.black45,
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                widget.label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../viewmodels/config_cartas_vs_ia_viewmodel.dart';
+import '../viewmodels/partida_actual_viewmodel.dart';
 
 class ConfigCartasVsIaView extends StatefulWidget {
   final String modoTitulo;
@@ -150,7 +153,10 @@ class _ConfigCartasVsIaViewState extends State<ConfigCartasVsIaView> {
                                 // BOTÓN COMENZAR INSTANTÁNEO
                                 _AnimatedGreenButton(
                                   label: 'Comenzar partida',
-                                  onTap: () => vm.comenzarPartida(context),
+                                  onTap: () async {
+                                    final partidaVm = context.read<PartidaActualViewModel>();
+                                    await vm.comenzarPartida(context, partidaVm);
+                                  },
                                 ),
 
                                 const SizedBox(height: 16),

@@ -73,7 +73,10 @@ class ConfigCartasMultijugadorViewModel extends ChangeNotifier {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SalaEsperaView(modoJuego: modoTitulo),
+          builder: (context) => SalaEsperaView(
+            modoJuego: modoTitulo,
+            requiereSalaLlena: true,
+          ),
         ),
       );
     } catch (e) {

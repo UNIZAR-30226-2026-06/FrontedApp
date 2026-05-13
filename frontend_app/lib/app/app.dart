@@ -9,11 +9,13 @@ import '../providers/auth_provider.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/user_repository.dart';
 import '../repositories/partida_repository.dart';
+import '../repositories/rol_repository.dart';
 
 import '../viewmodels/login_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
 import '../viewmodels/tablero_viewmodel.dart';
+import '../viewmodels/rol_viewmodel.dart';
 
 import '../views/login_view.dart';
 import '../views/home_view.dart';
@@ -32,6 +34,7 @@ class MyApp extends StatelessWidget {
     final authRepository = AuthRepository(apiService);
     final userRepository = UserRepository(apiService);
     final partidaRepository = PartidaRepository(apiService);
+    final rolRepository = RolRepository(apiService);
 
     return MultiProvider(
       providers: [
@@ -69,6 +72,17 @@ class MyApp extends StatelessWidget {
           create: (context) => TableroViewModel(context.read<PartidaActualViewModel>()),
           update: (context, partidaViewModel, previous) =>
           previous ?? TableroViewModel(partidaViewModel),
+        ),
+
+        // RolViewModel: gestiona el rol del jugador local en modo "con roles".
+        // Depende del SocketService (escucha `roles_asignados`, `game_state_updated`).
+        ChangeNotifierProxyProvider<SocketService, RolViewModel>(
+          create: (context) => RolViewModel(
+            rolRepository,
+            context.read<SocketService>(),
+          ),
+          update: (context, socketService, previous) =>
+              previous ?? RolViewModel(rolRepository, socketService),
         ),
       ],
       child: MaterialApp(

@@ -13,6 +13,7 @@ class PartidaModel {
   final dynamic currentCard;
   final bool rolesMode;
   final bool specialCardsMode;
+  final int maxJugadores;
 
   PartidaModel({
     required this.gameId,
@@ -26,6 +27,7 @@ class PartidaModel {
     this.currentCard,
     this.rolesMode = false,
     this.specialCardsMode = false,
+    this.maxJugadores = 4,
   });
 
   factory PartidaModel.fromJson(Map<String, dynamic> json) {
@@ -72,6 +74,8 @@ class PartidaModel {
       rolesMode: json['modo_roles'] ?? json['rolesMode'] ?? false,
       specialCardsMode:
           json['modo_cartas_especiales'] ?? json['specialCardsMode'] ?? false,
+      maxJugadores:
+          (json['maxJugadores'] ?? json['max_jugadores'] ?? 4) as int,
     );
   }
 
@@ -87,6 +91,7 @@ class PartidaModel {
     dynamic currentCard,
     bool? rolesMode,
     bool? specialCardsMode,
+    int? maxJugadores,
   }) {
     return PartidaModel(
       gameId: gameId ?? this.gameId,
@@ -100,6 +105,7 @@ class PartidaModel {
       currentCard: currentCard ?? this.currentCard,
       rolesMode: rolesMode ?? this.rolesMode,
       specialCardsMode: specialCardsMode ?? this.specialCardsMode,
+      maxJugadores: maxJugadores ?? this.maxJugadores,
     );
   }
 

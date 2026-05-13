@@ -62,11 +62,10 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // 6. MÉTODO DE LOGOUT (Muy importante para la arquitectura global)
   void logout() {
     _usuario = null;
     _token = null;
-    _socketService.disconnect(); // Apagamos el túnel al salir
+    _socketService.disconnect();
     notifyListeners();
   }
 
@@ -107,6 +106,22 @@ class AuthProvider with ChangeNotifier {
       _usuario = _usuario!.copyWith(monedas: nuevaCantidad);
       notifyListeners();
     }
+  }
+
+  /// Actualiza saldo y estadísticas tras finalizar una partida. Cualquier
+  /// campo a null se deja como estaba.
+  void actualizarStatsPostPartida({
+    int? monedas,
+    int? totalGanadas,
+    int? totalPartidas,
+  }) {
+    if (_usuario == null) return;
+    _usuario = _usuario!.copyWith(
+      monedas: monedas,
+      totalGanadas: totalGanadas,
+      totalPartidas: totalPartidas,
+    );
+    notifyListeners();
   }
 
   void registrarCompraExitosa(

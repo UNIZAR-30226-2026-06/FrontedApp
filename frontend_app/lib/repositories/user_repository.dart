@@ -89,6 +89,26 @@ class UserRepository {
     }
   }
 
+  /// Cambia la contraseña del usuario autenticado.
+  /// PUT `/usuarios/me/password` con `{contrasena_actual, nueva_contrasena}`.
+  /// Lanza con el mensaje específico del backend (e.g. "Contraseña actual
+  /// incorrecta") para que la UI lo muestre tal cual.
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    final response = await _api.put('/usuarios/me/password', {
+      'contrasena_actual': currentPassword,
+      'nueva_contrasena': newPassword,
+    });
+
+    if (response.statusCode != 200) {
+      final body = response.body.isNotEmpty
+          ? (json.decode(response.body) as Map<String, dynamic>)
+          : <String, dynamic>{};
+      throw Exception(
+        body['error'] ?? body['message'] ?? 'No se pudo cambiar la contraseña',
+      );
+    }
+  }
+
   /// Actualiza los datos del usuario en el backend (genérico)
   Future<void> updateProfile(Jugador jugador) async {
     final body = {

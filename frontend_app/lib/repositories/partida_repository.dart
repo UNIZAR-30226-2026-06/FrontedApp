@@ -43,13 +43,14 @@ class PartidaRepository {
     int maxJugadores = 4,
     bool modoCartasEspeciales = true,
     bool modoRoles = false,
+    int numCartasInicio = 7,
   }) async {
     final response = await _api.post('/partidas', {
       'maxJugadores': maxJugadores,
       'privada': isPrivate,
       'modoCartasEspeciales': modoCartasEspeciales,
       'modoRoles': modoRoles,
-      'numCartasInicio': 7,
+      'numCartasInicio': numCartasInicio,
       'timeoutTurno': 30,
     });
 
@@ -155,6 +156,25 @@ class PartidaRepository {
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Error al solicitar la pausa: ${response.body}');
     }
+  }
+
+  /// Borra todas las partidas activas (lobby / en curso / pausadas) que el
+  /// usuario autenticado creó. Útil llamarlo antes de `crearPartida` o
+  /// `unirsePorCodigo` para garantizar un estado limpio: kill bruscos de
+  /// app o cierres sin "abandonar" dejan partidas zombie en la BD que pueden
+  /// interferir con la nueva sesión.
+  ///
+  /// Devuelve cuántas se borraron (puede ser 0).
+  Future<int> cleanupMisPartidas() async {
+    final response = await _api.post('/partidas/cleanup-mias', {});
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return (data['deleted'] as num?)?.toInt() ?? 0;
+    }
+    // No es fatal si falla: el flujo principal de crear/unirse no depende de
+    // esto. El caller decide qué hacer con la excepción.
+    throw Exception('Error al limpiar partidas: ${response.body}');
   }
 
   Future<void> anyadirBot(String gameId) async {

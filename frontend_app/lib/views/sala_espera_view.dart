@@ -6,7 +6,17 @@ import 'tablero_view.dart';
 class SalaEsperaView extends StatelessWidget {
   final String modoJuego;
 
-  const SalaEsperaView({super.key, required this.modoJuego});
+  /// Si es `true`, sólo se puede iniciar cuando la sala está completa
+  /// (`jugadores.length == maxJugadores`). Si es `false`, basta con ≥2
+  /// jugadores. Default `false` para no alterar el flujo de personalizadas
+  /// y partidas vs IA.
+  final bool requiereSalaLlena;
+
+  const SalaEsperaView({
+    super.key,
+    required this.modoJuego,
+    this.requiereSalaLlena = false,
+  });
 
   // 🔥 NUEVA FUNCIÓN: Muestra el popup de confirmación
   Future<bool> _pedirConfirmacionSalir(BuildContext context) async {
@@ -212,8 +222,12 @@ class SalaEsperaView extends StatelessWidget {
                       ),
 
                       Padding(
-                        padding: const EdgeInsets.all(25.0),
-                        child: _buildBotonComenzar(context, partidaVm),
+                        padding: const EdgeInsets.fromLTRB(25, 8, 25, 14),
+                        child: _buildBotonComenzar(
+                          context,
+                          partidaVm,
+                          requiereSalaLlena: requiereSalaLlena,
+                        ),
                       ),
                     ],
                   ),
@@ -279,33 +293,99 @@ class SalaEsperaView extends StatelessWidget {
     );
   }
 
-  Widget _buildBotonComenzar(BuildContext context, PartidaActualViewModel vm) {
-    bool canStart = (vm.partidaActual?.jugadores.length ?? 0) >= 2;
+  Widget _buildBotonComenzar(
+    BuildContext context,
+    PartidaActualViewModel vm, {
+    required bool requiereSalaLlena,
+  }) {
+    final partida = vm.partidaActual;
+    final jugadores = partida?.jugadores ?? [];
+    final maxJugadores = vm.maxJugadores;
+
+    // Host fiable: lo seteamos en el VM al crear la partida. No inferimos
+    // por orden de la lista porque el backend puede devolver órdenes distintos
+    // según el cliente.
+    final yoSoyHost = vm.soyHost;
+
+    final condicionInicio = requiereSalaLlena
+        ? jugadores.length == maxJugadores
+        : jugadores.length >= 2;
+
+    // No-host: nunca ve el botón verde. Sólo un banner informativo.
+    if (!yoSoyHost) {
+      final mensaje = condicionInicio
+          ? 'El anfitrión iniciará la partida'
+          : 'Esperando más jugadores… (${jugadores.length}/$maxJugadores)';
+      return Container(
+        width: double.infinity,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A316B),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Center(
+          child: Text(
+            mensaje,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Host: botón verde, brillante sólo si se puede iniciar.
+    final canStart = condicionInicio;
+    final textoBoton = canStart
+        ? 'Comenzar partida'
+        : requiereSalaLlena
+            ? 'Esperando jugadores (${jugadores.length}/$maxJugadores)'
+            : 'Esperando al menos 2 jugadores';
 
     return GestureDetector(
       onTap: canStart
           ? () {
-        vm.iniciarPartida(vsIA: false, cantidadBots: 0);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Iniciando partida, esperando al servidor...')),
-        );
-      }
+              vm.iniciarPartida(vsIA: false, cantidadBots: 0);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content:
+                      Text('Iniciando partida, esperando al servidor...'),
+                ),
+              );
+            }
           : null,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
-        opacity: canStart ? 1.0 : 0.5,
+        opacity: canStart ? 1.0 : 0.45,
         child: Container(
           width: double.infinity,
           height: 48,
           decoration: BoxDecoration(
-              color: const Color(0xFF53D86A),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(color: const Color(0xFF53D86A).withOpacity(0.3), blurRadius: 10, spreadRadius: 2)
-              ]),
-          child: const Center(
-              child: Text("Comenzar partida",
-                  style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w900))),
+            color: const Color(0xFF53D86A),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: canStart
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF53D86A).withOpacity(0.45),
+                      blurRadius: 14,
+                      spreadRadius: 3,
+                    ),
+                  ]
+                : [],
+          ),
+          child: Center(
+            child: Text(
+              textoBoton,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
         ),
       ),
     );

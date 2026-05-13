@@ -47,58 +47,208 @@ class _PerfilViewState extends State<PerfilView> {
     super.dispose();
   }
 
-  Future<void> _editarNombre() async {
-    final controller = TextEditingController(text: vm.nombre);
-    final nuevo = await showDialog<String>(
+  /// Diálogo modal con 3 campos (actual, nueva, confirmar). Valida en
+  /// cliente antes de llamar al backend; el error específico del backend
+  /// (e.g. "Contraseña actual incorrecta") se muestra en el propio diálogo.
+  Future<void> _editarContrasena() async {
+    final actualCtrl = TextEditingController();
+    final nuevaCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+
+    await showDialog<void>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF3A4288),
-          title: const Text(
-            'Cambiar nombre',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          content: TextField(
-            controller: controller,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: 'Nuevo nombre',
-              hintStyle: TextStyle(color: Colors.white38),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white24),
-              ),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFFF4C542)),
-              ),
-            ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF4C542),
-              ),
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text(
-                'Guardar',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setLocal) {
+            bool cargando = false;
+            String? errorMsg;
+            bool verActual = false;
+            bool verNueva = false;
+            bool verConfirm = false;
+
+            return StatefulBuilder(
+              builder: (context, setInner) {
+                Widget campo({
+                  required TextEditingController c,
+                  required String hint,
+                  required bool visible,
+                  required VoidCallback onToggle,
+                }) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: TextField(
+                      controller: c,
+                      obscureText: !visible,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: hint,
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        enabledBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white24),
+                        ),
+                        focusedBorder: const UnderlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFFF4C542)),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            visible
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.white54,
+                            size: 18,
+                          ),
+                          onPressed: onToggle,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                Future<void> confirmar() async {
+                  final actual = actualCtrl.text;
+                  final nueva = nuevaCtrl.text;
+                  final conf = confirmCtrl.text;
+
+                  if (actual.isEmpty || nueva.isEmpty || conf.isEmpty) {
+                    setInner(() =>
+                        errorMsg = 'Rellena todos los campos');
+                    return;
+                  }
+                  if (nueva.length < 6) {
+                    setInner(() =>
+                        errorMsg = 'La nueva contraseña debe tener ≥ 6 caracteres');
+                    return;
+                  }
+                  if (nueva != conf) {
+                    setInner(() =>
+                        errorMsg = 'La confirmación no coincide');
+                    return;
+                  }
+                  if (nueva == actual) {
+                    setInner(() => errorMsg =
+                        'La nueva contraseña debe ser distinta de la actual');
+                    return;
+                  }
+
+                  setInner(() {
+                    cargando = true;
+                    errorMsg = null;
+                  });
+
+                  try {
+                    await vm.cambiarContrasena(actual, nueva);
+                    if (!mounted) return;
+                    Navigator.pop(dialogCtx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Contraseña actualizada'),
+                        backgroundColor: Color(0xFF53D86A),
+                      ),
+                    );
+                  } catch (e) {
+                    setInner(() {
+                      cargando = false;
+                      errorMsg = e.toString().replaceFirst('Exception: ', '');
+                    });
+                  }
+                }
+
+                return AlertDialog(
+                  backgroundColor: const Color(0xFF3A4288),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.lock_outline, color: Color(0xFF00E5FF)),
+                      SizedBox(width: 10),
+                      Text(
+                        'Cambiar contraseña',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        campo(
+                          c: actualCtrl,
+                          hint: 'Contraseña actual',
+                          visible: verActual,
+                          onToggle: () =>
+                              setInner(() => verActual = !verActual),
+                        ),
+                        campo(
+                          c: nuevaCtrl,
+                          hint: 'Nueva contraseña (≥ 6)',
+                          visible: verNueva,
+                          onToggle: () =>
+                              setInner(() => verNueva = !verNueva),
+                        ),
+                        campo(
+                          c: confirmCtrl,
+                          hint: 'Repite la nueva contraseña',
+                          visible: verConfirm,
+                          onToggle: () =>
+                              setInner(() => verConfirm = !verConfirm),
+                        ),
+                        if (errorMsg != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            errorMsg!,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: cargando
+                          ? null
+                          : () => Navigator.pop(dialogCtx),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF4C542),
+                      ),
+                      onPressed: cargando ? null : confirmar,
+                      child: cargando
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Text(
+                              'Guardar',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         );
       },
     );
-    if (nuevo != null) vm.setNombre(nuevo);
   }
 
   Future<void> _seleccionarAvatar(AvatarItem avatar) async {
@@ -176,8 +326,8 @@ class _PerfilViewState extends State<PerfilView> {
                               ),
                               const SizedBox(width: 8),
                               _HoverIconButton(
-                                icon: Icons.edit,
-                                onTap: _editarNombre,
+                                icon: Icons.lock_outline,
+                                onTap: _editarContrasena,
                                 size: 34,
                               ),
                             ],

@@ -3,15 +3,19 @@ import 'package:provider/provider.dart';
 
 import '../viewmodels/tablero_viewmodel.dart';
 import '../viewmodels/partida_actual_viewmodel.dart';
+import '../viewmodels/rol_viewmodel.dart';
 import '../providers/auth_provider.dart';
 import '../models/carta_model.dart';
 import '../models/jugador_partida_model.dart';
+import '../models/resultado_partida_model.dart';
 
 import 'package:frontend_app/views/ajustes_overlay.dart';
 import 'package:frontend_app/views/widgets/avatar_jugador_widget.dart';
 import 'package:frontend_app/views/widgets/carta_widget.dart';
 import 'package:frontend_app/views/widgets/chat_partida_widget.dart';
 import 'package:frontend_app/views/widgets/mazo_central_widget.dart';
+import 'package:frontend_app/views/widgets/rol_overlay.dart';
+import 'package:frontend_app/views/widgets/pause_vote_banner.dart';
 
 class TableroView extends StatelessWidget {
   const TableroView({super.key});
@@ -20,8 +24,22 @@ class TableroView extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<TableroViewModel>();
     final partidaVm = context.watch<PartidaActualViewModel>();
+    final rolVm = context.watch<RolViewModel>();
     final auth = context.watch<AuthProvider>();
     final partida = partidaVm.partidaActual;
+
+    // Carga defensiva del rol cuando entramos al tablero con rolesMode=true.
+    // El VM internamente es idempotente: si ya está cargado para este gameId
+    // no vuelve a pedirlo. Usamos postFrameCallback para no llamar API durante
+    // build.
+    if (partida != null &&
+        partida.rolesMode &&
+        partida.phase == 'playing' &&
+        !rolVm.cargando) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        rolVm.cargarMiRol(partida.gameId);
+      });
+    }
     final estiloActivo = estiloCartaDesdeDatos(
       id: auth.usuario?.idEstiloSeleccionado,
       nombre: auth.usuario?.estiloNombre,
@@ -36,8 +54,9 @@ class TableroView extends StatelessWidget {
       );
     }
 
-    // Identificar al jugador local y a los rivales
-    final String miId = partida.jugadorLocal ?? '';
+    // Identificar al jugador local. Damos prioridad al usuario autenticado
+    // sobre partida.jugadorLocal por si algún flujo (ej. vs IA) no lo setea bien.
+    final String miId = auth.usuario?.nombreUsuario ?? partida.jugadorLocal ?? '';
     final JugadorPartidaModel? miJugador = partida.jugadores
         .where((p) => p.id == miId)
         .firstOrNull;
@@ -68,10 +87,28 @@ class TableroView extends StatelessWidget {
             // 1. EL FONDO INTACTO
             _buildFondo(),
 
-            if (rivales.isNotEmpty)
+            // Posicionamos rivales "alrededor" del jugador local (que está abajo):
+            //  1 rival  → arriba-centro
+            //  2 rivales → izquierda + derecha (a media altura)
+            //  3 rivales → izquierda + arriba-centro + derecha
+            if (rivales.length == 1)
               Positioned(
-                top: 150,
-                left: 40,
+                top: 80,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: AvatarJugadorWidget(
+                    participante: rivales[0],
+                    esSuTurno: esTurnoDeRival(rivales[0].id),
+                    estilo: estiloActivo,
+                  ),
+                ),
+              ),
+
+            if (rivales.length >= 2)
+              Positioned(
+                top: 180,
+                left: 16,
                 child: AvatarJugadorWidget(
                   participante: rivales[0],
                   esSuTurno: esTurnoDeRival(rivales[0].id),
@@ -79,7 +116,7 @@ class TableroView extends StatelessWidget {
                 ),
               ),
 
-            if (rivales.length > 1)
+            if (rivales.length == 3)
               Positioned(
                 top: 80,
                 left: 0,
@@ -93,13 +130,15 @@ class TableroView extends StatelessWidget {
                 ),
               ),
 
-            if (rivales.length > 2)
+            if (rivales.length >= 2)
               Positioned(
-                top: 150,
-                right: 40,
+                top: 180,
+                right: 16,
                 child: AvatarJugadorWidget(
-                  participante: rivales[2],
-                  esSuTurno: esTurnoDeRival(rivales[2].id),
+                  participante:
+                      rivales.length == 2 ? rivales[1] : rivales[2],
+                  esSuTurno: esTurnoDeRival(
+                      (rivales.length == 2 ? rivales[1] : rivales[2]).id),
                   estilo: estiloActivo,
                 ),
               ),
@@ -161,17 +200,100 @@ class TableroView extends StatelessWidget {
               ),
             ),
 
+            // Botón de Rol: visible sólo en partidas con rolesMode activo.
+            // Encima del chat, lado derecho. Pulsar abre el overlay.
+            if (partida.rolesMode)
+              Positioned(
+                right: 16,
+                bottom: 90,
+                child: SafeArea(
+                  child: _RolFloatingButton(
+                    rolVm: rolVm,
+                    onTap: () => vm.abrirRol(),
+                  ),
+                ),
+              ),
+
             // 3. OVERLAY DE AJUSTES
             if (vm.mostrandoAjustes)
               Positioned.fill(
                 child: AjustesOverlay(onClose: () => vm.cerrarAjustes()),
               ),
 
+            if (vm.mostrandoRol)
+              RolOverlay(onClose: () => vm.cerrarRol()),
+
+            // Banner de voto-pausa entrante: otro jugador propone pausar.
+            // Aparece arriba del tablero, encima del top bar.
+            if (partidaVm.solicitudPausaDe != null &&
+                !partidaVm.partidaEstaPausada)
+              Positioned(
+                top: 70,
+                left: 12,
+                right: 12,
+                child: SafeArea(
+                  child: Center(
+                    child: PauseVoteBanner(
+                      solicitante: partidaVm.solicitudPausaDe!,
+                      onVoteYes: () => partidaVm.confirmarVotoPausa(),
+                      onVoteNo: () => partidaVm.rechazarVotoPausa(),
+                      onDismiss: () => partidaVm.rechazarVotoPausa(),
+                    ),
+                  ),
+                ),
+              ),
+
             if (partidaVm.partidaEstaPausada)
               _buildOverlayPartidaPausada(context, partidaVm),
 
-            if (partida.phase == 'finished')
-              _buildOverlayPartidaFinalizada(context, partidaVm),
+            // Loading defensivo: si el socket nos dijo "ya estás jugando"
+            // pero la mano del jugador local aún no ha llegado, mostramos un
+            // indicador mientras el VM hace polling al REST. Sólo se ve si
+            // realmente falta mano — no aparece en la partida normal.
+            if (partida.phase == 'playing' &&
+                partidaVm.esperandoManoInicial &&
+                (miJugador == null || miJugador.hand.isEmpty))
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.55),
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF00E5FF),
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        SizedBox(height: 18),
+                        Text(
+                          'Cargando partida…',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'Sincronizando tu mano con el servidor',
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            if (partida.phase == 'finished') const _GameOverOverlay(),
           ],
         ),
       ),
@@ -247,7 +369,15 @@ class TableroView extends StatelessWidget {
     final totalJugadores = partidaVm.partidaActual?.jugadores.length ?? 0;
 
     // Ocultamos el botón de la barra superior si la partida ya está pausada
-    final bool mostrarBotonPausa = !partidaVm.partidaEstaPausada;
+    // El botón de pausa SOLO aparece en partidas privadas humano-vs-humano:
+    // - excluido en públicas (no aplica)
+    // - excluido en partidas con bots / vs IA (no tiene sentido)
+    // - oculto si la partida YA está pausada
+    final partida = partidaVm.partidaActual;
+    final hayBots = partida?.jugadores.any((j) => j.isBot) ?? false;
+    final bool mostrarBotonPausa = !partidaVm.partidaEstaPausada &&
+        (partida?.isPrivate ?? false) &&
+        !hayBots;
 
     return SafeArea(
       child: Padding(
@@ -271,10 +401,22 @@ class TableroView extends StatelessWidget {
                 totalJugadores: totalJugadores,
                 haVotado: partidaVm.yoHeVotadoPausa,
                 onTap: () {
-                  if (!partidaVm.yoHeVotadoPausa) {
-                    partidaVm.emitirVotoPausa();
-                    debugPrint("Votando para pausar...");
-                  }
+                  if (partidaVm.yoHeVotadoPausa) return;
+                  partidaVm.emitirVotoPausa();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      duration: const Duration(seconds: 3),
+                      backgroundColor: const Color(0xFF0F1535),
+                      behavior: SnackBarBehavior.floating,
+                      content: const Text(
+                        'Esperando que los demás voten pausar…',
+                        style: TextStyle(
+                          color: Color(0xFFFFD54F),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  );
                 },
               ),
 
@@ -418,74 +560,382 @@ class TableroView extends StatelessWidget {
     );
   }
 
-  Widget _buildOverlayPartidaFinalizada(
-    BuildContext context,
-    PartidaActualViewModel partidaVm,
-  ) {
+}
+
+// ============================================================================
+// _GameOverOverlay
+// ============================================================================
+//
+// Pantalla rica de fin de partida. Equivalente al GameOverScreen.jsx del web:
+// muestra trofeo, recompensa propia destacada, lista de jugadores con sus
+// monedas, botón "Volver al inicio". En initState dispara una sola vez la
+// actualización de monedas / total_ganadas / total_partidas en AuthProvider.
+// ============================================================================
+class _GameOverOverlay extends StatefulWidget {
+  const _GameOverOverlay();
+
+  @override
+  State<_GameOverOverlay> createState() => _GameOverOverlayState();
+}
+
+class _GameOverOverlayState extends State<_GameOverOverlay> {
+  bool _statsAplicadas = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _aplicarStatsUnaVez());
+  }
+
+  void _aplicarStatsUnaVez() {
+    if (_statsAplicadas || !mounted) return;
+    final partidaVm = context.read<PartidaActualViewModel>();
+    final auth = context.read<AuthProvider>();
+    final resultado = partidaVm.resultadoFinal;
+    final yo = resultado?.resultadoDe(auth.usuario?.nombreUsuario);
+    if (yo == null) return;
+    auth.actualizarStatsPostPartida(
+      monedas: yo.monedasTotales,
+      totalGanadas: yo.totalGanadas,
+      totalPartidas: yo.totalPartidas,
+    );
+    _statsAplicadas = true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final partidaVm = context.watch<PartidaActualViewModel>();
+    final auth = context.watch<AuthProvider>();
+    final resultado = partidaVm.resultadoFinal;
+    final miId = auth.usuario?.nombreUsuario ?? partidaVm.partidaActual?.jugadorLocal ?? '';
+    final yo = resultado?.resultadoDe(miId);
+
+    final bool soyGanador = (resultado?.winner == miId) && miId.isNotEmpty;
+    final int recompensaPropia = yo?.monedasGanadas ??
+        (soyGanador
+            ? (resultado?.recompensaGanador ?? 50)
+            : (resultado?.recompensaPerdedor ?? 10));
+
+    final jugadoresOrdenados = [...?resultado?.jugadores]
+      ..sort((a, b) {
+        if (a.isWinner == b.isWinner) return 0;
+        return a.isWinner ? -1 : 1;
+      });
+
     return Positioned.fill(
       child: Container(
         color: Colors.black.withOpacity(0.78),
         child: Center(
-          child: Container(
-            width: 330,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F1535),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFF00E5FF).withOpacity(0.5),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00E5FF).withOpacity(0.2),
-                  blurRadius: 24,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.85, end: 1.0),
+            duration: const Duration(milliseconds: 380),
+            curve: Curves.elasticOut,
+            builder: (context, scale, child) =>
+                Transform.scale(scale: scale, child: child),
+            child: Container(
+              width: 340,
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F1535),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: soyGanador
+                      ? const Color(0xFFFFD54F).withOpacity(0.6)
+                      : const Color(0xFF00E5FF).withOpacity(0.45),
+                  width: 1.5,
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.emoji_events,
-                  color: Color(0xFFFFD54F),
-                  size: 42,
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  partidaVm.error ?? "Partida finalizada",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
+                boxShadow: [
+                  BoxShadow(
+                    color: (soyGanador
+                            ? const Color(0xFFFFD54F)
+                            : const Color(0xFF00E5FF))
+                        .withOpacity(0.2),
+                    blurRadius: 28,
+                    spreadRadius: 4,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00E5FF),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOutBack,
+                    builder: (context, v, child) => Transform.rotate(
+                      angle: (1 - v) * -0.4,
+                      child: Transform.scale(scale: v, child: child),
+                    ),
+                    child: Text(
+                      soyGanador ? '🏆' : '🎮',
+                      style: const TextStyle(fontSize: 56),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    soyGanador ? '¡Victoria!' : '¡Fin de partida!',
+                    style: TextStyle(
+                      color: soyGanador
+                          ? const Color(0xFFFFD54F)
+                          : Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    soyGanador
+                        ? '¡Has ganado la partida!'
+                        : (resultado != null
+                            ? '${resultado.winner} se ha llevado la victoria'
+                            : 'Partida finalizada'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _RewardBox(
+                    label: soyGanador
+                        ? '🥇 Recompensa de victoria'
+                        : '🎖️ Monedas por participar',
+                    amount: recompensaPropia,
+                    accent: soyGanador
+                        ? const Color(0xFFFFD54F)
+                        : const Color(0xFF00E5FF),
+                  ),
+                  if (jugadoresOrdenados.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ...List.generate(jugadoresOrdenados.length, (i) {
+                      final j = jugadoresOrdenados[i];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: _PlayerResultRow(
+                          jugador: j,
+                          esYo: j.id == miId,
+                          delayMs: 120 * i,
+                        ),
+                      );
+                    }),
+                  ],
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00E5FF),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
+                      icon: const Icon(Icons.home, size: 18),
+                      label: const Text(
+                        'Volver al inicio',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      onPressed: () {
+                        partidaVm.abandonarYBorrarPartida();
+                        Navigator.of(context)
+                            .popUntil((route) => route.isFirst);
+                      },
                     ),
-                    icon: const Icon(Icons.home, size: 18),
-                    label: const Text(
-                      "Volver al inicio",
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    onPressed: () {
-                      partidaVm.abandonarYBorrarPartida();
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RewardBox extends StatelessWidget {
+  final String label;
+  final int amount;
+  final Color accent;
+  const _RewardBox({
+    required this.label,
+    required this.amount,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: accent.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withOpacity(0.5)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: accent,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TweenAnimationBuilder<int>(
+            tween: IntTween(begin: 0, end: amount),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (context, v, _) => Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('🪙', style: TextStyle(fontSize: 22)),
+                const SizedBox(width: 8),
+                Text(
+                  '+$v',
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlayerResultRow extends StatelessWidget {
+  final ResultadoJugador jugador;
+  final bool esYo;
+  final int delayMs;
+  const _PlayerResultRow({
+    required this.jugador,
+    required this.esYo,
+    required this.delayMs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 320 + delayMs),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, child) => Opacity(
+        opacity: v,
+        child: Transform.translate(
+          offset: Offset((1 - v) * 30, 0),
+          child: child,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: jugador.isWinner
+              ? const Color(0xFFFFD54F).withOpacity(0.12)
+              : Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: jugador.isWinner
+                ? const Color(0xFFFFD54F).withOpacity(0.5)
+                : Colors.white12,
+          ),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: jugador.isWinner
+                  ? const Color(0xFFFFD54F)
+                  : const Color(0xFF3A4288),
+              child: Text(
+                jugador.isWinner
+                    ? '🏆'
+                    : (jugador.id.isNotEmpty
+                        ? jugador.id[0].toUpperCase()
+                        : '?'),
+                style: TextStyle(
+                  color: jugador.isWinner ? Colors.black : Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          jugador.id,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (esYo) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00E5FF),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'TÚ',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    jugador.isBot
+                        ? '🤖 Bot'
+                        : (jugador.isWinner ? '🥇 Ganador' : 'Participante'),
+                    style: const TextStyle(
+                      color: Colors.white60,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                const Text('🪙', style: TextStyle(fontSize: 14)),
+                const SizedBox(width: 4),
+                Text(
+                  '+${jugador.monedasGanadas}',
+                  style: const TextStyle(
+                    color: Color(0xFFFFD54F),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -542,7 +992,6 @@ class _AnimatedSettingsButtonState extends State<_AnimatedSettingsButton> {
   }
 }
 
-// --- BOTÓN DE PAUSA DINÁMICO ---
 class _AnimatedPauseButton extends StatefulWidget {
   final int votosActuales;
   final int totalJugadores;
@@ -631,6 +1080,95 @@ class _AnimatedPauseButtonState extends State<_AnimatedPauseButton> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Botón flotante para abrir el overlay del rol. Muestra el contador de usos
+// restantes y se ilumina cuando `canUseNow` es true (es mi turno y aún
+// tengo usos). Si todavía no se cargó el rol, sale neutro (cyan tenue).
+class _RolFloatingButton extends StatefulWidget {
+  final RolViewModel rolVm;
+  final VoidCallback onTap;
+
+  const _RolFloatingButton({required this.rolVm, required this.onTap});
+
+  @override
+  State<_RolFloatingButton> createState() => _RolFloatingButtonState();
+}
+
+class _RolFloatingButtonState extends State<_RolFloatingButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final miRol = widget.rolVm.miRol;
+    final activo = miRol?.canUseNow ?? false;
+    final restantes = miRol?.remainingUses ?? 0;
+    final max = miRol?.maxUses ?? miRol?.rol?.maxUsos ?? 0;
+    final color = activo ? const Color(0xFFFFD54F) : const Color(0xFF00E5FF);
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 80),
+        scale: _pressed ? 0.9 : 1.0,
+        child: Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.72),
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(activo ? 0.55 : 0.25),
+                blurRadius: activo ? 22 : 14,
+                spreadRadius: activo ? 2 : 1,
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              Icon(Icons.psychology, color: color, size: 26),
+              if (miRol != null && max > 0)
+                Positioned(
+                  right: -3,
+                  top: -3,
+                  child: Container(
+                    constraints:
+                        const BoxConstraints(minWidth: 20, minHeight: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: restantes > 0
+                          ? const Color(0xFFFFD54F)
+                          : Colors.grey.shade700,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white, width: 1),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$restantes',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

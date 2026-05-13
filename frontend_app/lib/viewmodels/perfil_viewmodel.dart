@@ -147,6 +147,17 @@ class PerfilViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cambia la contraseña del usuario llamando al backend.
+  /// Propaga el error del repo para que la UI muestre el mensaje específico
+  /// (e.g. "Contraseña actual incorrecta", "La nueva contraseña es demasiado
+  /// corta", etc.).
+  Future<void> cambiarContrasena(String actual, String nueva) async {
+    if (_repo == null) {
+      throw Exception('Repositorio no disponible');
+    }
+    await _repo!.changePassword(actual, nueva);
+  }
+
   Jugador buildJugadorActualizado() {
     return Jugador(
       nombre: _nombre,

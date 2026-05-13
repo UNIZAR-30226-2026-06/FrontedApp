@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/chat_message_model.dart';
 import '../../services/socket_service.dart';
 
 class ChatPartidaWidget extends StatefulWidget {
@@ -20,18 +21,33 @@ class ChatPartidaWidget extends StatefulWidget {
 class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<_ChatMessage> _mensajes = [];
+  final List<ChatMessage> _mensajes = [];
   bool _abierto = false;
+  int _noLeidos = 0;
   SocketService? _socketService;
+  bool _listenersRegistrados = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final socketService = context.read<SocketService>();
-    if (_socketService == socketService) return;
+    // Usamos watch (no read) para que didChangeDependencies se vuelva a
+    // llamar cuando el SocketService notifique (típicamente al conectar
+    // por primera vez tras login). Sin esto, si el chat widget se monta
+    // ANTES de que el socket esté listo, _registrarListeners() salía
+    // early con socket==null y nunca se reintentaba → el cliente recibía
+    // los eventos pero el chat no los procesaba.
+    final socketService = context.watch<SocketService>();
 
-    _socketService = socketService;
-    _registrarListeners();
+    final cambioInstancia = _socketService != socketService;
+    if (cambioInstancia) _socketService = socketService;
+
+    // Re-registramos si:
+    //  - cambia la instancia del service (poco habitual)
+    //  - aún no había listeners pero ahora el socket sí existe
+    final socketYaListo = socketService.socket != null;
+    if ((cambioInstancia || !_listenersRegistrados) && socketYaListo) {
+      _registrarListeners();
+    }
   }
 
   @override
@@ -39,6 +55,8 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.partidaId != widget.partidaId) {
       _mensajes.clear();
+      _noLeidos = 0;
+      _listenersRegistrados = false;
       _registrarListeners();
     }
   }
@@ -54,13 +72,18 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
 
   void _registrarListeners() {
     final socket = _socketService?.socket;
-    if (socket == null) return;
+    if (socket == null) {
+      debugPrint('[Chat] _registrarListeners abortado: socket null (se reintentará cuando conecte)');
+      return;
+    }
 
     _limpiarListeners();
     _socketService?.emitir('unirse_room_partida', widget.partidaId);
     socket.on('mensajeMostrar', _recibirMensaje);
     socket.on('nuevoMensajeChat', _recibirMensaje);
     socket.on('chat_error', _recibirError);
+    _listenersRegistrados = true;
+    debugPrint('[Chat] listeners registrados para ${widget.partidaId}');
   }
 
   void _limpiarListeners() {
@@ -68,16 +91,21 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
     socket?.off('mensajeMostrar');
     socket?.off('nuevoMensajeChat');
     socket?.off('chat_error');
+    _listenersRegistrados = false;
   }
 
   void _recibirMensaje(dynamic data) {
     if (!mounted || data is! Map) return;
-    final msg = _ChatMessage.fromSocket(data);
+    final msg = ChatMessage.fromSocket(data);
     if (msg.partidaId != null && msg.partidaId != widget.partidaId) return;
 
     setState(() {
       _mensajes.add(msg);
       if (_mensajes.length > 80) _mensajes.removeAt(0);
+      // Sólo cuenta no-leídos si el panel está cerrado y el mensaje NO es mío.
+      if (!_abierto && msg.remitente != widget.miUsuario) {
+        _noLeidos++;
+      }
     });
     _scrollToBottom();
   }
@@ -114,6 +142,15 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
     });
   }
 
+  void _abrirPanel() {
+    setState(() {
+      _abierto = true;
+      _noLeidos = 0;
+    });
+    // Al abrir, scrolea al final para ver el último mensaje.
+    _scrollToBottom();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
@@ -134,7 +171,7 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(27),
-        onTap: () => setState(() => _abierto = true),
+        onTap: _abrirPanel,
         child: Ink(
           decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.72),
@@ -149,18 +186,33 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
           ),
           child: Stack(
             alignment: Alignment.center,
+            clipBehavior: Clip.none,
             children: [
               const Icon(Icons.chat_bubble_outline, color: Color(0xFF00E5FF)),
-              if (_mensajes.isNotEmpty)
+              if (_noLeidos > 0)
                 Positioned(
-                  right: 7,
-                  top: 7,
+                  right: -4,
+                  top: -4,
                   child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFD54F),
-                      shape: BoxShape.circle,
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE53935),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: Colors.white, width: 1.2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _noLeidos > 9 ? '9+' : '$_noLeidos',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -188,21 +240,39 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
         children: [
           _buildHeader(),
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              itemCount: _mensajes.length,
-              itemBuilder: (context, index) {
-                final msg = _mensajes[index];
-                final mine = msg.remitente == widget.miUsuario;
-                return Align(
-                  alignment: mine
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: _MessageBubble(message: msg, mine: mine),
-                );
-              },
-            ),
+            child: _mensajes.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Sin mensajes todavía.\n¡Empieza tú la conversación!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    itemCount: _mensajes.length,
+                    itemBuilder: (context, index) {
+                      final msg = _mensajes[index];
+                      final mine = msg.remitente == widget.miUsuario;
+                      return Align(
+                        alignment: mine
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: _MessageBubble(message: msg, mine: mine),
+                      );
+                    },
+                  ),
           ),
           _buildInput(),
         ],
@@ -225,7 +295,7 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'Chat',
+              'Chat de partida',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
@@ -285,7 +355,7 @@ class _ChatPartidaWidgetState extends State<ChatPartidaWidget> {
 }
 
 class _MessageBubble extends StatelessWidget {
-  final _ChatMessage message;
+  final ChatMessage message;
   final bool mine;
 
   const _MessageBubble({required this.message, required this.mine});
@@ -327,24 +397,20 @@ class _MessageBubble extends StatelessWidget {
               height: 1.2,
             ),
           ),
+          const SizedBox(height: 3),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Text(
+              message.horaCorta,
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _ChatMessage {
-  final String remitente;
-  final String texto;
-  final String? partidaId;
-
-  _ChatMessage({required this.remitente, required this.texto, this.partidaId});
-
-  factory _ChatMessage.fromSocket(Map data) {
-    return _ChatMessage(
-      remitente: data['remitente']?.toString() ?? 'Jugador',
-      texto: data['texto']?.toString() ?? '',
-      partidaId: (data['partidaId'] ?? data['partidaID'])?.toString(),
     );
   }
 }

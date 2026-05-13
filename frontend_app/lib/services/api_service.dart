@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../app/api_config.dart';
 
 class ApiService {
-  final String baseUrl = "https://backend-i797.onrender.com/api/v1";
+  // Leemos la URL desde ApiConfig (misma fuente que SocketService) para que
+  // HTTP y socket hablen siempre con el mismo backend. Cambiar la URL en un
+  // solo sitio (api_config.dart) basta para alternar entre local y Render.
+  final String baseUrl = ApiConfig.baseUrl;
   String? _token;
 
   void setToken(String token) => _token = token;
@@ -50,5 +54,4 @@ class ApiService {
       body: body != null ? json.encode(body) : null,
     );
   }
-
 }

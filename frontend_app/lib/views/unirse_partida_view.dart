@@ -11,10 +11,15 @@ class UnirsePartidaView extends StatefulWidget {
   final String modoTitulo;
   final String modoSubtitulo;
 
+  /// Se propaga a la sala de espera. `true` para partidas multijugador
+  /// cartas/roles donde el host sólo puede iniciar con la sala completa.
+  final bool requiereSalaLlena;
+
   const UnirsePartidaView({
     super.key,
     required this.modoTitulo,
     required this.modoSubtitulo,
+    this.requiereSalaLlena = true,
   });
 
   @override
@@ -167,8 +172,13 @@ class _UnirsePartidaViewState extends State<UnirsePartidaView> {
                                     Navigator.pushReplacement(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => SalaEsperaView(modoJuego: widget.modoTitulo),
-                                    ));
+                                        builder: (context) => SalaEsperaView(
+                                          modoJuego: widget.modoTitulo,
+                                          requiereSalaLlena:
+                                              widget.requiereSalaLlena,
+                                        ),
+                                      ),
+                                    );
                                   }
                                 } catch (_) {
                                   if (context.mounted) {
